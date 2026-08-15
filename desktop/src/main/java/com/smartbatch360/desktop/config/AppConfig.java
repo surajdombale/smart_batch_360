@@ -6,8 +6,11 @@ import java.util.Properties;
 
 /**
  * Loads desktop configuration (currently just the backend API base URL) from
- * application.properties, with a -Dapi.base-url system property override so
- * the same build can point at different environments without a code change.
+ * application.properties. Override order (highest priority first):
+ * -Dapi.base-url system property, API_BASE_URL environment variable, then the
+ * bundled default - so a packaged .exe can point at a different backend
+ * without a rebuild (env var is the more reliable override for a native
+ * launcher, where JVM system-property passthrough isn't guaranteed).
  */
 public final class AppConfig {
 
@@ -25,8 +28,10 @@ public final class AppConfig {
             throw new IllegalStateException("Failed to load application.properties", e);
         }
 
-        String configured = properties.getProperty("api.base-url", "http://localhost:8080");
-        this.apiBaseUrl = System.getProperty("api.base-url", configured);
+        String configured = properties.getProperty("api.base-url", "http://localhost:8081");
+        String envOverride = System.getenv("API_BASE_URL");
+        String withEnvFallback = (envOverride != null && !envOverride.isBlank()) ? envOverride : configured;
+        this.apiBaseUrl = System.getProperty("api.base-url", withEnvFallback);
     }
 
     public static AppConfig get() {
