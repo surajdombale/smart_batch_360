@@ -1,0 +1,26 @@
+# Build output
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local environment / secrets - never commit real credentials
+.env
+.env.*
+application-local.yml
+application-local.properties
+
+# Maven wrapper cache (optional to keep, excluded to keep repo lean)
