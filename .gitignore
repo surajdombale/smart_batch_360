@@ -5,10 +5,15 @@ target/
 # IDE
 .idea/
 *.iml
-.vscode/
 .settings/
 .classpath
 .project
+
+# .vscode/ is tracked on purpose: tasks.json/extensions.json are shared run
+# configs, not personal editor state. Ignore only personal-machine overrides.
+.vscode/*
+!.vscode/tasks.json
+!.vscode/extensions.json
 
 # OS
 .DS_Store

@@ -1,0 +1,49 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Backend: Run (Spring Boot)",
+            "type": "shell",
+            "command": "mvn spring-boot:run",
+            "options": { "cwd": "${workspaceFolder}/backend" },
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "reveal": "always" },
+            "group": "build"
+        },
+        {
+            "label": "Desktop: Run (JavaFX)",
+            "type": "shell",
+            "command": "mvn javafx:run",
+            "options": { "cwd": "${workspaceFolder}/desktop" },
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "reveal": "always" },
+            "group": "build"
+        },
+        {
+            "label": "Backend: Test",
+            "type": "shell",
+            "command": "mvn test",
+            "options": { "cwd": "${workspaceFolder}/backend" },
+            "problemMatcher": [],
+            "group": "test"
+        },
+        {
+            "label": "Backend: Build (clean verify)",
+            "type": "shell",
+            "command": "mvn clean verify",
+            "options": { "cwd": "${workspaceFolder}/backend" },
+            "problemMatcher": [],
+            "group": { "kind": "build", "isDefault": true }
+        },
+        {
+            "label": "Desktop: Build (clean package)",
+            "type": "shell",
+            "command": "mvn clean package",
+            "options": { "cwd": "${workspaceFolder}/desktop" },
+            "problemMatcher": [],
+            "group": "build"
+        }
+    ]
+}
