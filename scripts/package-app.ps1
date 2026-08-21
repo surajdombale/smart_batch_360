@@ -1,20 +1,31 @@
-# Builds a self-contained SmartBatch360 desktop client .exe (bundles its own
-# Java runtime - the target machine does not need Java or Maven installed).
-# Run from anywhere; paths are resolved relative to this script's location.
+# Builds a single self-contained SmartBatch360 .exe - the JavaFX UI and the
+# Spring Boot backend embedded in one process (bundles its own Java runtime;
+# the target machine only needs MySQL, not Java or Maven).
 #
-# Usage: powershell -ExecutionPolicy Bypass -File scripts\package-desktop.ps1
+# Usage: powershell -ExecutionPolicy Bypass -File scripts\package-app.ps1
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
+$backend = Join-Path $root "backend"
 $desktop = Join-Path $root "desktop"
+
+Push-Location $backend
+try {
+    Write-Host "Installing smartbatch360-api to the local repo (desktop depends on it)..."
+    mvn -q clean install "-DskipTests"
+    if ($LASTEXITCODE -ne 0) { throw "Backend build failed" }
+}
+finally {
+    Pop-Location
+}
 
 Push-Location $desktop
 try {
-    Write-Host "Building smartbatch360-desktop.jar..."
+    Write-Host "Building smartbatch360-desktop.jar (embeds the backend)..."
     mvn -q clean package "-DskipTests"
-    if ($LASTEXITCODE -ne 0) { throw "Maven build failed" }
+    if ($LASTEXITCODE -ne 0) { throw "Desktop build failed" }
 
-    Write-Host "Collecting runtime dependencies (JavaFX, Jackson)..."
+    Write-Host "Collecting runtime dependencies (JavaFX, Spring Boot, Hibernate, MySQL driver, Flyway, Jackson)..."
     mvn -q dependency:copy-dependencies "-DoutputDirectory=target/libs" "-DincludeScope=runtime"
     if ($LASTEXITCODE -ne 0) { throw "Dependency collection failed" }
 
@@ -29,8 +40,9 @@ try {
     # launcher refuses to start a packaged app whose main class directly
     # extends javafx.application.Application without JavaFX on the module-path.
     # jdk.unsupported is required in addition to java.se: JavaFX's Marlin
-    # rasterizer uses sun.misc.Unsafe (from jdk.unsupported) - omitting it
-    # crashes on first paint with NoClassDefFoundError.
+    # rasterizer AND Spring's CGLIB/AOP proxying (@Transactional) both need it -
+    # omitting it crashes the UI on first paint, or fails bean creation with
+    # "Unable to instantiate proxy using Objenesis", respectively.
     jpackage `
         --type app-image `
         --name SmartBatch360 `
@@ -44,7 +56,9 @@ try {
         --description "SmartBatch360 - Industrial Batching Plant Management System (Phase 1)"
     if ($LASTEXITCODE -ne 0) { throw "jpackage failed" }
 
-    $zipPath = Join-Path $desktop "target\SmartBatch360-Desktop.zip"
+    Copy-Item (Join-Path $root "scripts\SETUP_ON_NEW_PC.md") "target/dist/SmartBatch360/" -Force
+
+    $zipPath = Join-Path $desktop "target\SmartBatch360.zip"
     Remove-Item $zipPath -ErrorAction SilentlyContinue
     Compress-Archive -Path "target/dist/SmartBatch360" -DestinationPath $zipPath
     Write-Host "Done: $zipPath"

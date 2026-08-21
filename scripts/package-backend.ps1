@@ -1,5 +1,8 @@
-# Builds a self-contained SmartBatch360 backend server .exe (bundles its own
-# Java runtime - the target machine only needs MySQL, not Java or Maven).
+# ADVANCED/OPTIONAL: builds a self-contained SmartBatch360 backend-only server
+# .exe (bundles its own Java runtime). Most installs should use
+# scripts\package-app.ps1 instead - a single .exe with the UI and backend
+# embedded together. Use this script only for a standalone server that
+# multiple desktop clients on other machines connect to remotely.
 # Run from anywhere; paths are resolved relative to this script's location.
 #
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\package-backend.ps1
@@ -15,7 +18,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Maven build failed" }
 
     New-Item -ItemType Directory -Force -Path "target/app-input" | Out-Null
-    Copy-Item "target/smartbatch360-api.jar" "target/app-input/" -Force
+    # -exec.jar (classifier=exec in pom.xml), not the plain jar: the plain
+    # smartbatch360-api.jar has classes at the root with no Spring Boot loader/
+    # Main-Class - it exists so the desktop module can depend on it as a
+    # library. Only -exec.jar is a runnable Spring Boot application.
+    Copy-Item "target/smartbatch360-api-exec.jar" "target/app-input/smartbatch360-api.jar" -Force
 
     Remove-Item -Recurse -Force "target/dist" -ErrorAction SilentlyContinue
 
