@@ -84,9 +84,16 @@
     <build>
         <finalName>smartbatch360-api</finalName>
         <plugins>
+            <!-- classifier=exec keeps target/smartbatch360-api.jar as a PLAIN jar (classes at
+                 the jar root) so the desktop module can depend on it normally to embed the
+                 backend in-process. The executable fat jar (for standalone/advanced server-only
+                 deployments) is produced separately as smartbatch360-api-exec.jar. -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <classifier>exec</classifier>
+                </configuration>
             </plugin>
         </plugins>
     </build>

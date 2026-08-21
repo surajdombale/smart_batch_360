@@ -3,10 +3,6 @@ package com.smartbatch360.api.config;
 import javax.swing.JOptionPane;
 import java.awt.GraphicsEnvironment;
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Optional;
 
 /**
@@ -52,7 +48,7 @@ public final class DatabaseBootstrap {
             }
 
             try {
-                ensureDatabaseExists(config);
+                DatabaseProvisioning.ensureDatabaseExists(config);
                 config.saveTo(CONFIG_PATH);
                 break;
             } catch (Exception e) {
@@ -62,15 +58,6 @@ public final class DatabaseBootstrap {
         }
 
         applyToSystemProperties(config);
-    }
-
-    private static void ensureDatabaseExists(DatabaseConfig config) throws SQLException {
-        try (Connection connection = DriverManager.getConnection(
-                config.adminJdbcUrl(), config.username(), config.password());
-             Statement statement = connection.createStatement()) {
-            statement.executeUpdate(
-                    "CREATE DATABASE IF NOT EXISTS `" + config.database() + "` CHARACTER SET utf8mb4");
-        }
     }
 
     /** application.yml already reads ${DB_HOST:...}/${DB_PORT:...}/etc. - these satisfy those placeholders. */
