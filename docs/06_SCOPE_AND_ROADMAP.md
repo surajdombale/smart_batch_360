@@ -11,7 +11,7 @@ The current phase is intentionally small:
 - Site CRUD
 - Vehicle CRUD
 - Driver CRUD
-- Header only after clarification
+- Header CRUD — clarified by the user 2026-08-17 (docs/01_REQUIREMENTS.md), now built
 
 ### Do not build now
 - Production

@@ -149,6 +149,4 @@ Keep the visual styling centralized in JavaFX CSS/theme resources.
 
 ## Header module
 
-The supplied documents do not define Header.
-
-Do not create a Header schema or UI based on assumptions. Keep it as a clearly identified pending requirement.
+The supplied documents do not define Header - no schema or UI was created from assumptions. It stayed a clearly identified pending requirement until the user supplied the definition directly (2026-08-17); see docs/01_REQUIREMENTS.md. The list/form UI follows the same layout pattern as Customer/Site/Vehicle/Driver: a table (Company Name, Plant/Branch Name, Phone, Status) plus an Add/Edit dialog for all fields.

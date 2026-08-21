@@ -14,9 +14,21 @@ For the current development phase, implement only the first five requested data-
 2. Site
 3. Vehicle
 4. Driver
-5. Header — **not defined in either supplied document**
+5. Header — not defined in either supplied document; **clarified directly by the user on 2026-08-17** (see below)
 
-Important: the supplied documents explicitly define Customer, Site, Vehicle and Driver as master-data modules, but do not define a "Header" master table. Claude must NOT invent Header fields or business meaning. Flag this as a requirement clarification before creating its database schema.
+Important: the supplied documents explicitly define Customer, Site, Vehicle and Driver as master-data modules, but do not define a "Header" master table. This was correctly flagged as a requirement clarification before any schema was created for it, and Header was NOT implemented until the user supplied its definition below.
+
+## Header (clarified 2026-08-17, not from the source documents)
+
+The user defined Header as: the company/plant letterhead block that will appear
+at the top of printed Batch Logs and Order/Recipe reports, once those
+(currently out-of-scope) modules are built. It has no dependency on
+Batch/Recipe data - it is a standalone branding record.
+
+- Multiple named headers are supported (e.g. one per plant/branch) - full CRUD, same pattern as the other four modules.
+- Fields: Company Name (required), Plant/Branch Name (required), Address, Phone, Email, GSTIN/Tax ID (all optional), Status (Active/Inactive).
+- No logo image upload in Phase 1 (text fields only, by user's choice).
+- No foreign-key relationship to Customer/Site/Vehicle/Driver.
 
 The current phase is CRUD-focused. Do not implement the broader production roadmap.
 

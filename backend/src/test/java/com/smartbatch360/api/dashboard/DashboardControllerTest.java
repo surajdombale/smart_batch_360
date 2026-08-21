@@ -23,7 +23,7 @@ class DashboardControllerTest {
     @Test
     void summaryReturnsOnlyPhase1BackedCounts() throws Exception {
         when(dashboardService.getSummary()).thenReturn(
-                new DashboardSummaryResponse(18, 5, 25, 12, "UP", "UP", "UP"));
+                new DashboardSummaryResponse(18, 5, 25, 12, 1, "UP", "UP", "UP"));
 
         mockMvc.perform(get("/api/v1/dashboard/summary"))
                 .andExpect(status().isOk())
