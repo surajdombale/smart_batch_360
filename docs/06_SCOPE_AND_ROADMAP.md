@@ -12,6 +12,7 @@ The current phase is intentionally small:
 - Vehicle CRUD
 - Driver CRUD
 - Header CRUD — clarified by the user 2026-08-17 (docs/01_REQUIREMENTS.md), now built
+- Settings → Database Connection only — explicitly requested by the user 2026-08-21 as part of merging the app into a single install (docs/03_ARCHITECTURE.md); the rest of Settings remains out of scope below
 
 ### Do not build now
 - Production
@@ -20,7 +21,7 @@ The current phase is intentionally small:
 - Recipe Management
 - Analytics
 - PLC Monitoring
-- Settings
+- Settings (beyond the Database Connection tab noted above - Plant info, PLC communication, backup/restore, user management, general preferences)
 - Alarm/Event History
 - advanced authentication/permissions
 - backup/restore

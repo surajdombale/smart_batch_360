@@ -20,6 +20,19 @@ PLC / Plant Equipment
 
 Therefore, do NOT replace the documented REST architecture with an embedded Spring Boot desktop architecture unless the user explicitly changes this requirement.
 
+**Update (2026-08-21):** the user explicitly requested this change - a single
+installable app instead of two separate executables. The REST architecture
+itself is unchanged (JavaFX still talks to Spring Boot exclusively over
+HTTP, DTOs still separate from entities, controllers/services/repositories
+untouched); only the deployment/packaging changed - the Spring Boot context
+now runs embedded inside the same JVM/process as the JavaFX UI
+(desktop module depends on the backend module as a library and starts it
+itself; see com.smartbatch360.desktop.server.EmbeddedServer). The backend
+module remains independently buildable and runnable as its own standalone
+process for advanced/multi-client deployments
+(scripts/package-backend.ps1) - it was not removed, just no longer the
+default packaging.
+
 ## Technology stack
 
 The supplied documents specify:
