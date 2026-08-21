@@ -6,6 +6,8 @@ import com.smartbatch360.desktop.driver.DriverView;
 import com.smartbatch360.desktop.header.HeaderView;
 import com.smartbatch360.desktop.navigation.MainShell;
 import com.smartbatch360.desktop.navigation.NavItem;
+import com.smartbatch360.desktop.server.EmbeddedServer;
+import com.smartbatch360.desktop.settings.SettingsView;
 import com.smartbatch360.desktop.site.SiteView;
 import com.smartbatch360.desktop.vehicle.VehicleView;
 import javafx.application.Application;
@@ -19,12 +21,19 @@ import java.util.Objects;
 /**
  * SmartBatch360 desktop client entry point.
  *
+ * A single process/install now carries both the JavaFX UI and the Spring
+ * Boot backend (REST/JPA/Flyway, unchanged internally) - see
+ * com.smartbatch360.desktop.server.EmbeddedServer. The database connection
+ * is configured from Settings > Database Connection rather than a separate
+ * server executable; there is no longer a standalone desktop-only mode.
+ *
  * Phase 1 navigation is Dashboard + the four approved master-data modules
  * (Customer/Site/Vehicle/Driver) plus Header, whose fields were clarified
  * directly by the user on 2026-08-17 (not defined in either source
- * document). Production, Consumption, Batch Reports, Recipes, Analytics,
- * Plant/PLC, Settings and Alarm/Event History remain NOT implemented
- * (docs/06_SCOPE_AND_ROADMAP.md, CLAUDE.md.md).
+ * document), plus a minimal Settings screen (Database Connection only -
+ * not the full future Settings module). Production, Consumption, Batch
+ * Reports, Recipes, Analytics, Plant/PLC and Alarm/Event History remain NOT
+ * implemented (docs/06_SCOPE_AND_ROADMAP.md, CLAUDE.md.md).
  */
 public class DesktopApplication extends Application {
 
@@ -36,7 +45,8 @@ public class DesktopApplication extends Application {
                 new NavItem("sites", "Sites", () -> new SiteView().getView()),
                 new NavItem("vehicles", "Vehicles", () -> new VehicleView().getView()),
                 new NavItem("drivers", "Drivers", () -> new DriverView().getView()),
-                new NavItem("headers", "Headers", () -> new HeaderView().getView())
+                new NavItem("headers", "Headers", () -> new HeaderView().getView()),
+                new NavItem("settings", "Settings", () -> new SettingsView().getView())
         );
 
         // Conservative fixed default (rather than a percentage of the detected
@@ -67,7 +77,20 @@ public class DesktopApplication extends Application {
         primaryStage.show();
     }
 
+    @Override
+    public void stop() {
+        // Shuts embedded Tomcat/Spring down cleanly; without this the JVM can
+        // linger after the window closes since Tomcat's threads are non-daemon.
+        EmbeddedServer.stop();
+        System.exit(0);
+    }
+
     public static void main(String[] args) {
+        // Off the JavaFX Application Thread and off main() itself: Spring Boot
+        // startup takes several seconds, and the UI must not wait on it - the
+        // existing per-screen loading/error/retry states already handle "the
+        // backend isn't up yet" gracefully.
+        Thread.ofVirtual().name("embedded-server-startup").start(EmbeddedServer::startIfConfigured);
         launch(args);
     }
 }
