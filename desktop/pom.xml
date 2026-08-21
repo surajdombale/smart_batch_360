@@ -22,6 +22,16 @@
     </properties>
 
     <dependencies>
+        <!-- Embeds the Spring Boot backend in-process, so a single install/exe
+             carries both the UI and the REST/JPA/Flyway layer. Pulls in
+             spring-boot-starter-web/data-jpa/validation/actuator, MySQL driver
+             and Flyway transitively - none of it redeclared here. -->
+        <dependency>
+            <groupId>com.smartbatch360</groupId>
+            <artifactId>smartbatch360-api</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
