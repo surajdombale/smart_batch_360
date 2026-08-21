@@ -28,4 +28,9 @@ Thumbs.db
 application-local.yml
 application-local.properties
 
+# Generated at runtime by DatabaseBootstrap (first-run DB setup wizard) -
+# holds real MySQL credentials, must never be committed.
+backend/config/
+config/smartbatch360.properties
+
 # Maven wrapper cache (optional to keep, excluded to keep repo lean)
