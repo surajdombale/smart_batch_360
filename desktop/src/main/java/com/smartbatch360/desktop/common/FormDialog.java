@@ -42,7 +42,24 @@ public class FormDialog {
         formError.setVisible(false);
 
         var content = new javafx.scene.layout.VBox(8, formError, grid);
-        dialog.getDialogPane().setContent(content);
+
+        // Long forms (Batch's 16 fields + materials table being the worst
+        // case) could grow taller than the screen with no way to reach the
+        // Save button - wrap in a ScrollPane capped to a fraction of the
+        // screen's visible height so the dialog always fits on-screen, with
+        // scrolling for whatever doesn't. setMaxHeight alone isn't enough:
+        // JavaFX sizes the dialog window from the ScrollPane's PREFERRED
+        // height (its full, uncapped content height) during the initial
+        // sizeToScene() pass, ignoring maxHeight there - setPrefViewportHeight
+        // is what actually drives that preferred-size computation down.
+        javafx.scene.control.ScrollPane scrollPane = new javafx.scene.control.ScrollPane(content);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: transparent;");
+        double maxHeight = javafx.stage.Screen.getPrimary().getVisualBounds().getHeight() * 0.75;
+        scrollPane.setMaxHeight(maxHeight);
+        scrollPane.setPrefViewportHeight(maxHeight);
+
+        dialog.getDialogPane().setContent(scrollPane);
         dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
         dialog.getDialogPane().getStylesheets().add(
                 getClass().getResource("/css/theme.css").toExternalForm());
