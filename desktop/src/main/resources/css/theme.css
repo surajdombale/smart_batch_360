@@ -49,6 +49,12 @@
     -fx-font-weight: bold;
 }
 
+.nav-brand-accent {
+    -fx-text-fill: -sb-blue;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
 .nav-item {
     -fx-background-color: transparent;
     -fx-text-fill: #c3cbdc;

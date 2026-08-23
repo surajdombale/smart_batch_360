@@ -42,10 +42,16 @@ public class MainShell extends BorderPane {
         logo.setPreserveRatio(true);
         logo.getStyleClass().add("nav-brand-logo");
 
-        Label brandText = new Label("SmartBatch360");
+        Label brandText = new Label("SmartBatch");
         brandText.getStyleClass().add("nav-brand");
 
-        HBox brand = new HBox(10, logo, brandText);
+        Label brandAccent = new Label("360");
+        brandAccent.getStyleClass().add("nav-brand-accent");
+
+        HBox brandLabels = new HBox(brandText, brandAccent);
+        brandLabels.setAlignment(Pos.CENTER_LEFT);
+
+        HBox brand = new HBox(10, logo, brandLabels);
         brand.setAlignment(Pos.CENTER_LEFT);
         brand.getStyleClass().add("nav-brand-row");
 
