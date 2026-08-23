@@ -8,6 +8,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.ArrayList;
@@ -65,12 +67,7 @@ public class MainShell extends BorderPane {
             if (entry instanceof NavItem item) {
                 sidebar.getChildren().add(navButton(item, false));
             } else if (entry instanceof NavGroup group) {
-                Label groupLabel = new Label(group.label().toUpperCase());
-                groupLabel.getStyleClass().add("nav-group-label");
-                sidebar.getChildren().add(groupLabel);
-                for (NavItem item : group.children()) {
-                    sidebar.getChildren().add(navButton(item, true));
-                }
+                sidebar.getChildren().add(collapsibleGroup(group));
             }
         }
 
@@ -80,6 +77,39 @@ public class MainShell extends BorderPane {
         if (!allNavButtons.isEmpty()) {
             allNavButtons.get(0).fire();
         }
+    }
+
+    /**
+     * A group heading (e.g. "Resources") that collapses/expands its child
+     * nav items on click - requested by the user 2026-08-23. Starts expanded
+     * so nothing changes on first launch; the chevron flips to reflect state.
+     */
+    private VBox collapsibleGroup(NavGroup group) {
+        VBox items = new VBox();
+        for (NavItem item : group.children()) {
+            items.getChildren().add(navButton(item, true));
+        }
+
+        Label groupText = new Label(group.label().toUpperCase());
+        groupText.getStyleClass().add("nav-group-label-text");
+
+        Label chevron = new Label("▾"); // small down-pointing triangle
+        chevron.getStyleClass().add("nav-group-chevron");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox header = new HBox(groupText, spacer, chevron);
+        header.getStyleClass().add("nav-group-label");
+        header.setOnMouseClicked(e -> {
+            boolean expanding = !items.isVisible();
+            items.setVisible(expanding);
+            items.setManaged(expanding);
+            chevron.setText(expanding ? "▾" : "▸");
+        });
+
+        VBox groupBox = new VBox(header, items);
+        return groupBox;
     }
 
     private Button navButton(NavItem item, boolean nested) {

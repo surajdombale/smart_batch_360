@@ -78,10 +78,20 @@
 }
 
 .nav-group-label {
+    -fx-padding: 16 20 4 20;
+    -fx-alignment: CENTER_LEFT;
+    -fx-cursor: hand;
+}
+
+.nav-group-label-text {
     -fx-text-fill: #7b869e;
     -fx-font-size: 10px;
     -fx-font-weight: bold;
-    -fx-padding: 16 20 4 20;
+}
+
+.nav-group-chevron {
+    -fx-text-fill: #7b869e;
+    -fx-font-size: 9px;
 }
 
 .nav-item-nested {
