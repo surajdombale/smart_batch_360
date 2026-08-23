@@ -38,7 +38,7 @@ try {
         --main-jar smartbatch360-api.jar `
         --add-modules java.se,jdk.unsupported `
         --dest target/dist `
-        --app-version 0.1.0 `
+        --app-version 2.0.0 `
         --vendor "SmartBatch360" `
         --description "SmartBatch360 REST backend (Phase 1)" `
         --win-console
