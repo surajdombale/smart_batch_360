@@ -39,11 +39,14 @@
     -fx-min-width: 220;
 }
 
+.nav-brand-row {
+    -fx-padding: 0 20 20 20;
+}
+
 .nav-brand {
     -fx-text-fill: white;
     -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-padding: 0 20 20 20;
 }
 
 .nav-item {

@@ -17,6 +17,7 @@ import com.smartbatch360.desktop.site.SiteView;
 import com.smartbatch360.desktop.vehicle.VehicleView;
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
@@ -85,6 +86,9 @@ public class DesktopApplication extends Application {
         primaryStage.setResizable(true);
 
         primaryStage.setTitle("SmartBatch360 - Industrial Batching Plant Management System");
+        primaryStage.getIcons().add(new Image(Objects.requireNonNull(
+                getClass().getResourceAsStream("/images/app-icon.png"),
+                "images/app-icon.png not found on classpath")));
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(defaultWidth);
         primaryStage.setMinHeight(defaultHeight);
