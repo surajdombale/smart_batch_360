@@ -1,4 +1,4 @@
-package com.smartbatch360.desktop.customer;
+package com.smartbatch360.desktop.client;
 
 import com.smartbatch360.desktop.api.ApiException;
 import com.smartbatch360.desktop.common.FormDialog;
@@ -10,35 +10,42 @@ import javafx.scene.control.TextField;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-/** Add/Edit dialog for Customer. Fields match exactly what the Customer Management mockup shows. */
-public class CustomerFormDialog {
+/**
+ * Add/Edit dialog for Client (originally "Customer"). Fields match what the
+ * Customer Management mockup shows, plus Address - added at the user's
+ * explicit request (2026-08-23), optional since it has no mockup backing.
+ */
+public class ClientFormDialog {
 
-    private final CustomerApiClient apiClient = new CustomerApiClient();
+    private final ClientApiClient apiClient = new ClientApiClient();
     private final FormDialog formDialog;
     private final TextField nameField = new TextField();
     private final TextField contactPersonField = new TextField();
     private final TextField phoneField = new TextField();
-    private final ComboBox<CustomerStatus> statusField = new ComboBox<>(FXCollections.observableArrayList(CustomerStatus.values()));
+    private final TextField addressField = new TextField();
+    private final ComboBox<ClientStatus> statusField = new ComboBox<>(FXCollections.observableArrayList(ClientStatus.values()));
 
     private final boolean isEdit;
     private final Long id;
-    private CustomerDto saved;
+    private ClientDto saved;
 
-    public CustomerFormDialog(CustomerDto existing) {
+    public ClientFormDialog(ClientDto existing) {
         this.isEdit = existing != null;
         this.id = existing != null ? existing.id() : null;
 
-        formDialog = new FormDialog(isEdit ? "Edit Customer" : "Add Customer");
-        formDialog.addField("Customer Name", "name", nameField);
+        formDialog = new FormDialog(isEdit ? "Edit Client" : "Add Client");
+        formDialog.addField("Client Name", "name", nameField);
         formDialog.addField("Contact Person", "contactPerson", contactPersonField);
         formDialog.addField("Phone", "phone", phoneField);
+        formDialog.addField("Address", "address", addressField);
         formDialog.addField("Status", "status", statusField);
 
-        statusField.getSelectionModel().select(CustomerStatus.ACTIVE);
+        statusField.getSelectionModel().select(ClientStatus.ACTIVE);
         if (existing != null) {
             nameField.setText(existing.name());
             contactPersonField.setText(existing.contactPerson());
             phoneField.setText(existing.phone());
+            addressField.setText(existing.address());
             statusField.getSelectionModel().select(existing.status());
         }
 
@@ -47,11 +54,12 @@ public class CustomerFormDialog {
 
     private void save() {
         formDialog.clearErrors();
-        CustomerRequestDto request = new CustomerRequestDto(
-                nameField.getText(), contactPersonField.getText(), phoneField.getText(), statusField.getValue());
+        ClientRequestDto request = new ClientRequestDto(
+                nameField.getText(), contactPersonField.getText(), phoneField.getText(),
+                addressField.getText(), statusField.getValue());
 
         formDialog.setSaving(true);
-        CompletableFuture<CustomerDto> future = isEdit ? apiClient.update(id, request) : apiClient.create(request);
+        CompletableFuture<ClientDto> future = isEdit ? apiClient.update(id, request) : apiClient.create(request);
 
         future.whenComplete((result, throwable) -> Platform.runLater(() -> {
             formDialog.setSaving(false);
@@ -76,7 +84,7 @@ public class CustomerFormDialog {
     }
 
     /** Shows the modal dialog; returns the saved record, or empty if the user cancelled. */
-    public Optional<CustomerDto> showAndWait() {
+    public Optional<ClientDto> showAndWait() {
         formDialog.showAndWait();
         return Optional.ofNullable(saved);
     }

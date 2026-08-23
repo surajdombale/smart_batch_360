@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DashboardSummaryDto(
-        long totalCustomers,
+        long totalClients,
         long totalSites,
         long totalVehicles,
         long totalDrivers,

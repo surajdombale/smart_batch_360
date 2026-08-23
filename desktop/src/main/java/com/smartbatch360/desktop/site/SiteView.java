@@ -16,8 +16,9 @@ import java.util.List;
 public class SiteView {
 
     private final SiteApiClient apiClient = new SiteApiClient();
-    private final CrudListView<SiteDto> listView =
-            new CrudListView<>("Site Management", "Manage sites and project locations.", "+ Add Site");
+    private final CrudListView<SiteDto> listView = new CrudListView<>(
+            "Site Management", "Manage sites and project locations.", "+ Add Site",
+            s -> String.join(" ", s.name(), s.clientName(), s.location(), s.status().name()));
 
     public SiteView() {
         setupColumns();
@@ -33,8 +34,8 @@ public class SiteView {
         TableColumn<SiteDto, String> nameCol = new TableColumn<>("Site Name");
         nameCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().name()));
 
-        TableColumn<SiteDto, String> customerCol = new TableColumn<>("Customer");
-        customerCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().customerName()));
+        TableColumn<SiteDto, String> clientCol = new TableColumn<>("Client");
+        clientCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().clientName()));
 
         TableColumn<SiteDto, String> locationCol = new TableColumn<>("Location");
         locationCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().location()));
@@ -44,7 +45,7 @@ public class SiteView {
 
         TableColumn<SiteDto, Void> actionsCol = ActionsColumn.create(this::openEditDialog, this::confirmAndDelete);
 
-        table.getColumns().setAll(List.of(nameCol, customerCol, locationCol, statusCol, actionsCol));
+        table.getColumns().setAll(List.of(nameCol, clientCol, locationCol, statusCol, actionsCol));
     }
 
     private void load() {

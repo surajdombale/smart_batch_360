@@ -2,9 +2,9 @@ package com.smartbatch360.desktop.site;
 
 import com.smartbatch360.desktop.api.ApiErrorDto;
 import com.smartbatch360.desktop.api.ApiException;
+import com.smartbatch360.desktop.client.ClientApiClient;
+import com.smartbatch360.desktop.client.ClientDto;
 import com.smartbatch360.desktop.common.FormDialog;
-import com.smartbatch360.desktop.customer.CustomerApiClient;
-import com.smartbatch360.desktop.customer.CustomerDto;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.scene.control.ComboBox;
@@ -18,32 +18,32 @@ import java.util.concurrent.CompletableFuture;
 public class SiteFormDialog {
 
     private final SiteApiClient apiClient = new SiteApiClient();
-    private final CustomerApiClient customerApiClient = new CustomerApiClient();
+    private final ClientApiClient clientApiClient = new ClientApiClient();
     private final FormDialog formDialog;
     private final TextField nameField = new TextField();
-    private final ComboBox<CustomerDto> customerField = new ComboBox<>();
+    private final ComboBox<ClientDto> clientField = new ComboBox<>();
     private final TextField locationField = new TextField();
     private final ComboBox<SiteStatus> statusField = new ComboBox<>(FXCollections.observableArrayList(SiteStatus.values()));
 
     private final boolean isEdit;
     private final Long id;
-    private final Long existingCustomerId;
+    private final Long existingClientId;
     private SiteDto saved;
 
     public SiteFormDialog(SiteDto existing) {
         this.isEdit = existing != null;
         this.id = existing != null ? existing.id() : null;
-        this.existingCustomerId = existing != null ? existing.customerId() : null;
+        this.existingClientId = existing != null ? existing.clientId() : null;
 
         formDialog = new FormDialog(isEdit ? "Edit Site" : "Add Site");
         formDialog.addField("Site Name", "name", nameField);
-        formDialog.addField("Customer", "customerId", customerField);
+        formDialog.addField("Client", "clientId", clientField);
         formDialog.addField("Location", "location", locationField);
         formDialog.addField("Status", "status", statusField);
 
-        customerField.setDisable(true);
-        customerField.setPromptText("Loading customers...");
-        loadCustomers();
+        clientField.setDisable(true);
+        clientField.setPromptText("Loading clients...");
+        loadClients();
 
         statusField.getSelectionModel().select(SiteStatus.ACTIVE);
         if (existing != null) {
@@ -55,19 +55,19 @@ public class SiteFormDialog {
         formDialog.interceptSaveClose(event -> save());
     }
 
-    private void loadCustomers() {
-        customerApiClient.list().whenComplete((customers, throwable) -> Platform.runLater(() -> {
-            List<CustomerDto> items = throwable == null ? customers : List.of();
-            customerField.setItems(FXCollections.observableArrayList(items));
-            customerField.setDisable(false);
+    private void loadClients() {
+        clientApiClient.list().whenComplete((clients, throwable) -> Platform.runLater(() -> {
+            List<ClientDto> items = throwable == null ? clients : List.of();
+            clientField.setItems(FXCollections.observableArrayList(items));
+            clientField.setDisable(false);
 
             items.stream()
-                    .filter(c -> existingCustomerId != null && existingCustomerId.equals(c.id()))
+                    .filter(c -> existingClientId != null && existingClientId.equals(c.id()))
                     .findFirst()
-                    .ifPresent(c -> customerField.getSelectionModel().select(c));
+                    .ifPresent(c -> clientField.getSelectionModel().select(c));
 
             if (items.isEmpty()) {
-                formDialog.setFormError("No customers exist yet. Add a customer before creating a site.");
+                formDialog.setFormError("No clients exist yet. Add a client before creating a site.");
             }
         }));
     }
@@ -75,14 +75,14 @@ public class SiteFormDialog {
     private void save() {
         formDialog.clearErrors();
 
-        CustomerDto selectedCustomer = customerField.getValue();
-        if (selectedCustomer == null) {
-            formDialog.applyFieldErrors(List.of(new ApiErrorDto.FieldErrorDto("customerId", "Customer is required.")));
+        ClientDto selectedClient = clientField.getValue();
+        if (selectedClient == null) {
+            formDialog.applyFieldErrors(List.of(new ApiErrorDto.FieldErrorDto("clientId", "Client is required.")));
             return;
         }
 
         SiteRequestDto request = new SiteRequestDto(
-                nameField.getText(), selectedCustomer.id(), locationField.getText(), statusField.getValue());
+                nameField.getText(), selectedClient.id(), locationField.getText(), statusField.getValue());
 
         formDialog.setSaving(true);
         CompletableFuture<SiteDto> future = isEdit ? apiClient.update(id, request) : apiClient.create(request);

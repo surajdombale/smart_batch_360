@@ -2,7 +2,7 @@ package com.smartbatch360.desktop.site;
 
 public record SiteRequestDto(
         String name,
-        Long customerId,
+        Long clientId,
         String location,
         SiteStatus status
 ) {

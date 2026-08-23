@@ -1,6 +1,6 @@
 package com.smartbatch360.desktop;
 
-import com.smartbatch360.desktop.customer.CustomerView;
+import com.smartbatch360.desktop.client.ClientView;
 import com.smartbatch360.desktop.dashboard.DashboardView;
 import com.smartbatch360.desktop.driver.DriverView;
 import com.smartbatch360.desktop.header.HeaderView;
@@ -28,12 +28,13 @@ import java.util.Objects;
  * server executable; there is no longer a standalone desktop-only mode.
  *
  * Phase 1 navigation is Dashboard + the four approved master-data modules
- * (Customer/Site/Vehicle/Driver) plus Header, whose fields were clarified
- * directly by the user on 2026-08-17 (not defined in either source
- * document), plus a minimal Settings screen (Database Connection only -
- * not the full future Settings module). Production, Consumption, Batch
- * Reports, Recipes, Analytics, Plant/PLC and Alarm/Event History remain NOT
- * implemented (docs/06_SCOPE_AND_ROADMAP.md, CLAUDE.md.md).
+ * (Client - renamed from "Customer" at the user's request 2026-08-23 -
+ * /Site/Vehicle/Driver) plus Header, whose fields were clarified directly by
+ * the user on 2026-08-17 (not defined in either source document), plus a
+ * minimal Settings screen (Database Connection only - not the full future
+ * Settings module). Production, Consumption, Batch Reports, Recipes,
+ * Analytics, Plant/PLC and Alarm/Event History remain NOT implemented
+ * (docs/06_SCOPE_AND_ROADMAP.md, CLAUDE.md.md).
  */
 public class DesktopApplication extends Application {
 
@@ -41,7 +42,7 @@ public class DesktopApplication extends Application {
     public void start(Stage primaryStage) {
         List<NavItem> navItems = List.of(
                 new NavItem("dashboard", "Dashboard", DashboardView::new),
-                new NavItem("customers", "Customers", () -> new CustomerView().getView()),
+                new NavItem("clients", "Clients", () -> new ClientView().getView()),
                 new NavItem("sites", "Sites", () -> new SiteView().getView()),
                 new NavItem("vehicles", "Vehicles", () -> new VehicleView().getView()),
                 new NavItem("drivers", "Drivers", () -> new DriverView().getView()),

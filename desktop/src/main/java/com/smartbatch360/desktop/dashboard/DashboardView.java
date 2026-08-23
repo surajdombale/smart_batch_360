@@ -12,7 +12,7 @@ import javafx.scene.layout.*;
 
 /**
  * Phase 1 dashboard: only KPIs backed by data that actually exists in this
- * phase (Customer/Site/Vehicle/Driver counts, Backend/Database/API status).
+ * phase (Client/Site/Vehicle/Driver counts, Backend/Database/API status).
  * Batches, Revenue, Production Trend, Recipes, PLC status, Recent Activity,
  * Active Recipe, Last Batch and Average Batch Time are intentionally omitted -
  * their data sources (Production/Recipe/BatchData) are out of scope for
@@ -82,7 +82,7 @@ public class DashboardView extends BorderPane {
 
     private void showSummary(DashboardSummaryDto summary) {
         kpiGrid.getChildren().clear();
-        kpiGrid.add(kpiCard("Total Customers", String.valueOf(summary.totalCustomers())), 0, 0);
+        kpiGrid.add(kpiCard("Total Clients", String.valueOf(summary.totalClients())), 0, 0);
         kpiGrid.add(kpiCard("Total Sites", String.valueOf(summary.totalSites())), 1, 0);
         kpiGrid.add(kpiCard("Total Vehicles", String.valueOf(summary.totalVehicles())), 2, 0);
         kpiGrid.add(kpiCard("Total Drivers", String.valueOf(summary.totalDrivers())), 3, 0);

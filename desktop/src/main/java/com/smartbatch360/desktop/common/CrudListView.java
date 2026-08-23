@@ -2,6 +2,7 @@ package com.smartbatch360.desktop.common;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -13,12 +14,18 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Reusable list-screen shell for the master-data CRUD pattern
  * (docs/02_UI_REFERENCE.md "UI implementation rule"): page header, toolbar
- * (Add/Refresh), table, and loading/empty/error/data state switching, plus a
- * success/error notification banner.
+ * (search/Refresh/Add), table, and loading/empty/error/data state switching,
+ * plus a success/error notification banner.
+ *
+ * Search (requested by the user, 2026-08-23, "in all tables from now on") is
+ * a client-side substring filter over whatever is currently loaded - Phase 1
+ * datasets are small and there is no backend search/pagination endpoint, so
+ * this stays simple and instant rather than adding API surface for it.
  */
 public class CrudListView<T> {
 
@@ -28,6 +35,10 @@ public class CrudListView<T> {
     private final TableView<T> table = new TableView<>();
     private final StackPane centerStack = new StackPane();
 
+    private final ObservableList<T> sourceItems = FXCollections.observableArrayList();
+    private final FilteredList<T> filteredItems = new FilteredList<>(sourceItems);
+    private final Function<T, String> searchTextExtractor;
+
     private final VBox loadingView;
     private final VBox emptyView;
     private final VBox errorView;
@@ -36,13 +47,22 @@ public class CrudListView<T> {
     private Runnable onRetry = () -> {
     };
 
-    public CrudListView(String title, String subtitle, String addLabel) {
+    /**
+     * @param searchTextExtractor concatenates whichever fields of a row should be
+     *                            searchable (e.g. name + phone + status); matching is a
+     *                            case-insensitive substring check against this string.
+     */
+    public CrudListView(String title, String subtitle, String addLabel, Function<T, String> searchTextExtractor) {
+        this.searchTextExtractor = searchTextExtractor;
+
         PageHeader pageHeader = new PageHeader(title, subtitle);
         toolbar = new Toolbar(addLabel);
+        toolbar.getSearchField().textProperty().addListener((obs, old, text) -> applyFilter(text));
 
         table.getStyleClass().add("data-table");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.setPlaceholder(new Label());
+        table.setItems(filteredItems);
+        table.setPlaceholder(new Label("No matching records. Try a different search."));
 
         loadingView = stateView(new ProgressIndicator(), "Loading...", null, null);
         emptyView = stateView(null, "No records found", "Use \"" + addLabel + "\" to create the first one.", null);
@@ -88,6 +108,12 @@ public class CrudListView<T> {
         return box;
     }
 
+    private void applyFilter(String query) {
+        String q = query == null ? "" : query.trim().toLowerCase();
+        filteredItems.setPredicate(item -> q.isEmpty()
+                || searchTextExtractor.apply(item).toLowerCase().contains(q));
+    }
+
     public Region getView() {
         return root;
     }
@@ -122,8 +148,7 @@ public class CrudListView<T> {
     }
 
     public void showData(List<T> items) {
-        ObservableList<T> observable = FXCollections.observableArrayList(items);
-        table.setItems(observable);
+        sourceItems.setAll(items);
         centerStack.getChildren().setAll(items.isEmpty() ? emptyView : table);
     }
 }

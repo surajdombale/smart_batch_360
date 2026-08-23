@@ -91,6 +91,14 @@
     -fx-alignment: CENTER_LEFT;
 }
 
+.search-field {
+    -fx-background-color: -sb-card;
+    -fx-border-color: -sb-border;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 6 10 6 10;
+}
+
 /* ---------- Cards / KPI tiles ---------- */
 
 .card {

@@ -8,8 +8,8 @@ import java.time.Instant;
 public record SiteDto(
         Long id,
         String name,
-        Long customerId,
-        String customerName,
+        Long clientId,
+        String clientName,
         String location,
         SiteStatus status,
         Instant createdAt,
