@@ -20,8 +20,10 @@ import java.util.List;
 public class HeaderView {
 
     private final HeaderApiClient apiClient = new HeaderApiClient();
-    private final CrudListView<HeaderDto> listView =
-            new CrudListView<>("Header Management", "Manage company/plant letterheads used on printed reports.", "+ Add Header");
+    private final CrudListView<HeaderDto> listView = new CrudListView<>(
+            "Header Management", "Manage company/plant letterheads used on printed reports.", "+ Add Header",
+            h -> String.join(" ", h.companyName(), h.plantName(), emptyIfNull(h.address()),
+                    emptyIfNull(h.phone()), emptyIfNull(h.email()), emptyIfNull(h.gstin()), h.status().name()));
 
     public HeaderView() {
         setupColumns();

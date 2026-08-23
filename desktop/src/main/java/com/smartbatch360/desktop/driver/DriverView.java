@@ -16,8 +16,9 @@ import java.util.List;
 public class DriverView {
 
     private final DriverApiClient apiClient = new DriverApiClient();
-    private final CrudListView<DriverDto> listView =
-            new CrudListView<>("Driver Management", "Manage drivers and their performance.", "+ Add Driver");
+    private final CrudListView<DriverDto> listView = new CrudListView<>(
+            "Driver Management", "Manage drivers and their performance.", "+ Add Driver",
+            d -> String.join(" ", d.name(), d.phone(), d.licenseNo(), d.status().name()));
 
     public DriverView() {
         setupColumns();

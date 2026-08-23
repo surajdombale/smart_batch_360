@@ -16,8 +16,9 @@ import java.util.List;
 public class VehicleView {
 
     private final VehicleApiClient apiClient = new VehicleApiClient();
-    private final CrudListView<VehicleDto> listView =
-            new CrudListView<>("Vehicle Management", "Track vehicle fleet and availability.", "+ Add Vehicle");
+    private final CrudListView<VehicleDto> listView = new CrudListView<>(
+            "Vehicle Management", "Track vehicle fleet and availability.", "+ Add Vehicle",
+            v -> String.join(" ", v.vehicleNumber(), v.driverName() != null ? v.driverName() : "", v.status().name()));
 
     public VehicleView() {
         setupColumns();
