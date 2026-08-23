@@ -9,6 +9,7 @@ public record DashboardSummaryDto(
         long totalVehicles,
         long totalDrivers,
         long totalHeaders,
+        long totalRecipes,
         String backendStatus,
         String databaseStatus,
         String apiStatus

@@ -87,6 +87,7 @@ public class DashboardView extends BorderPane {
         kpiGrid.add(kpiCard("Total Vehicles", String.valueOf(summary.totalVehicles())), 2, 0);
         kpiGrid.add(kpiCard("Total Drivers", String.valueOf(summary.totalDrivers())), 3, 0);
         kpiGrid.add(kpiCard("Total Headers", String.valueOf(summary.totalHeaders())), 4, 0);
+        kpiGrid.add(kpiCard("Total Recipes", String.valueOf(summary.totalRecipes())), 5, 0);
 
         statusGrid.getChildren().clear();
         statusGrid.add(statusCard("Backend", summary.backendStatus()), 0, 0);

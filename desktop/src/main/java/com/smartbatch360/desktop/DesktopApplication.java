@@ -8,6 +8,7 @@ import com.smartbatch360.desktop.navigation.MainShell;
 import com.smartbatch360.desktop.navigation.NavEntry;
 import com.smartbatch360.desktop.navigation.NavGroup;
 import com.smartbatch360.desktop.navigation.NavItem;
+import com.smartbatch360.desktop.recipe.RecipeView;
 import com.smartbatch360.desktop.server.EmbeddedServer;
 import com.smartbatch360.desktop.settings.SettingsView;
 import com.smartbatch360.desktop.site.SiteView;
@@ -34,8 +35,10 @@ import java.util.Objects;
  * /Site/Vehicle/Driver) plus Header, whose fields were clarified directly by
  * the user on 2026-08-17 (not defined in either source document), plus a
  * minimal Settings screen (Database Connection only - not the full future
- * Settings module). Production, Consumption, Batch Reports, Recipes,
- * Analytics, Plant/PLC and Alarm/Event History remain NOT implemented
+ * Settings module). Recipe Management was added 2026-08-23 as a prerequisite
+ * for Production (which references a recipe) - the user's first requested
+ * Phase 2 module. Production itself, Consumption, Batch Reports, Analytics,
+ * Plant/PLC and Alarm/Event History remain NOT implemented
  * (docs/06_SCOPE_AND_ROADMAP.md, CLAUDE.md.md).
  */
 public class DesktopApplication extends Application {
@@ -50,6 +53,7 @@ public class DesktopApplication extends Application {
                         new NavItem("vehicles", "Vehicles", () -> new VehicleView().getView()),
                         new NavItem("drivers", "Drivers", () -> new DriverView().getView())
                 )),
+                new NavItem("recipes", "Recipes", () -> new RecipeView().getView()),
                 new NavItem("headers", "Headers", () -> new HeaderView().getView()),
                 new NavItem("settings", "Settings", () -> new SettingsView().getView())
         );
