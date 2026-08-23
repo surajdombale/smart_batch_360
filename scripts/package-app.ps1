@@ -15,6 +15,7 @@ $backend = Join-Path $root "backend"
 $desktop = Join-Path $root "desktop"
 $AppName = "SmartBatch360 V2"
 $AppVersion = "2.0.0"
+$IconPath = Join-Path $root "desktop\src\main\resources\images\app-icon.ico"
 
 Push-Location $backend
 try {
@@ -60,6 +61,7 @@ try {
         --dest target/dist `
         --app-version $AppVersion `
         --vendor "SmartBatch360" `
+        --icon $IconPath `
         --description "SmartBatch360 - Industrial Batching Plant Management System (V2: Production, Recipes, Client/Site/Vehicle/Driver/Header)"
     if ($LASTEXITCODE -ne 0) { throw "jpackage failed" }
 
