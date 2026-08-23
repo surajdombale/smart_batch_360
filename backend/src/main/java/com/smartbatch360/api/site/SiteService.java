@@ -1,7 +1,9 @@
 package com.smartbatch360.api.site;
 
+import com.smartbatch360.api.batch.BatchRepository;
 import com.smartbatch360.api.client.Client;
 import com.smartbatch360.api.client.ClientRepository;
+import com.smartbatch360.api.common.ConflictException;
 import com.smartbatch360.api.common.NotFoundException;
 import com.smartbatch360.api.site.dto.SiteRequest;
 import com.smartbatch360.api.site.dto.SiteResponse;
@@ -16,10 +18,13 @@ public class SiteService {
 
     private final SiteRepository siteRepository;
     private final ClientRepository clientRepository;
+    private final BatchRepository batchRepository;
 
-    public SiteService(SiteRepository siteRepository, ClientRepository clientRepository) {
+    public SiteService(SiteRepository siteRepository, ClientRepository clientRepository,
+                        BatchRepository batchRepository) {
         this.siteRepository = siteRepository;
         this.clientRepository = clientRepository;
+        this.batchRepository = batchRepository;
     }
 
     @Transactional(readOnly = true)
@@ -48,6 +53,10 @@ public class SiteService {
 
     public void delete(Long id) {
         Site site = getOrThrow(id);
+        if (batchRepository.existsBySiteId(id)) {
+            throw new ConflictException("Site '" + site.getName()
+                    + "' has one or more production batches and cannot be deleted.");
+        }
         siteRepository.delete(site);
     }
 

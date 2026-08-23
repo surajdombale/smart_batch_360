@@ -14,6 +14,7 @@ public record DashboardSummaryResponse(
         long totalDrivers,
         long totalHeaders,
         long totalRecipes,
+        long totalBatches,
         String backendStatus,
         String databaseStatus,
         String apiStatus

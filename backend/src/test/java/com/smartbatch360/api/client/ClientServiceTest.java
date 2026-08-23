@@ -1,5 +1,6 @@
 package com.smartbatch360.api.client;
 
+import com.smartbatch360.api.batch.BatchRepository;
 import com.smartbatch360.api.client.dto.ClientRequest;
 import com.smartbatch360.api.client.dto.ClientResponse;
 import com.smartbatch360.api.common.ConflictException;
@@ -26,8 +27,11 @@ class ClientServiceTest {
     @Mock
     private SiteRepository siteRepository;
 
+    @Mock
+    private BatchRepository batchRepository;
+
     private ClientService service() {
-        return new ClientService(clientRepository, siteRepository);
+        return new ClientService(clientRepository, siteRepository, batchRepository);
     }
 
     @Test
@@ -71,6 +75,21 @@ class ClientServiceTest {
         assertThatThrownBy(() -> service().delete(1L))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("sites");
+
+        verify(clientRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteRejectedWhenClientHasBatches() {
+        Client client = new Client();
+        client.setName("Tata Projects");
+        when(clientRepository.findById(3L)).thenReturn(Optional.of(client));
+        when(siteRepository.existsByClientId(3L)).thenReturn(false);
+        when(batchRepository.existsByClientId(3L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service().delete(3L))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("batches");
 
         verify(clientRepository, never()).delete(any());
     }

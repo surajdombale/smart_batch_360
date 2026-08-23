@@ -1,5 +1,6 @@
 package com.smartbatch360.api.dashboard;
 
+import com.smartbatch360.api.batch.BatchRepository;
 import com.smartbatch360.api.client.ClientRepository;
 import com.smartbatch360.api.driver.DriverRepository;
 import com.smartbatch360.api.header.HeaderRepository;
@@ -22,6 +23,7 @@ public class DashboardService {
     private final DriverRepository driverRepository;
     private final HeaderRepository headerRepository;
     private final RecipeRepository recipeRepository;
+    private final BatchRepository batchRepository;
     private final HealthEndpoint healthEndpoint;
 
     public DashboardService(ClientRepository clientRepository,
@@ -30,6 +32,7 @@ public class DashboardService {
                              DriverRepository driverRepository,
                              HeaderRepository headerRepository,
                              RecipeRepository recipeRepository,
+                             BatchRepository batchRepository,
                              HealthEndpoint healthEndpoint) {
         this.clientRepository = clientRepository;
         this.siteRepository = siteRepository;
@@ -37,6 +40,7 @@ public class DashboardService {
         this.driverRepository = driverRepository;
         this.headerRepository = headerRepository;
         this.recipeRepository = recipeRepository;
+        this.batchRepository = batchRepository;
         this.healthEndpoint = healthEndpoint;
     }
 
@@ -53,6 +57,7 @@ public class DashboardService {
                 driverRepository.count(),
                 headerRepository.count(),
                 recipeRepository.count(),
+                batchRepository.count(),
                 backendStatus,
                 databaseStatus,
                 "UP"

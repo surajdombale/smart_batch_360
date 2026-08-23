@@ -1,5 +1,6 @@
 package com.smartbatch360.api.driver;
 
+import com.smartbatch360.api.batch.BatchRepository;
 import com.smartbatch360.api.common.ConflictException;
 import com.smartbatch360.api.common.DuplicateResourceException;
 import com.smartbatch360.api.driver.dto.DriverRequest;
@@ -24,8 +25,11 @@ class DriverServiceTest {
     @Mock
     private VehicleRepository vehicleRepository;
 
+    @Mock
+    private BatchRepository batchRepository;
+
     private DriverService service() {
-        return new DriverService(driverRepository, vehicleRepository);
+        return new DriverService(driverRepository, vehicleRepository, batchRepository);
     }
 
     @Test
@@ -54,11 +58,27 @@ class DriverServiceTest {
     }
 
     @Test
+    void deleteRejectedWhenDriverHasBatches() {
+        Driver driver = new Driver();
+        driver.setName("Ganesh More");
+        when(driverRepository.findById(3L)).thenReturn(Optional.of(driver));
+        when(vehicleRepository.existsByDriverId(3L)).thenReturn(false);
+        when(batchRepository.existsByDriverId(3L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service().delete(3L))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("batches");
+
+        verify(driverRepository, never()).delete(any());
+    }
+
+    @Test
     void deleteSucceedsWhenNotAssigned() {
         Driver driver = new Driver();
         driver.setName("Suresh Jadhav");
         when(driverRepository.findById(2L)).thenReturn(Optional.of(driver));
         when(vehicleRepository.existsByDriverId(2L)).thenReturn(false);
+        when(batchRepository.existsByDriverId(2L)).thenReturn(false);
 
         service().delete(2L);
 

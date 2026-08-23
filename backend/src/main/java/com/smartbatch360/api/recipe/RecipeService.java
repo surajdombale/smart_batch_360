@@ -1,5 +1,7 @@
 package com.smartbatch360.api.recipe;
 
+import com.smartbatch360.api.batch.BatchRepository;
+import com.smartbatch360.api.common.ConflictException;
 import com.smartbatch360.api.common.NotFoundException;
 import com.smartbatch360.api.recipe.dto.RecipeMaterialRequest;
 import com.smartbatch360.api.recipe.dto.RecipeRequest;
@@ -14,9 +16,11 @@ import java.util.List;
 public class RecipeService {
 
     private final RecipeRepository recipeRepository;
+    private final BatchRepository batchRepository;
 
-    public RecipeService(RecipeRepository recipeRepository) {
+    public RecipeService(RecipeRepository recipeRepository, BatchRepository batchRepository) {
         this.recipeRepository = recipeRepository;
+        this.batchRepository = batchRepository;
     }
 
     @Transactional(readOnly = true)
@@ -45,7 +49,10 @@ public class RecipeService {
 
     public void delete(Long id) {
         Recipe recipe = getOrThrow(id);
-        // No other Phase-2 table references Recipe yet - Production/Batch will need this guard once built.
+        if (batchRepository.existsByRecipeId(id)) {
+            throw new ConflictException("Recipe '" + recipe.getName()
+                    + "' has one or more production batches and cannot be deleted.");
+        }
         recipeRepository.delete(recipe);
     }
 

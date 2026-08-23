@@ -1,5 +1,6 @@
 package com.smartbatch360.api.client;
 
+import com.smartbatch360.api.batch.BatchRepository;
 import com.smartbatch360.api.client.dto.ClientRequest;
 import com.smartbatch360.api.client.dto.ClientResponse;
 import com.smartbatch360.api.common.ConflictException;
@@ -16,10 +17,13 @@ public class ClientService {
 
     private final ClientRepository clientRepository;
     private final SiteRepository siteRepository;
+    private final BatchRepository batchRepository;
 
-    public ClientService(ClientRepository clientRepository, SiteRepository siteRepository) {
+    public ClientService(ClientRepository clientRepository, SiteRepository siteRepository,
+                          BatchRepository batchRepository) {
         this.clientRepository = clientRepository;
         this.siteRepository = siteRepository;
+        this.batchRepository = batchRepository;
     }
 
     @Transactional(readOnly = true)
@@ -51,6 +55,10 @@ public class ClientService {
         if (siteRepository.existsByClientId(id)) {
             throw new ConflictException("Client '" + client.getName()
                     + "' has one or more sites and cannot be deleted. Remove its sites first.");
+        }
+        if (batchRepository.existsByClientId(id)) {
+            throw new ConflictException("Client '" + client.getName()
+                    + "' has one or more production batches and cannot be deleted.");
         }
         clientRepository.delete(client);
     }

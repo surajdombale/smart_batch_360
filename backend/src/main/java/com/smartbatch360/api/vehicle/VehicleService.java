@@ -1,5 +1,7 @@
 package com.smartbatch360.api.vehicle;
 
+import com.smartbatch360.api.batch.BatchRepository;
+import com.smartbatch360.api.common.ConflictException;
 import com.smartbatch360.api.common.DuplicateResourceException;
 import com.smartbatch360.api.common.NotFoundException;
 import com.smartbatch360.api.driver.Driver;
@@ -17,10 +19,13 @@ public class VehicleService {
 
     private final VehicleRepository vehicleRepository;
     private final DriverRepository driverRepository;
+    private final BatchRepository batchRepository;
 
-    public VehicleService(VehicleRepository vehicleRepository, DriverRepository driverRepository) {
+    public VehicleService(VehicleRepository vehicleRepository, DriverRepository driverRepository,
+                           BatchRepository batchRepository) {
         this.vehicleRepository = vehicleRepository;
         this.driverRepository = driverRepository;
+        this.batchRepository = batchRepository;
     }
 
     @Transactional(readOnly = true)
@@ -57,6 +62,10 @@ public class VehicleService {
 
     public void delete(Long id) {
         Vehicle vehicle = getOrThrow(id);
+        if (batchRepository.existsByVehicleId(id)) {
+            throw new ConflictException("Vehicle '" + vehicle.getVehicleNumber()
+                    + "' has one or more production batches and cannot be deleted.");
+        }
         vehicleRepository.delete(vehicle);
     }
 

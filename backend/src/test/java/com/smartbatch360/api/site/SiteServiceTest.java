@@ -1,8 +1,10 @@
 package com.smartbatch360.api.site;
 
+import com.smartbatch360.api.batch.BatchRepository;
 import com.smartbatch360.api.client.Client;
 import com.smartbatch360.api.client.ClientRepository;
 import com.smartbatch360.api.client.ClientStatus;
+import com.smartbatch360.api.common.ConflictException;
 import com.smartbatch360.api.common.NotFoundException;
 import com.smartbatch360.api.site.dto.SiteRequest;
 import com.smartbatch360.api.site.dto.SiteResponse;
@@ -28,8 +30,11 @@ class SiteServiceTest {
     @Mock
     private ClientRepository clientRepository;
 
+    @Mock
+    private BatchRepository batchRepository;
+
     private SiteService service() {
-        return new SiteService(siteRepository, clientRepository);
+        return new SiteService(siteRepository, clientRepository, batchRepository);
     }
 
     private Client clientWithId(long id, String name) throws Exception {
@@ -66,5 +71,37 @@ class SiteServiceTest {
 
         assertThat(response.name()).isEqualTo("Kharadi");
         assertThat(response.clientName()).isEqualTo("SmartBatch Solutions");
+    }
+
+    @Test
+    void deleteRejectedWhenSiteHasBatches() throws Exception {
+        Site site = new Site();
+        site.setName("Kharadi");
+        site.setClient(clientWithId(5L, "SmartBatch Solutions"));
+        site.setLocation("Pune");
+        site.setStatus(SiteStatus.ACTIVE);
+        when(siteRepository.findById(1L)).thenReturn(Optional.of(site));
+        when(batchRepository.existsBySiteId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service().delete(1L))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("batches");
+
+        verify(siteRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteSucceedsWhenNoBatches() throws Exception {
+        Site site = new Site();
+        site.setName("Kharadi");
+        site.setClient(clientWithId(5L, "SmartBatch Solutions"));
+        site.setLocation("Pune");
+        site.setStatus(SiteStatus.ACTIVE);
+        when(siteRepository.findById(2L)).thenReturn(Optional.of(site));
+        when(batchRepository.existsBySiteId(2L)).thenReturn(false);
+
+        service().delete(2L);
+
+        verify(siteRepository).delete(site);
     }
 }

@@ -1,5 +1,7 @@
 package com.smartbatch360.api.recipe;
 
+import com.smartbatch360.api.batch.BatchRepository;
+import com.smartbatch360.api.common.ConflictException;
 import com.smartbatch360.api.common.NotFoundException;
 import com.smartbatch360.api.recipe.dto.RecipeMaterialRequest;
 import com.smartbatch360.api.recipe.dto.RecipeRequest;
@@ -24,8 +26,11 @@ class RecipeServiceTest {
     @Mock
     private RecipeRepository recipeRepository;
 
+    @Mock
+    private BatchRepository batchRepository;
+
     private RecipeService service() {
-        return new RecipeService(recipeRepository);
+        return new RecipeService(recipeRepository, batchRepository);
     }
 
     private RecipeRequest sampleRequest() {
@@ -82,12 +87,27 @@ class RecipeServiceTest {
     }
 
     @Test
-    void deleteSucceeds() {
+    void deleteRejectedWhenRecipeHasBatches() {
         Recipe recipe = new Recipe();
         recipe.setName("M25");
         when(recipeRepository.findById(1L)).thenReturn(Optional.of(recipe));
+        when(batchRepository.existsByRecipeId(1L)).thenReturn(true);
 
-        service().delete(1L);
+        assertThatThrownBy(() -> service().delete(1L))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("batches");
+
+        verify(recipeRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteSucceeds() {
+        Recipe recipe = new Recipe();
+        recipe.setName("M25");
+        when(recipeRepository.findById(2L)).thenReturn(Optional.of(recipe));
+        when(batchRepository.existsByRecipeId(2L)).thenReturn(false);
+
+        service().delete(2L);
 
         verify(recipeRepository).delete(recipe);
     }
