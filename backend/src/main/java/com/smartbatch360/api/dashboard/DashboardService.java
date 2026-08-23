@@ -3,6 +3,7 @@ package com.smartbatch360.api.dashboard;
 import com.smartbatch360.api.client.ClientRepository;
 import com.smartbatch360.api.driver.DriverRepository;
 import com.smartbatch360.api.header.HeaderRepository;
+import com.smartbatch360.api.recipe.RecipeRepository;
 import com.smartbatch360.api.site.SiteRepository;
 import com.smartbatch360.api.vehicle.VehicleRepository;
 import org.springframework.boot.actuate.health.Health;
@@ -20,6 +21,7 @@ public class DashboardService {
     private final VehicleRepository vehicleRepository;
     private final DriverRepository driverRepository;
     private final HeaderRepository headerRepository;
+    private final RecipeRepository recipeRepository;
     private final HealthEndpoint healthEndpoint;
 
     public DashboardService(ClientRepository clientRepository,
@@ -27,12 +29,14 @@ public class DashboardService {
                              VehicleRepository vehicleRepository,
                              DriverRepository driverRepository,
                              HeaderRepository headerRepository,
+                             RecipeRepository recipeRepository,
                              HealthEndpoint healthEndpoint) {
         this.clientRepository = clientRepository;
         this.siteRepository = siteRepository;
         this.vehicleRepository = vehicleRepository;
         this.driverRepository = driverRepository;
         this.headerRepository = headerRepository;
+        this.recipeRepository = recipeRepository;
         this.healthEndpoint = healthEndpoint;
     }
 
@@ -48,6 +52,7 @@ public class DashboardService {
                 vehicleRepository.count(),
                 driverRepository.count(),
                 headerRepository.count(),
+                recipeRepository.count(),
                 backendStatus,
                 databaseStatus,
                 "UP"
