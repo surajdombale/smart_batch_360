@@ -51,7 +51,20 @@ The conceptual Production screen contains:
 - material target/setpoint/achieved values
 - future production controls
 
-Do not implement Production in the current phase.
+**Built 2026-08-23**, at the user's explicit request, as real Batch CRUD
+(not just a UI mock) rather than a single "current batch" screen - so
+Batch Reports (still out of scope) has real history to search once it's
+built. Batch Number, Recipe/Client/Site/Vehicle/Driver references, target/
+produced/remaining quantity (remaining computed, never negative), cycle
+date-time/number, shift, a Material Consumption list
+(name/target/setpoint/achieved/unit per row, same editable-table pattern as
+Recipe), and simulated equipment status (mixer/conveyor/water valve/cement
+screw/compressor) are all real fields. No PLC integration (still
+intentionally postponed) - equipment status and the overall batch status
+are manual/simulated, driven by Start/Pause/Resume/Stop/Emergency Stop
+controls that only ever update the batch's own record. No large progress
+indicator/gauge was built; target/produced/remaining are shown as plain
+values in the list instead.
 
 ## Batch Reports reference
 
