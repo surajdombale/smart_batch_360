@@ -1,5 +1,6 @@
 package com.smartbatch360.desktop;
 
+import com.smartbatch360.desktop.batch.BatchReportView;
 import com.smartbatch360.desktop.batch.BatchView;
 import com.smartbatch360.desktop.client.ClientView;
 import com.smartbatch360.desktop.dashboard.DashboardView;
@@ -40,9 +41,10 @@ import java.util.Objects;
  * 2026-08-23 - the user's first requested Phase 2 module, with Recipe as its
  * prerequisite (Production references a recipe). Production's equipment
  * status and batch controls are manual/simulated - no PLC integration
- * (still intentionally postponed). Consumption, Batch Reports, Analytics,
- * Plant/PLC and Alarm/Event History remain NOT implemented
- * (docs/06_SCOPE_AND_ROADMAP.md, CLAUDE.md.md).
+ * (still intentionally postponed). Batch Reports was added 2026-08-24
+ * (search/filter/list only - PDF/Excel/Print export deliberately deferred).
+ * Consumption, Analytics, Plant/PLC and Alarm/Event History remain NOT
+ * implemented (docs/06_SCOPE_AND_ROADMAP.md, CLAUDE.md.md).
  */
 public class DesktopApplication extends Application {
 
@@ -51,6 +53,7 @@ public class DesktopApplication extends Application {
         List<NavEntry> navEntries = List.of(
                 new NavItem("dashboard", "Dashboard", DashboardView::new),
                 new NavItem("production", "Production", () -> new BatchView().getView()),
+                new NavItem("batch-reports", "Batch Reports", () -> new BatchReportView().getView()),
                 new NavGroup("Resources", List.of(
                         new NavItem("clients", "Clients", () -> new ClientView().getView()),
                         new NavItem("sites", "Sites", () -> new SiteView().getView()),
