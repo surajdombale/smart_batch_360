@@ -10,7 +10,7 @@ SmartBatch360 is an Industrial Batching Plant Management System intended for con
 
 For the current development phase, implement only the first five requested data-management tables/modules plus the application shell/dashboard:
 
-1. Customer
+1. Customer — **renamed to Client at the user's explicit request on 2026-08-23** (see below); referred to as "Client" from that point forward in this document
 2. Site
 3. Vehicle
 4. Driver
@@ -32,13 +32,15 @@ Batch/Recipe data - it is a standalone branding record.
 
 The current phase is CRUD-focused. Do not implement the broader production roadmap.
 
-## Customer
+## Client (originally "Customer" - renamed 2026-08-23)
 
 The source documents describe Customer Management as:
 - customer information
 - related production/order history
 
 For the current CRUD phase, use only fields explicitly available in the actual project requirements/UI reference. Do not invent a detailed customer schema from generic assumptions.
+
+**Renamed to "Client" throughout (module, table, API, UI) at the user's explicit request on 2026-08-23** - not a display-label change, a full rename. At the same time the user requested a new optional **Address** field (no mockup backing, so kept optional rather than required) and a search box on the list screen. See docs/03_ARCHITECTURE.md and docs/04_DATABASE.md for the corresponding schema/API notes.
 
 ## Site
 

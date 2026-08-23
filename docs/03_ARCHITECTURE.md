@@ -78,13 +78,13 @@ MySQL.
 
 ## Phase 1 flow
 
-Customer example:
+Client example (module renamed from "Customer" to "Client" 2026-08-23 - docs/01_REQUIREMENTS.md):
 
-JavaFX Customer Screen
+JavaFX Client Screen
 → HTTP API client
-→ Customer REST Controller
-→ Customer Service
-→ Customer Repository
+→ Client REST Controller
+→ Client Service
+→ Client Repository
 → MySQL
 
 The same pattern should be used for:

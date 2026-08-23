@@ -20,11 +20,11 @@ Do not manufacture a large schema from generic fleet-management assumptions.
 ## Phase 1 tables
 
 Target tables:
-- customer
+- client — renamed from "customer" 2026-08-23 at the user's explicit request (V3__rename_customer_to_client.sql); docs/01_REQUIREMENTS.md
 - site
 - vehicle
 - driver
-- header — pending definition
+- header — built 2026-08-17; docs/01_REQUIREMENTS.md
 
 Use a consistent naming convention.
 

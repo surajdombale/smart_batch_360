@@ -7,12 +7,13 @@ The current phase is intentionally small:
 ### Build now
 - application shell
 - dashboard foundation
-- Customer CRUD
+- Client CRUD (renamed from "Customer" 2026-08-23 at the user's request, plus a new optional Address field - docs/01_REQUIREMENTS.md)
 - Site CRUD
 - Vehicle CRUD
 - Driver CRUD
 - Header CRUD — clarified by the user 2026-08-17 (docs/01_REQUIREMENTS.md), now built
 - Settings → Database Connection only — explicitly requested by the user 2026-08-21 as part of merging the app into a single install (docs/03_ARCHITECTURE.md); the rest of Settings remains out of scope below
+- Search on every list screen, and grouping Client/Site/Vehicle/Driver under a "Resources" nav section — both requested by the user 2026-08-23 (docs/02_UI_REFERENCE.md)
 
 ### Do not build now
 - Production

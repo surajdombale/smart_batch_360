@@ -128,6 +128,11 @@ Driver:
 
 The actual form fields must be taken from the supplied reference materials rather than invented.
 
+**Update (2026-08-23), all at the user's explicit request:**
+- "Customer" renamed to "Client" throughout (module, table, API, UI) - a new optional Address field was added at the same time, since it has no mockup backing.
+- Every list screen (Client/Site/Vehicle/Driver/Header) now has a search box filtering the loaded rows client-side.
+- Client/Site/Vehicle/Driver are grouped in the desktop nav under a "Resources" section heading; Dashboard, Header and Settings stay as flat top-level entries.
+
 ## UI implementation rule
 
 Create reusable JavaFX components for the repeated master-data pattern:
