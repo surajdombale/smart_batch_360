@@ -5,6 +5,8 @@ import com.smartbatch360.desktop.dashboard.DashboardView;
 import com.smartbatch360.desktop.driver.DriverView;
 import com.smartbatch360.desktop.header.HeaderView;
 import com.smartbatch360.desktop.navigation.MainShell;
+import com.smartbatch360.desktop.navigation.NavEntry;
+import com.smartbatch360.desktop.navigation.NavGroup;
 import com.smartbatch360.desktop.navigation.NavItem;
 import com.smartbatch360.desktop.server.EmbeddedServer;
 import com.smartbatch360.desktop.settings.SettingsView;
@@ -40,12 +42,14 @@ public class DesktopApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        List<NavItem> navItems = List.of(
+        List<NavEntry> navEntries = List.of(
                 new NavItem("dashboard", "Dashboard", DashboardView::new),
-                new NavItem("clients", "Clients", () -> new ClientView().getView()),
-                new NavItem("sites", "Sites", () -> new SiteView().getView()),
-                new NavItem("vehicles", "Vehicles", () -> new VehicleView().getView()),
-                new NavItem("drivers", "Drivers", () -> new DriverView().getView()),
+                new NavGroup("Resources", List.of(
+                        new NavItem("clients", "Clients", () -> new ClientView().getView()),
+                        new NavItem("sites", "Sites", () -> new SiteView().getView()),
+                        new NavItem("vehicles", "Vehicles", () -> new VehicleView().getView()),
+                        new NavItem("drivers", "Drivers", () -> new DriverView().getView())
+                )),
                 new NavItem("headers", "Headers", () -> new HeaderView().getView()),
                 new NavItem("settings", "Settings", () -> new SettingsView().getView())
         );
@@ -57,7 +61,7 @@ public class DesktopApplication extends Application {
         final double defaultWidth = 1000;
         final double defaultHeight = 650;
 
-        MainShell shell = new MainShell(navItems);
+        MainShell shell = new MainShell(navEntries);
 
         Scene scene = new Scene(shell, defaultWidth, defaultHeight);
         scene.getStylesheets().add(Objects.requireNonNull(

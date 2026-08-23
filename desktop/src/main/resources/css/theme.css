@@ -68,6 +68,17 @@
     -fx-font-weight: bold;
 }
 
+.nav-group-label {
+    -fx-text-fill: #7b869e;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 16 20 4 20;
+}
+
+.nav-item-nested {
+    -fx-padding: 10 20 10 32;
+}
+
 /* ---------- Page layout ---------- */
 
 .page-header-title {
