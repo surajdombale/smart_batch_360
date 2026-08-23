@@ -1,8 +1,8 @@
 package com.smartbatch360.api.site;
 
+import com.smartbatch360.api.client.Client;
+import com.smartbatch360.api.client.ClientRepository;
 import com.smartbatch360.api.common.NotFoundException;
-import com.smartbatch360.api.customer.Customer;
-import com.smartbatch360.api.customer.CustomerRepository;
 import com.smartbatch360.api.site.dto.SiteRequest;
 import com.smartbatch360.api.site.dto.SiteResponse;
 import org.springframework.stereotype.Service;
@@ -15,11 +15,11 @@ import java.util.List;
 public class SiteService {
 
     private final SiteRepository siteRepository;
-    private final CustomerRepository customerRepository;
+    private final ClientRepository clientRepository;
 
-    public SiteService(SiteRepository siteRepository, CustomerRepository customerRepository) {
+    public SiteService(SiteRepository siteRepository, ClientRepository clientRepository) {
         this.siteRepository = siteRepository;
-        this.customerRepository = customerRepository;
+        this.clientRepository = clientRepository;
     }
 
     @Transactional(readOnly = true)
@@ -57,10 +57,10 @@ public class SiteService {
     }
 
     private void applyRequest(Site site, SiteRequest request) {
-        Customer customer = customerRepository.findById(request.customerId())
-                .orElseThrow(() -> NotFoundException.forId("Customer", request.customerId()));
+        Client client = clientRepository.findById(request.clientId())
+                .orElseThrow(() -> NotFoundException.forId("Client", request.clientId()));
         site.setName(request.name().trim());
-        site.setCustomer(customer);
+        site.setClient(client);
         site.setLocation(request.location().trim());
         site.setStatus(request.status());
     }

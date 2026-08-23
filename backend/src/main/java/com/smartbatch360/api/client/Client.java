@@ -1,12 +1,12 @@
-package com.smartbatch360.api.customer;
+package com.smartbatch360.api.client;
 
 import jakarta.persistence.*;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "customer")
-public class Customer {
+@Table(name = "client")
+public class Client {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,9 +21,12 @@ public class Customer {
     @Column(name = "phone", nullable = false, length = 20)
     private String phone;
 
+    @Column(name = "address", length = 255)
+    private String address;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private CustomerStatus status;
+    private ClientStatus status;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -71,11 +74,19 @@ public class Customer {
         this.phone = phone;
     }
 
-    public CustomerStatus getStatus() {
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public ClientStatus getStatus() {
         return status;
     }
 
-    public void setStatus(CustomerStatus status) {
+    public void setStatus(ClientStatus status) {
         this.status = status;
     }
 

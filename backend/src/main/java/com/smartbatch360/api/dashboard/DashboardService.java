@@ -1,6 +1,6 @@
 package com.smartbatch360.api.dashboard;
 
-import com.smartbatch360.api.customer.CustomerRepository;
+import com.smartbatch360.api.client.ClientRepository;
 import com.smartbatch360.api.driver.DriverRepository;
 import com.smartbatch360.api.header.HeaderRepository;
 import com.smartbatch360.api.site.SiteRepository;
@@ -15,20 +15,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class DashboardService {
 
-    private final CustomerRepository customerRepository;
+    private final ClientRepository clientRepository;
     private final SiteRepository siteRepository;
     private final VehicleRepository vehicleRepository;
     private final DriverRepository driverRepository;
     private final HeaderRepository headerRepository;
     private final HealthEndpoint healthEndpoint;
 
-    public DashboardService(CustomerRepository customerRepository,
+    public DashboardService(ClientRepository clientRepository,
                              SiteRepository siteRepository,
                              VehicleRepository vehicleRepository,
                              DriverRepository driverRepository,
                              HeaderRepository headerRepository,
                              HealthEndpoint healthEndpoint) {
-        this.customerRepository = customerRepository;
+        this.clientRepository = clientRepository;
         this.siteRepository = siteRepository;
         this.vehicleRepository = vehicleRepository;
         this.driverRepository = driverRepository;
@@ -43,7 +43,7 @@ public class DashboardService {
         String databaseStatus = resolveDatabaseStatus(overall);
 
         return new DashboardSummaryResponse(
-                customerRepository.count(),
+                clientRepository.count(),
                 siteRepository.count(),
                 vehicleRepository.count(),
                 driverRepository.count(),

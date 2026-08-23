@@ -8,8 +8,8 @@ import java.time.Instant;
 public record SiteResponse(
         Long id,
         String name,
-        Long customerId,
-        String customerName,
+        Long clientId,
+        String clientName,
         String location,
         SiteStatus status,
         Instant createdAt,
@@ -19,8 +19,8 @@ public record SiteResponse(
         return new SiteResponse(
                 s.getId(),
                 s.getName(),
-                s.getCustomer().getId(),
-                s.getCustomer().getName(),
+                s.getClient().getId(),
+                s.getClient().getName(),
                 s.getLocation(),
                 s.getStatus(),
                 s.getCreatedAt(),

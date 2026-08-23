@@ -8,7 +8,7 @@ package com.smartbatch360.api.dashboard;
  * (docs/01_REQUIREMENTS.md, docs/02_UI_REFERENCE.md).
  */
 public record DashboardSummaryResponse(
-        long totalCustomers,
+        long totalClients,
         long totalSites,
         long totalVehicles,
         long totalDrivers,

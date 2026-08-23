@@ -1,6 +1,6 @@
 package com.smartbatch360.api.site;
 
-import com.smartbatch360.api.customer.Customer;
+import com.smartbatch360.api.client.Client;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -17,8 +17,8 @@ public class Site {
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "customer_id", nullable = false)
-    private Customer customer;
+    @JoinColumn(name = "client_id", nullable = false)
+    private Client client;
 
     @Column(name = "location", nullable = false, length = 150)
     private String location;
@@ -57,12 +57,12 @@ public class Site {
         this.name = name;
     }
 
-    public Customer getCustomer() {
-        return customer;
+    public Client getClient() {
+        return client;
     }
 
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
+    public void setClient(Client client) {
+        this.client = client;
     }
 
     public String getLocation() {

@@ -1,9 +1,9 @@
 package com.smartbatch360.api.site;
 
+import com.smartbatch360.api.client.Client;
+import com.smartbatch360.api.client.ClientRepository;
+import com.smartbatch360.api.client.ClientStatus;
 import com.smartbatch360.api.common.NotFoundException;
-import com.smartbatch360.api.customer.Customer;
-import com.smartbatch360.api.customer.CustomerRepository;
-import com.smartbatch360.api.customer.CustomerStatus;
 import com.smartbatch360.api.site.dto.SiteRequest;
 import com.smartbatch360.api.site.dto.SiteResponse;
 import org.junit.jupiter.api.Test;
@@ -26,27 +26,27 @@ class SiteServiceTest {
     private SiteRepository siteRepository;
 
     @Mock
-    private CustomerRepository customerRepository;
+    private ClientRepository clientRepository;
 
     private SiteService service() {
-        return new SiteService(siteRepository, customerRepository);
+        return new SiteService(siteRepository, clientRepository);
     }
 
-    private Customer customerWithId(long id, String name) throws Exception {
-        Customer c = new Customer();
+    private Client clientWithId(long id, String name) throws Exception {
+        Client c = new Client();
         c.setName(name);
         c.setContactPerson("Contact");
         c.setPhone("9000000000");
-        c.setStatus(CustomerStatus.ACTIVE);
-        Field idField = Customer.class.getDeclaredField("id");
+        c.setStatus(ClientStatus.ACTIVE);
+        Field idField = Client.class.getDeclaredField("id");
         idField.setAccessible(true);
         idField.set(c, id);
         return c;
     }
 
     @Test
-    void createRejectsUnknownCustomer() {
-        when(customerRepository.findById(5L)).thenReturn(Optional.empty());
+    void createRejectsUnknownClient() {
+        when(clientRepository.findById(5L)).thenReturn(Optional.empty());
         SiteRequest request = new SiteRequest("Kharadi", 5L, "Pune", SiteStatus.ACTIVE);
 
         assertThatThrownBy(() -> service().create(request))
@@ -56,15 +56,15 @@ class SiteServiceTest {
     }
 
     @Test
-    void createsSiteLinkedToCustomer() throws Exception {
-        Customer customer = customerWithId(5L, "SmartBatch Solutions");
-        when(customerRepository.findById(5L)).thenReturn(Optional.of(customer));
+    void createsSiteLinkedToClient() throws Exception {
+        Client client = clientWithId(5L, "SmartBatch Solutions");
+        when(clientRepository.findById(5L)).thenReturn(Optional.of(client));
         when(siteRepository.save(any(Site.class))).thenAnswer(inv -> inv.getArgument(0));
 
         SiteRequest request = new SiteRequest("Kharadi", 5L, "Pune", SiteStatus.ACTIVE);
         SiteResponse response = service().create(request);
 
         assertThat(response.name()).isEqualTo("Kharadi");
-        assertThat(response.customerName()).isEqualTo("SmartBatch Solutions");
+        assertThat(response.clientName()).isEqualTo("SmartBatch Solutions");
     }
 }

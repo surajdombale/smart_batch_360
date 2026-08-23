@@ -1,7 +1,7 @@
 package com.smartbatch360.api.site;
 
-import com.smartbatch360.api.customer.Customer;
-import com.smartbatch360.api.customer.CustomerStatus;
+import com.smartbatch360.api.client.Client;
+import com.smartbatch360.api.client.ClientStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Exercises SiteRepository against a real (in-memory H2) JPA layer, covering the
- * existsByCustomerId lookup used by CustomerService to block deleting a customer
+ * existsByClientId lookup used by ClientService to block deleting a client
  * that still has sites.
  */
 @DataJpaTest
@@ -23,29 +23,29 @@ class SiteRepositoryTest {
     private jakarta.persistence.EntityManager entityManager;
 
     @Test
-    void existsByCustomerIdReflectsLinkedSites() {
-        Customer customer = new Customer();
-        customer.setName("SmartBatch Solutions");
-        customer.setContactPerson("Rahul Deshmukh");
-        customer.setPhone("9876543210");
-        customer.setStatus(CustomerStatus.ACTIVE);
-        entityManager.persist(customer);
+    void existsByClientIdReflectsLinkedSites() {
+        Client client = new Client();
+        client.setName("SmartBatch Solutions");
+        client.setContactPerson("Rahul Deshmukh");
+        client.setPhone("9876543210");
+        client.setStatus(ClientStatus.ACTIVE);
+        entityManager.persist(client);
 
-        Customer customerWithoutSites = new Customer();
-        customerWithoutSites.setName("Afcons Infrastructure");
-        customerWithoutSites.setContactPerson("Pramod Patil");
-        customerWithoutSites.setPhone("9899909998");
-        customerWithoutSites.setStatus(CustomerStatus.ACTIVE);
-        entityManager.persist(customerWithoutSites);
+        Client clientWithoutSites = new Client();
+        clientWithoutSites.setName("Afcons Infrastructure");
+        clientWithoutSites.setContactPerson("Pramod Patil");
+        clientWithoutSites.setPhone("9899909998");
+        clientWithoutSites.setStatus(ClientStatus.ACTIVE);
+        entityManager.persist(clientWithoutSites);
 
         Site site = new Site();
         site.setName("Kharadi");
-        site.setCustomer(customer);
+        site.setClient(client);
         site.setLocation("Pune");
         site.setStatus(SiteStatus.ACTIVE);
         siteRepository.saveAndFlush(site);
 
-        assertThat(siteRepository.existsByCustomerId(customer.getId())).isTrue();
-        assertThat(siteRepository.existsByCustomerId(customerWithoutSites.getId())).isFalse();
+        assertThat(siteRepository.existsByClientId(client.getId())).isTrue();
+        assertThat(siteRepository.existsByClientId(clientWithoutSites.getId())).isFalse();
     }
 }

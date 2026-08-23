@@ -40,11 +40,11 @@ class SiteControllerTest {
 
         mockMvc.perform(get("/api/v1/sites"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].customerName").value("SmartBatch Solutions"));
+                .andExpect(jsonPath("$[0].clientName").value("SmartBatch Solutions"));
     }
 
     @Test
-    void createRejectsMissingCustomerId() throws Exception {
+    void createRejectsMissingClientId() throws Exception {
         SiteRequest request = new SiteRequest("Kharadi", null, "Pune", SiteStatus.ACTIVE);
 
         mockMvc.perform(post("/api/v1/sites")
