@@ -3,6 +3,7 @@ package com.smartbatch360.api.batch;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartbatch360.api.batch.dto.BatchMaterialRequest;
 import com.smartbatch360.api.batch.dto.BatchMaterialResponse;
+import com.smartbatch360.api.batch.dto.BatchPageResponse;
 import com.smartbatch360.api.batch.dto.BatchRequest;
 import com.smartbatch360.api.batch.dto.BatchResponse;
 import org.junit.jupiter.api.Test;
@@ -88,6 +89,20 @@ class BatchControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("batchNumber"));
+    }
+
+    @Test
+    void searchReturnsPagedResults() throws Exception {
+        BatchPageResponse page = new BatchPageResponse(List.of(sample()), 0, 20, 1, 1);
+        when(batchService.search(any(), any())).thenReturn(page);
+
+        mockMvc.perform(get("/api/v1/batches/search")
+                        .param("batchNumberFrom", "250000")
+                        .param("batchNumberTo", "250300")
+                        .param("clientId", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].batchNumber").value("250201"))
+                .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     @Test

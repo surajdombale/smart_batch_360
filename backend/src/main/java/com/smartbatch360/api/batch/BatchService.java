@@ -1,8 +1,10 @@
 package com.smartbatch360.api.batch;
 
 import com.smartbatch360.api.batch.dto.BatchMaterialRequest;
+import com.smartbatch360.api.batch.dto.BatchPageResponse;
 import com.smartbatch360.api.batch.dto.BatchRequest;
 import com.smartbatch360.api.batch.dto.BatchResponse;
+import com.smartbatch360.api.batch.dto.BatchSearchCriteria;
 import com.smartbatch360.api.client.Client;
 import com.smartbatch360.api.client.ClientRepository;
 import com.smartbatch360.api.common.DuplicateResourceException;
@@ -15,6 +17,8 @@ import com.smartbatch360.api.site.Site;
 import com.smartbatch360.api.site.SiteRepository;
 import com.smartbatch360.api.vehicle.Vehicle;
 import com.smartbatch360.api.vehicle.VehicleRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,6 +65,13 @@ public class BatchService {
     @Transactional(readOnly = true)
     public BatchResponse findById(Long id) {
         return BatchResponse.from(getOrThrow(id));
+    }
+
+    /** Batch Reports: filtered, paginated, sortable history search (docs/02_UI_REFERENCE.md). */
+    @Transactional(readOnly = true)
+    public BatchPageResponse search(BatchSearchCriteria criteria, Pageable pageable) {
+        Page<Batch> page = batchRepository.findAll(BatchSpecifications.matching(criteria), pageable);
+        return BatchPageResponse.from(page);
     }
 
     public BatchResponse create(BatchRequest request) {
