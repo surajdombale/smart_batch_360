@@ -14,12 +14,14 @@ The current phase is intentionally small:
 - Header CRUD — clarified by the user 2026-08-17 (docs/01_REQUIREMENTS.md), now built
 - Settings → Database Connection only — explicitly requested by the user 2026-08-21 as part of merging the app into a single install (docs/03_ARCHITECTURE.md); the rest of Settings remains out of scope below
 - Search on every list screen, and grouping Client/Site/Vehicle/Driver under a "Resources" nav section — both requested by the user 2026-08-23 (docs/02_UI_REFERENCE.md)
+- Recipe Management CRUD — built 2026-08-23 as a prerequisite for Production, which the user chose as the next module to build (docs/02_UI_REFERENCE.md)
+
+### Currently in progress
+- Production — the user's chosen next module (2026-08-23). Scope confirmed with the user: a real Batch CRUD (not just a UI mock) referencing Client/Site/Vehicle/Driver/Recipe, with manual/simulated equipment status and batch controls (no PLC integration - still intentionally postponed)
 
 ### Do not build now
-- Production
 - Batch Reports
 - Material Consumption
-- Recipe Management
 - Analytics
 - PLC Monitoring
 - Settings (beyond the Database Connection tab noted above - Plant info, PLC communication, backup/restore, user management, general preferences)

@@ -93,7 +93,12 @@ The conceptual module contains:
 - create/edit/copy/delete
 - future versioning/approval history
 
-Do not implement in the current phase.
+**Built 2026-08-23**, at the user's explicit request, as a prerequisite for
+Production (which references a recipe): Recipe Name, Batch Size,
+Description, Status, and an editable Material Proportion list
+(material name/quantity/unit per row, at least one required). Recipe ID is
+the database primary key, not a separately editable field. Copy and
+versioning/approval history remain out of scope.
 
 ## Master-data UI reference
 
