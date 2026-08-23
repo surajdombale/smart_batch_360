@@ -81,7 +81,15 @@ The conceptual reports screen contains:
 - batch detail
 - PDF/Excel/print actions
 
-Do not implement in the current phase.
+**Built 2026-08-24**, except PDF/Excel/print export - the user explicitly
+scoped this phase to search/filter/list only, deferring export as a
+separate follow-up rather than pulling in reporting dependencies
+(PDFBox/iText) before they're needed (docs/03_ARCHITECTURE.md). Batch
+number range, date range, and exact Client/Site/Vehicle/Driver/Recipe
+filters are all real and combine together; pagination and sorting (newest
+first by default) are real, backed by a proper paginated query rather than
+loading everything client-side; Batch Detail Viewing is a read-only dialog
+showing full batch info plus its material consumption table.
 
 ## Material Consumption reference
 

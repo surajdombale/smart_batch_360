@@ -16,9 +16,10 @@ The current phase is intentionally small:
 - Search on every list screen, and grouping Client/Site/Vehicle/Driver under a "Resources" nav section — both requested by the user 2026-08-23 (docs/02_UI_REFERENCE.md)
 - Recipe Management CRUD — built 2026-08-23 as a prerequisite for Production, which the user chose as the next module to build (docs/02_UI_REFERENCE.md)
 - Production — built 2026-08-23, the user's chosen next module. Real Batch CRUD (not just a UI mock) referencing Client/Site/Vehicle/Driver/Recipe, with manual/simulated equipment status and batch controls (no PLC integration - still intentionally postponed). Delete-conflict guards added to all five referenced modules
+- Batch Reports — built 2026-08-24: search/filter (batch number range, date range, Client/Site/Vehicle/Driver/Recipe)/pagination/sorting/detail viewing. PDF/Excel/print export explicitly excluded from this pass by the user's own scoping decision - see "Do not build now" below
 
 ### Do not build now
-- Batch Reports
+- Batch Reports PDF/Excel/print export — deliberately deferred (docs/02_UI_REFERENCE.md, docs/03_ARCHITECTURE.md's "do not add reporting/PDF dependencies prematurely"); the search/filter/list part of Batch Reports is built
 - Material Consumption
 - Analytics
 - PLC Monitoring
@@ -26,7 +27,6 @@ The current phase is intentionally small:
 - Alarm/Event History
 - advanced authentication/permissions
 - backup/restore
-- reporting/export
 
 ## Future roadmap from supplied documents
 
