@@ -52,6 +52,12 @@ public class ApiClient {
                 .thenApply(body -> read(body, responseType));
     }
 
+    /** For action-style endpoints (e.g. batch controls) that take no request body. */
+    public <T> CompletableFuture<T> postAction(String path, Class<T> responseType) {
+        return send(newRequest(path).POST(HttpRequest.BodyPublishers.noBody()).build())
+                .thenApply(body -> read(body, responseType));
+    }
+
     public <T> CompletableFuture<T> put(String path, Object requestBody, Class<T> responseType) {
         return send(newRequest(path)
                 .header("Content-Type", "application/json")
