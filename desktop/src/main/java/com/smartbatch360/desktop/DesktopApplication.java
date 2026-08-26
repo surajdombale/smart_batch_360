@@ -6,6 +6,7 @@ import com.smartbatch360.desktop.client.ClientView;
 import com.smartbatch360.desktop.dashboard.DashboardView;
 import com.smartbatch360.desktop.driver.DriverView;
 import com.smartbatch360.desktop.header.HeaderView;
+import com.smartbatch360.desktop.materialconsumption.MaterialConsumptionView;
 import com.smartbatch360.desktop.navigation.MainShell;
 import com.smartbatch360.desktop.navigation.NavEntry;
 import com.smartbatch360.desktop.navigation.NavGroup;
@@ -44,7 +45,10 @@ import java.util.Objects;
  * status and batch controls are manual/simulated - no PLC integration
  * (still intentionally postponed). Batch Reports was added 2026-08-24
  * (search/filter/list only - PDF/Excel/Print export deliberately deferred).
- * Consumption, Analytics, Plant/PLC and Alarm/Event History remain NOT
+ * Material Consumption was added 2026-08-26: target vs achieved vs variance/
+ * wastage, aggregated by day/week/month, built from existing Batch/
+ * BatchMaterial data - first-pass scope is the table only, charts are a
+ * later pass. Analytics, Plant/PLC and Alarm/Event History remain NOT
  * implemented (docs/06_SCOPE_AND_ROADMAP.md, CLAUDE.md.md).
  */
 public class DesktopApplication extends Application {
@@ -55,6 +59,7 @@ public class DesktopApplication extends Application {
                 new NavItem("dashboard", "Dashboard", DashboardView::new),
                 new NavItem("production", "Production", () -> new BatchView().getView()),
                 new NavItem("batch-reports", "Batch Reports", () -> new BatchReportView().getView()),
+                new NavItem("material-consumption", "Consumption", () -> new MaterialConsumptionView().getView()),
                 new NavGroup("Resources", List.of(
                         new NavItem("clients", "Clients", () -> new ClientView().getView()),
                         new NavItem("sites", "Sites", () -> new SiteView().getView()),
