@@ -133,7 +133,10 @@ public class BatchFormDialog {
         recipeField.valueProperty().addListener((obs, old, selected) -> {
             if (selected != null && materialRows.isEmpty()) {
                 selected.materials().forEach(m -> materialRows.add(new BatchMaterialRow(
-                        m.materialName(), m.quantity().toPlainString(), m.quantity().toPlainString(), "0", m.unit())));
+                        // unit is a MaterialUnit on the recipe side now; Batch still
+                        // stores its own free-text unit string, so take the name.
+                        m.materialName(), m.quantity().toPlainString(), m.quantity().toPlainString(), "0",
+                        m.unit().name())));
             }
         });
 

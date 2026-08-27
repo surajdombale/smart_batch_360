@@ -35,8 +35,8 @@ public class RecipeView {
         TableColumn<RecipeDto, String> nameCol = new TableColumn<>("Recipe Name");
         nameCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().name()));
 
-        TableColumn<RecipeDto, String> batchSizeCol = new TableColumn<>("Batch Size");
-        batchSizeCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().batchSize() + " m³"));
+        TableColumn<RecipeDto, String> batchSizeCol = new TableColumn<>("Total Batch Qty");
+        batchSizeCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().totalBatchQuantityM3() + " m³"));
 
         TableColumn<RecipeDto, String> descriptionCol = new TableColumn<>("Description");
         descriptionCol.setCellValueFactory(cd -> new SimpleStringProperty(emptyIfNull(cd.getValue().description())));

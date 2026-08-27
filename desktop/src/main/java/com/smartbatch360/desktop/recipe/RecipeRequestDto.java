@@ -1,11 +1,10 @@
 package com.smartbatch360.desktop.recipe;
 
-import java.math.BigDecimal;
 import java.util.List;
 
+/** No batch quantity: it is derived server-side from the materials. */
 public record RecipeRequestDto(
         String name,
-        BigDecimal batchSize,
         String description,
         RecipeStatus status,
         List<RecipeMaterialRequestDto> materials
