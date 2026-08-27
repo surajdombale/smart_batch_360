@@ -3,20 +3,27 @@ package com.smartbatch360.api.recipe;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A concrete mix recipe: name/grade (e.g. "M25"), batch size, description,
- * and a material proportion list (materials owned/cascaded by the recipe -
- * they only ever exist as part of one). Fields per the Recipe Management
- * mockup (docs/02_UI_REFERENCE.md); built as a prerequisite for Production,
- * which references a recipe (user request, 2026-08-23).
+ * A concrete mix recipe: name/grade (e.g. "M25"), description, and a list of
+ * materials with quantities (lines owned/cascaded by the recipe - they only
+ * ever exist as part of one). Built as a prerequisite for Production, which
+ * references a recipe (user request, 2026-08-23).
+ *
+ * Since 2026-08-27 the total batch quantity is DERIVED from the material list
+ * (see {@link #recalculateTotalBatchQuantity()}) rather than typed in, so it
+ * cannot drift from the actual mix.
  */
 @Entity
 @Table(name = "recipe")
 public class Recipe {
+
+    /** Matches the DECIMAL(12,4) column the total is persisted in. */
+    private static final int TOTAL_SCALE = 4;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,8 +32,8 @@ public class Recipe {
     @Column(name = "name", nullable = false, length = 150)
     private String name;
 
-    @Column(name = "batch_size", nullable = false, precision = 6, scale = 2)
-    private BigDecimal batchSize;
+    @Column(name = "total_batch_quantity_m3", nullable = false, precision = 12, scale = 4)
+    private BigDecimal totalBatchQuantityM3;
 
     @Column(name = "description", length = 255)
     private String description;
@@ -69,12 +76,32 @@ public class Recipe {
         this.name = name;
     }
 
-    public BigDecimal getBatchSize() {
-        return batchSize;
+    public BigDecimal getTotalBatchQuantityM3() {
+        return totalBatchQuantityM3;
     }
 
-    public void setBatchSize(BigDecimal batchSize) {
-        this.batchSize = batchSize;
+    /**
+     * Only for the migration-era path where an existing recipe's stored total
+     * is preserved as-is. New/edited recipes go through
+     * {@link #recalculateTotalBatchQuantity()} instead.
+     */
+    public void setTotalBatchQuantityM3(BigDecimal totalBatchQuantityM3) {
+        this.totalBatchQuantityM3 = totalBatchQuantityM3;
+    }
+
+    /**
+     * Sums every material line's volume contribution. Rounded once, at the end,
+     * to the persisted scale - the per-material conversions deliberately keep
+     * more precision than that so the rounding doesn't compound.
+     *
+     * @throws IllegalStateException if any material is a weight with no density set
+     */
+    public void recalculateTotalBatchQuantity() {
+        BigDecimal total = BigDecimal.ZERO;
+        for (RecipeMaterial material : materials) {
+            total = total.add(material.toCubicMetres());
+        }
+        this.totalBatchQuantityM3 = total.setScale(TOTAL_SCALE, RoundingMode.HALF_UP);
     }
 
     public String getDescription() {

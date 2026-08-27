@@ -10,7 +10,7 @@ import java.util.List;
 public record RecipeResponse(
         Long id,
         String name,
-        BigDecimal batchSize,
+        BigDecimal totalBatchQuantityM3,
         String description,
         RecipeStatus status,
         List<RecipeMaterialResponse> materials,
@@ -21,7 +21,7 @@ public record RecipeResponse(
         return new RecipeResponse(
                 r.getId(),
                 r.getName(),
-                r.getBatchSize(),
+                r.getTotalBatchQuantityM3(),
                 r.getDescription(),
                 r.getStatus(),
                 r.getMaterials().stream().map(RecipeMaterialResponse::from).toList(),

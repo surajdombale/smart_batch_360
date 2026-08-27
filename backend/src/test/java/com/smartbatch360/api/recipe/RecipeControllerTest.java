@@ -1,6 +1,7 @@
 package com.smartbatch360.api.recipe;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smartbatch360.api.material.MaterialUnit;
 import com.smartbatch360.api.recipe.dto.RecipeMaterialRequest;
 import com.smartbatch360.api.recipe.dto.RecipeMaterialResponse;
 import com.smartbatch360.api.recipe.dto.RecipeRequest;
@@ -33,15 +34,15 @@ class RecipeControllerTest {
     private RecipeService recipeService;
 
     private RecipeResponse sample() {
-        return new RecipeResponse(1L, "M25", new BigDecimal("3.00"), "Standard M25 Grade Concrete",
+        return new RecipeResponse(1L, "M25", new BigDecimal("1.3158"), "Standard M25 Grade Concrete",
                 RecipeStatus.ACTIVE,
-                List.of(new RecipeMaterialResponse(1L, "OPC S3 Cement", new BigDecimal("960.00"), "kg")),
+                List.of(new RecipeMaterialResponse(1L, 7L, "OPC S3 Cement", new BigDecimal("960.00"), MaterialUnit.KG)),
                 Instant.now(), Instant.now());
     }
 
     private RecipeRequest sampleRequest() {
-        return new RecipeRequest("M25", new BigDecimal("3.00"), "Standard M25 Grade Concrete", RecipeStatus.ACTIVE,
-                List.of(new RecipeMaterialRequest("OPC S3 Cement", new BigDecimal("960.00"), "kg")));
+        return new RecipeRequest("M25", "Standard M25 Grade Concrete", RecipeStatus.ACTIVE,
+                List.of(new RecipeMaterialRequest(7L, new BigDecimal("960.00"))));
     }
 
     @Test
@@ -67,8 +68,8 @@ class RecipeControllerTest {
 
     @Test
     void createRejectsBlankName() throws Exception {
-        RecipeRequest request = new RecipeRequest("", new BigDecimal("3.00"), null, RecipeStatus.ACTIVE,
-                List.of(new RecipeMaterialRequest("Cement", BigDecimal.TEN, "kg")));
+        RecipeRequest request = new RecipeRequest("", null, RecipeStatus.ACTIVE,
+                List.of(new RecipeMaterialRequest(7L, BigDecimal.TEN)));
 
         mockMvc.perform(post("/api/v1/recipes")
                         .contentType("application/json")
@@ -79,7 +80,7 @@ class RecipeControllerTest {
 
     @Test
     void createRejectsEmptyMaterialList() throws Exception {
-        RecipeRequest request = new RecipeRequest("M25", new BigDecimal("3.00"), null, RecipeStatus.ACTIVE, List.of());
+        RecipeRequest request = new RecipeRequest("M25", null, RecipeStatus.ACTIVE, List.of());
 
         mockMvc.perform(post("/api/v1/recipes")
                         .contentType("application/json")
@@ -89,8 +90,8 @@ class RecipeControllerTest {
 
     @Test
     void createRejectsInvalidMaterialQuantity() throws Exception {
-        RecipeRequest request = new RecipeRequest("M25", new BigDecimal("3.00"), null, RecipeStatus.ACTIVE,
-                List.of(new RecipeMaterialRequest("Cement", BigDecimal.ZERO, "kg")));
+        RecipeRequest request = new RecipeRequest("M25", null, RecipeStatus.ACTIVE,
+                List.of(new RecipeMaterialRequest(7L, BigDecimal.ZERO)));
 
         mockMvc.perform(post("/api/v1/recipes")
                         .contentType("application/json")

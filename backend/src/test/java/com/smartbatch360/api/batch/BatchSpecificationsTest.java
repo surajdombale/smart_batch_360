@@ -168,7 +168,7 @@ class BatchSpecificationsTest {
     private Recipe recipe(String name) {
         Recipe r = new Recipe();
         r.setName(name);
-        r.setBatchSize(new BigDecimal("3.00"));
+        r.setTotalBatchQuantityM3(new BigDecimal("3.00"));
         r.setStatus(RecipeStatus.ACTIVE);
         return r;
     }

@@ -1,10 +1,18 @@
 package com.smartbatch360.api.recipe;
 
+import com.smartbatch360.api.material.Material;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 
-/** One row of a Recipe's material proportion list (e.g. "OPC S3 Cement, 960.00, kg"). */
+/**
+ * One line of a Recipe's material list: which Material, and how much of it
+ * (in that material's own unit).
+ *
+ * As of 2026-08-27 this references a Material record rather than repeating the
+ * material's name and unit as free text - those now live on Material alone, so
+ * they cannot drift between recipes.
+ */
 @Entity
 @Table(name = "recipe_material")
 public class RecipeMaterial {
@@ -17,17 +25,20 @@ public class RecipeMaterial {
     @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
 
-    @Column(name = "material_name", nullable = false, length = 100)
-    private String materialName;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "material_id", nullable = false)
+    private Material material;
 
     @Column(name = "quantity", nullable = false, precision = 8, scale = 2)
     private BigDecimal quantity;
 
-    @Column(name = "unit", nullable = false, length = 20)
-    private String unit;
-
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
+
+    /** This line's contribution to the recipe's total batch quantity, in m3. */
+    public BigDecimal toCubicMetres() {
+        return material.toCubicMetres(quantity);
+    }
 
     public Long getId() {
         return id;
@@ -41,12 +52,12 @@ public class RecipeMaterial {
         this.recipe = recipe;
     }
 
-    public String getMaterialName() {
-        return materialName;
+    public Material getMaterial() {
+        return material;
     }
 
-    public void setMaterialName(String materialName) {
-        this.materialName = materialName;
+    public void setMaterial(Material material) {
+        this.material = material;
     }
 
     public BigDecimal getQuantity() {
@@ -55,14 +66,6 @@ public class RecipeMaterial {
 
     public void setQuantity(BigDecimal quantity) {
         this.quantity = quantity;
-    }
-
-    public String getUnit() {
-        return unit;
-    }
-
-    public void setUnit(String unit) {
-        this.unit = unit;
     }
 
     public int getDisplayOrder() {
