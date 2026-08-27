@@ -111,6 +111,10 @@ public class DashboardView extends BorderPane {
         valueLabel.getStyleClass().add("kpi-value");
         Label nameLabel = new Label(label);
         nameLabel.getStyleClass().add("kpi-label");
+        // Seven tiles rarely get their full 180px, so the label has to wrap
+        // rather than clip - otherwise they all read "Total ..." and the
+        // dashboard says nothing.
+        nameLabel.setWrapText(true);
         card.getChildren().addAll(nameLabel, valueLabel);
         return card;
     }
