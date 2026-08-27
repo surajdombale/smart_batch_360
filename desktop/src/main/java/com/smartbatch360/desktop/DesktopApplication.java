@@ -6,11 +6,13 @@ import com.smartbatch360.desktop.client.ClientView;
 import com.smartbatch360.desktop.dashboard.DashboardView;
 import com.smartbatch360.desktop.driver.DriverView;
 import com.smartbatch360.desktop.header.HeaderView;
+import com.smartbatch360.desktop.material.MaterialView;
 import com.smartbatch360.desktop.materialconsumption.MaterialConsumptionView;
 import com.smartbatch360.desktop.navigation.MainShell;
 import com.smartbatch360.desktop.navigation.NavEntry;
 import com.smartbatch360.desktop.navigation.NavGroup;
 import com.smartbatch360.desktop.navigation.NavItem;
+import com.smartbatch360.desktop.order.OrderView;
 import com.smartbatch360.desktop.recipe.RecipeView;
 import com.smartbatch360.desktop.server.EmbeddedServer;
 import com.smartbatch360.desktop.settings.SettingsView;
@@ -48,7 +50,11 @@ import java.util.Objects;
  * Material Consumption was added 2026-08-26: target vs achieved vs variance/
  * wastage, aggregated by day/week/month, built from existing Batch/
  * BatchMaterial data - first-pass scope is the table only, charts are a
- * later pass. Analytics, Plant/PLC and Alarm/Event History remain NOT
+ * later pass. Material and Order were added 2026-08-27 along with a reworked
+ * Recipe flow: recipes now reference Material records and derive their batch
+ * quantity in m3 from them, and an Order (Customer/Site/Recipe/quantity) is
+ * created UNFULFILLED - the rest of the order lifecycle is deliberately not
+ * built yet. Analytics, Plant/PLC and Alarm/Event History remain NOT
  * implemented (docs/06_SCOPE_AND_ROADMAP.md, CLAUDE.md.md).
  */
 public class DesktopApplication extends Application {
@@ -58,6 +64,7 @@ public class DesktopApplication extends Application {
         List<NavEntry> navEntries = List.of(
                 new NavItem("dashboard", "Dashboard", DashboardView::new),
                 new NavItem("production", "Production", () -> new BatchView().getView()),
+                new NavItem("orders", "Orders", () -> new OrderView().getView()),
                 new NavItem("batch-reports", "Batch Reports", () -> new BatchReportView().getView()),
                 new NavItem("material-consumption", "Consumption", () -> new MaterialConsumptionView().getView()),
                 new NavGroup("Resources", List.of(
@@ -66,6 +73,7 @@ public class DesktopApplication extends Application {
                         new NavItem("vehicles", "Vehicles", () -> new VehicleView().getView()),
                         new NavItem("drivers", "Drivers", () -> new DriverView().getView())
                 )),
+                new NavItem("materials", "Materials", () -> new MaterialView().getView()),
                 new NavItem("recipes", "Recipes", () -> new RecipeView().getView()),
                 new NavItem("headers", "Headers", () -> new HeaderView().getView()),
                 new NavItem("settings", "Settings", () -> new SettingsView().getView())

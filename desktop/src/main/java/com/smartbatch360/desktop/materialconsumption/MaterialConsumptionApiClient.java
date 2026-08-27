@@ -25,6 +25,11 @@ public class MaterialConsumptionApiClient {
         return apiClient.getList(path, MaterialConsumptionDto.class);
     }
 
+    /** An order's projected consumption, derived from its recipe (Order flow, 2026-08-27). */
+    public CompletableFuture<OrderConsumptionDto> forOrder(Long orderId) {
+        return apiClient.get("/api/v1/material-consumption/order/" + orderId, OrderConsumptionDto.class);
+    }
+
     private void addIfPresent(List<String> params, String key, String value) {
         if (value != null && !value.isBlank()) {
             params.add(key + "=" + URLEncoder.encode(value, StandardCharsets.UTF_8));
