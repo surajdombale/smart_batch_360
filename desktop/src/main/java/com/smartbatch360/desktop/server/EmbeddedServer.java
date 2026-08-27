@@ -30,6 +30,17 @@ public final class EmbeddedServer {
 
     private static volatile ConfigurableApplicationContext context;
 
+    /**
+     * True once a startup attempt has finished, successfully or not.
+     *
+     * Deliberately a plain volatile rather than something derived from
+     * {@link #isRunning()}: start() is synchronized and holds the class lock
+     * for the whole Spring boot sequence (~10-20s), so isRunning() blocks for
+     * that entire time. Callers that need to know "is the backend still coming
+     * up?" without stalling - ApiClient's startup retry - read this instead.
+     */
+    private static volatile boolean startupSettled;
+
     private EmbeddedServer() {
     }
 
@@ -51,15 +62,29 @@ public final class EmbeddedServer {
 
     /** Called once at app startup. Silently does nothing if no connection has been saved yet. */
     public static void startIfConfigured() {
-        savedConfig().ifPresent(config -> {
-            try {
-                start(config);
-            } catch (Exception e) {
-                // Leave the server stopped - the UI's existing error/retry states handle this,
-                // and Settings > Database Connection lets the user fix or re-enter it.
-                System.err.println("Could not start with the saved database connection: " + e.getMessage());
-            }
-        });
+        try {
+            savedConfig().ifPresent(config -> {
+                try {
+                    start(config);
+                } catch (Exception e) {
+                    // Leave the server stopped - the UI's existing error/retry states handle this,
+                    // and Settings > Database Connection lets the user fix or re-enter it.
+                    System.err.println("Could not start with the saved database connection: " + e.getMessage());
+                }
+            });
+        } finally {
+            startupSettled = true;
+        }
+    }
+
+    /**
+     * Whether the initial startup attempt has finished (either way). Never
+     * blocks - see the field's note. Used to decide whether a failed API call
+     * is "the backend hasn't finished booting" or a real failure worth
+     * reporting straight away.
+     */
+    public static boolean isStartupSettled() {
+        return startupSettled;
     }
 
     /**
@@ -81,6 +106,7 @@ public final class EmbeddedServer {
             context = null;
         }
         context = SpringApplication.run(SmartBatch360ApiApplication.class);
+        startupSettled = true;
 
         config.saveTo(configPath());
     }

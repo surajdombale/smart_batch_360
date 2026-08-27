@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.smartbatch360.desktop.config.AppConfig;
+import com.smartbatch360.desktop.server.EmbeddedServer;
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,12 +14,22 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Thin async JSON REST client built on {@link HttpClient}. Every call returns a
  * {@link CompletableFuture} - callers must never block the JavaFX Application
  * Thread on the result (docs/03_ARCHITECTURE.md, docs/05_CRUD_SPECIFICATION.md).
  * Non-2xx responses are translated into a user-friendly {@link ApiException}.
+ *
+ * Connection failures are retried briefly, but only while the embedded
+ * backend is still booting - see {@link #shouldWaitForBackend}. The backend
+ * starts in parallel with the UI and takes tens of seconds (Spring + Flyway +
+ * Hibernate), so without this the first screen shown after launch reliably
+ * rendered "Could not reach the SmartBatch360 server" until the user hit
+ * Retry by hand. A genuinely unreachable server still fails fast.
  */
 public class ApiClient {
 
@@ -77,18 +88,56 @@ public class ApiClient {
                 .timeout(Duration.ofSeconds(15));
     }
 
+    /** How long to keep re-trying while the embedded backend is still starting up. */
+    private static final int STARTUP_RETRY_LIMIT = 40;
+    private static final Duration STARTUP_RETRY_DELAY = Duration.ofMillis(750);
+
     private CompletableFuture<String> send(HttpRequest request) {
+        return send(request, 0);
+    }
+
+    private CompletableFuture<String> send(HttpRequest request, int attempt) {
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .handle((response, throwable) -> {
-                    if (throwable != null) {
-                        throw ApiException.network(throwable);
+                .thenApply(this::bodyOrThrow)
+                .exceptionallyCompose(throwable -> {
+                    Throwable cause = throwable instanceof CompletionException ? throwable.getCause() : throwable;
+                    if (shouldWaitForBackend(cause, attempt)) {
+                        Executor later = CompletableFuture.delayedExecutor(
+                                STARTUP_RETRY_DELAY.toMillis(), TimeUnit.MILLISECONDS);
+                        return CompletableFuture.supplyAsync(() -> null, later)
+                                .thenCompose(ignored -> send(request, attempt + 1));
                     }
-                    int status = response.statusCode();
-                    if (status >= 200 && status < 300) {
-                        return response.body();
-                    }
-                    throw toApiException(status, response.body());
+                    return CompletableFuture.failedFuture(
+                            cause instanceof ApiException ? cause : ApiException.network(cause));
                 });
+    }
+
+    private String bodyOrThrow(HttpResponse<String> response) {
+        int status = response.statusCode();
+        if (status >= 200 && status < 300) {
+            return response.body();
+        }
+        throw toApiException(status, response.body());
+    }
+
+    /**
+     * True only for a transport-level failure that is explainable by the
+     * backend not being up yet. An {@link ApiException} (the server answered,
+     * just not with 2xx) is never retried, and neither is anything at all once
+     * the embedded server reports itself running - at that point a connection
+     * failure is real and the user should hear about it immediately.
+     * (isStartupSettled() rather than isRunning(): the latter is synchronized
+     * against the startup lock and would block here for the whole boot.)
+     *
+     * Requires a saved database config too: with none, the backend is never
+     * going to start on its own and the right answer is the error state that
+     * points at Settings, not a 30-second wait.
+     */
+    private boolean shouldWaitForBackend(Throwable cause, int attempt) {
+        return !(cause instanceof ApiException)
+                && attempt < STARTUP_RETRY_LIMIT
+                && !EmbeddedServer.isStartupSettled()
+                && EmbeddedServer.savedConfig().isPresent();
     }
 
     private ApiException toApiException(int status, String body) {
