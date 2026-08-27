@@ -1,6 +1,7 @@
 package com.smartbatch360.api.materialconsumption;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,5 +26,11 @@ public class MaterialConsumptionController {
             @RequestParam(required = false) LocalDate dateTo,
             @RequestParam(required = false, defaultValue = "DAY") MaterialConsumptionGroupBy groupBy) {
         return service.search(new MaterialConsumptionSearchCriteria(materialName, dateFrom, dateTo, groupBy));
+    }
+
+    /** What a given order will consume, derived from its recipe (added with the Order flow, 2026-08-27). */
+    @GetMapping("/order/{orderId}")
+    public OrderConsumptionResponse forOrder(@PathVariable Long orderId) {
+        return service.forOrder(orderId);
     }
 }
