@@ -19,7 +19,12 @@ The current phase is intentionally small:
 - Batch Reports — built 2026-08-24: search/filter (batch number range, date range, Client/Site/Vehicle/Driver/Recipe)/pagination/sorting/detail viewing. PDF/Excel/print export explicitly excluded from this pass by the user's own scoping decision - see "Do not build now" below
 - Material Consumption — built 2026-08-26: target vs achieved vs variance/wastage, aggregated by day/week/month, built from existing Batch/BatchMaterial data (no new entity). First-pass scope chosen by the user: the aggregated table only - charts are a later pass, see "Do not build now" below
 
+- Material Management + Order flow — built 2026-08-27 at the user's request. Materials became first-class records (name + unit KG/LITRE + density) instead of free text repeated on every recipe row; Recipe now references them and DERIVES its total batch quantity in m3 from them rather than accepting a typed-in figure; Order (sales order: Customer/Site/Recipe/quantity in m3) was added, created UNFULFILLED. Material Consumption gained an order-based projection (Order -> Recipe -> Recipe Materials -> Material) alongside the existing batch-history aggregation, which was left untouched.
+  - Density is user-entered per material because KG cannot be converted to m3 without it and nothing in the schema carried one; hardcoding assumed densities was explicitly ruled out by the user.
+- Stabilisation pass — 2026-08-27: full test sweep of every tab and dialog. Fixed malformed requests returning 500 instead of 4xx, a connection error shown on every launch (backend boots slower than the UI), and truncated dashboard KPI labels. Packaged as V3 (3.0.0).
+
 ### Do not build now
+- The rest of the Order lifecycle beyond UNFULFILLED — the user's own scoping decision 2026-08-27; only creation and the initial state are built
 - Batch Reports PDF/Excel/print export — deliberately deferred (docs/02_UI_REFERENCE.md, docs/03_ARCHITECTURE.md's "do not add reporting/PDF dependencies prematurely"); the search/filter/list part of Batch Reports is built
 - Material Consumption charts — deferred to a later pass; the aggregated table itself is built
 - Analytics
