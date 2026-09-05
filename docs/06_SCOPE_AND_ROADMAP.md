@@ -23,8 +23,10 @@ The current phase is intentionally small:
   - Density is user-entered per material because KG cannot be converted to m3 without it and nothing in the schema carried one; hardcoding assumed densities was explicitly ruled out by the user.
 - Stabilisation pass — 2026-08-27: full test sweep of every tab and dialog. Fixed malformed requests returning 500 instead of 4xx, a connection error shown on every launch (backend boots slower than the UI), and truncated dashboard KPI labels. Packaged as V3 (3.0.0).
 
+- Order lifecycle — built 2026-09-05, completing the module deferred on 2026-08-27. Statuses UNFULFILLED -> IN_PROGRESS -> FULFILLED, with CANCELLED reachable from either non-terminal state; terminal states cannot be left. Unlike Batch's deliberately permissive controls (which stand in for hardware that isn't wired up), these transitions are ENFORCED - an order's status is a business record. An in-progress order cannot be deleted, only cancelled.
+
 ### Do not build now
-- The rest of the Order lifecycle beyond UNFULFILLED — the user's own scoping decision 2026-08-27; only creation and the initial state are built
+- Linking Orders to the Batches produced against them (and fulfilment tracking by produced vs ordered m3) — the next natural pass; the lifecycle is currently operator-driven, like Production's controls
 - Batch Reports PDF/Excel/print export — deliberately deferred (docs/02_UI_REFERENCE.md, docs/03_ARCHITECTURE.md's "do not add reporting/PDF dependencies prematurely"); the search/filter/list part of Batch Reports is built
 - Material Consumption charts — deferred to a later pass; the aggregated table itself is built
 - Analytics

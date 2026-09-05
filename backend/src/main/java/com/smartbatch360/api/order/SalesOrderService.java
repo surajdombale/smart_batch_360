@@ -2,6 +2,7 @@ package com.smartbatch360.api.order;
 
 import com.smartbatch360.api.client.Client;
 import com.smartbatch360.api.client.ClientRepository;
+import com.smartbatch360.api.common.ConflictException;
 import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.NotFoundException;
 import com.smartbatch360.api.order.dto.SalesOrderRequest;
@@ -68,8 +69,49 @@ public class SalesOrderService {
         return SalesOrderResponse.from(salesOrderRepository.save(order));
     }
 
+    /** UNFULFILLED -> IN_PROGRESS: production has started against the order. */
+    public SalesOrderResponse start(Long id) {
+        return transition(id, OrderStatus.IN_PROGRESS);
+    }
+
+    /** IN_PROGRESS -> FULFILLED: fully delivered. Terminal. */
+    public SalesOrderResponse fulfil(Long id) {
+        return transition(id, OrderStatus.FULFILLED);
+    }
+
+    /** UNFULFILLED or IN_PROGRESS -> CANCELLED. Terminal. */
+    public SalesOrderResponse cancel(Long id) {
+        return transition(id, OrderStatus.CANCELLED);
+    }
+
+    /**
+     * Applies a status change, refusing anything the lifecycle doesn't allow.
+     * Enforced rather than permissive - see OrderStatus's note on why this
+     * differs from Batch's controls.
+     */
+    private SalesOrderResponse transition(Long id, OrderStatus target) {
+        SalesOrder order = getOrThrow(id);
+        OrderStatus current = order.getStatus();
+        if (current == target) {
+            throw new InvalidRequestException("Order #" + id + " is already " + target + ".");
+        }
+        if (!current.canTransitionTo(target)) {
+            throw new InvalidRequestException("Order #" + id + " is " + current
+                    + (current.isTerminal() ? ", which is final, so it" : ", so it")
+                    + " cannot be moved to " + target + ".");
+        }
+        order.setStatus(target);
+        return SalesOrderResponse.from(salesOrderRepository.save(order));
+    }
+
     public void delete(Long id) {
-        salesOrderRepository.delete(getOrThrow(id));
+        SalesOrder order = getOrThrow(id);
+        // An order that production has already started against is history, not
+        // a mistake to be erased - cancel it instead.
+        if (order.getStatus() == OrderStatus.IN_PROGRESS) {
+            throw new ConflictException("Order #" + id + " is in progress and cannot be deleted. Cancel it instead.");
+        }
+        salesOrderRepository.delete(order);
     }
 
     SalesOrder getOrThrow(Long id) {

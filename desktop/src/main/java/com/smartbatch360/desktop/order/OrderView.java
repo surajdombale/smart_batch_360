@@ -13,13 +13,20 @@ import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 /**
- * Orders list screen. Only creation and the UNFULFILLED state exist for now -
- * the rest of the order lifecycle is deliberately not built yet (user scope
- * decision 2026-08-27), so there is no Edit action, just Create/Delete and a
- * per-order material consumption view.
+ * Orders list screen: create, move through the lifecycle
+ * (start / fulfil / cancel), inspect projected material consumption, delete.
+ *
+ * Like Production, the Actions column shows only the steps that are legal
+ * from the row's current status rather than a wall of disabled buttons - the
+ * backend enforces the same rules, so this is presentation, not the guard.
+ * There is no Edit: an order's terms are fixed once placed; cancel and
+ * re-create instead.
  */
 public class OrderView {
 
@@ -66,30 +73,72 @@ public class OrderView {
     private TableColumn<OrderDto, Void> buildActionsColumn() {
         TableColumn<OrderDto, Void> column = new TableColumn<>("Actions");
         column.setSortable(false);
-        column.setMinWidth(200);
+        column.setMinWidth(320);
         column.setCellFactory(col -> new TableCell<>() {
-            private final Button consumptionButton = new Button("Consumption");
-            private final Button deleteButton = new Button("Delete");
-            private final HBox box = new HBox(6, consumptionButton, deleteButton);
-
-            {
-                consumptionButton.getStyleClass().add("button-secondary");
-                deleteButton.getStyleClass().add("button-danger");
-                consumptionButton.setOnAction(e -> OrderConsumptionDialog.show(rowItem().id()));
-                deleteButton.setOnAction(e -> confirmAndDelete(rowItem()));
-            }
-
-            private OrderDto rowItem() {
-                return getTableView().getItems().get(getIndex());
-            }
+            private final HBox box = new HBox(6);
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : box);
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+                OrderDto order = getTableView().getItems().get(getIndex());
+                box.getChildren().setAll(actionsFor(order));
+                setGraphic(box);
             }
         });
         return column;
+    }
+
+    /** Only the transitions that are legal from this order's current status. */
+    private List<Button> actionsFor(OrderDto order) {
+        List<Button> buttons = new ArrayList<>();
+        switch (order.status()) {
+            case UNFULFILLED -> {
+                buttons.add(lifecycleButton("Start", "button-primary", apiClient::start, order));
+                buttons.add(lifecycleButton("Cancel", "button-secondary", apiClient::cancel, order));
+            }
+            case IN_PROGRESS -> {
+                buttons.add(lifecycleButton("Fulfil", "button-primary", apiClient::fulfil, order));
+                buttons.add(lifecycleButton("Cancel", "button-secondary", apiClient::cancel, order));
+            }
+            case FULFILLED, CANCELLED -> {
+                // Terminal - nothing left to do but look at it.
+            }
+        }
+
+        Button consumption = new Button("Consumption");
+        consumption.getStyleClass().add("button-secondary");
+        consumption.setOnAction(e -> OrderConsumptionDialog.show(order.id()));
+        buttons.add(consumption);
+
+        // An in-progress order is history; the backend refuses to delete it.
+        if (order.status() != OrderStatus.IN_PROGRESS) {
+            Button delete = new Button("Delete");
+            delete.getStyleClass().add("button-danger");
+            delete.setOnAction(e -> confirmAndDelete(order));
+            buttons.add(delete);
+        }
+        return buttons;
+    }
+
+    private Button lifecycleButton(String label, String styleClass,
+                                    Function<Long, CompletableFuture<OrderDto>> action, OrderDto order) {
+        Button button = new Button(label);
+        button.getStyleClass().add(styleClass);
+        button.setOnAction(e -> action.apply(order.id()).whenComplete((result, throwable) ->
+                Platform.runLater(() -> {
+                    if (throwable != null) {
+                        listView.getBanner().showError(errorMessage(throwable));
+                    } else {
+                        listView.getBanner().showSuccess(
+                                "Order #" + result.id() + " is now " + result.status() + ".");
+                    }
+                    load();
+                })));
+        return button;
     }
 
     private void load() {

@@ -1,6 +1,9 @@
 package com.smartbatch360.desktop.order;
 
-/** Mirrors the backend's OrderStatus. Only UNFULFILLED exists for now. */
+/** Mirrors the backend's OrderStatus. */
 public enum OrderStatus {
-    UNFULFILLED
+    UNFULFILLED,
+    IN_PROGRESS,
+    FULFILLED,
+    CANCELLED
 }

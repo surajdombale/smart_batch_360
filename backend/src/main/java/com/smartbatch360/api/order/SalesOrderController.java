@@ -36,6 +36,21 @@ public class SalesOrderController {
         return ResponseEntity.created(URI.create("/api/v1/orders/" + created.id())).body(created);
     }
 
+    @PostMapping("/{id}/start")
+    public SalesOrderResponse start(@PathVariable Long id) {
+        return salesOrderService.start(id);
+    }
+
+    @PostMapping("/{id}/fulfil")
+    public SalesOrderResponse fulfil(@PathVariable Long id) {
+        return salesOrderService.fulfil(id);
+    }
+
+    @PostMapping("/{id}/cancel")
+    public SalesOrderResponse cancel(@PathVariable Long id) {
+        return salesOrderService.cancel(id);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         salesOrderService.delete(id);
