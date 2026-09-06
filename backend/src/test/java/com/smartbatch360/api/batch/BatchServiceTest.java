@@ -45,13 +45,16 @@ class BatchServiceTest {
     @Mock
     private DriverRepository driverRepository;
 
+    @Mock
+    private com.smartbatch360.api.order.SalesOrderRepository salesOrderRepository;
+
     private BatchService service() {
         return new BatchService(batchRepository, recipeRepository, clientRepository, siteRepository,
-                vehicleRepository, driverRepository);
+                vehicleRepository, driverRepository, salesOrderRepository);
     }
 
     private BatchRequest sampleRequest() {
-        return new BatchRequest("250201", 1L, 2L, 3L, 4L, 5L,
+        return new BatchRequest("250201", 1L, null, 2L, 3L, 4L, 5L,
                 new BigDecimal("3.00"), BigDecimal.ZERO, null, 1, "Day",
                 BatchStatus.PENDING, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
                 EquipmentStatus.STOPPED, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
@@ -173,7 +176,7 @@ class BatchServiceTest {
         when(batchRepository.existsByBatchNumberIgnoreCase("250201")).thenReturn(false);
         when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        BatchRequest overProduced = new BatchRequest("250201", 1L, 2L, 3L, 4L, 5L,
+        BatchRequest overProduced = new BatchRequest("250201", 1L, null, 2L, 3L, 4L, 5L,
                 new BigDecimal("3.00"), new BigDecimal("3.50"), null, 1, "Day",
                 BatchStatus.IN_PROGRESS, EquipmentStatus.RUNNING, EquipmentStatus.RUNNING,
                 EquipmentStatus.RUNNING, EquipmentStatus.RUNNING, EquipmentStatus.RUNNING,

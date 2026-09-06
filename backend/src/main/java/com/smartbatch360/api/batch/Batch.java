@@ -2,6 +2,7 @@ package com.smartbatch360.api.batch;
 
 import com.smartbatch360.api.client.Client;
 import com.smartbatch360.api.driver.Driver;
+import com.smartbatch360.api.order.SalesOrder;
 import com.smartbatch360.api.recipe.Recipe;
 import com.smartbatch360.api.site.Site;
 import com.smartbatch360.api.vehicle.Vehicle;
@@ -33,6 +34,15 @@ public class Batch {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
+
+    /**
+     * The sales order this batch was produced against, if any. Nullable:
+     * batches predate orders, and ad-hoc production not tied to an order is
+     * still legitimate (added 2026-09-05).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    private SalesOrder order;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "client_id", nullable = false)
@@ -132,6 +142,14 @@ public class Batch {
 
     public void setRecipe(Recipe recipe) {
         this.recipe = recipe;
+    }
+
+    public SalesOrder getOrder() {
+        return order;
+    }
+
+    public void setOrder(SalesOrder order) {
+        this.order = order;
     }
 
     public Client getClient() {

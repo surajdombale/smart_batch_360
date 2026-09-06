@@ -19,6 +19,9 @@ public record BatchRequest(
         @NotNull(message = "Recipe is required.")
         Long recipeId,
 
+        /** Optional: the sales order this batch is produced against. */
+        Long orderId,
+
         @NotNull(message = "Client is required.")
         Long clientId,
 

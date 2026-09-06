@@ -8,7 +8,10 @@ import com.smartbatch360.api.batch.dto.BatchSearchCriteria;
 import com.smartbatch360.api.client.Client;
 import com.smartbatch360.api.client.ClientRepository;
 import com.smartbatch360.api.common.DuplicateResourceException;
+import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.NotFoundException;
+import com.smartbatch360.api.order.SalesOrder;
+import com.smartbatch360.api.order.SalesOrderRepository;
 import com.smartbatch360.api.driver.Driver;
 import com.smartbatch360.api.driver.DriverRepository;
 import com.smartbatch360.api.recipe.Recipe;
@@ -43,16 +46,19 @@ public class BatchService {
     private final SiteRepository siteRepository;
     private final VehicleRepository vehicleRepository;
     private final DriverRepository driverRepository;
+    private final SalesOrderRepository salesOrderRepository;
 
     public BatchService(BatchRepository batchRepository, RecipeRepository recipeRepository,
                          ClientRepository clientRepository, SiteRepository siteRepository,
-                         VehicleRepository vehicleRepository, DriverRepository driverRepository) {
+                         VehicleRepository vehicleRepository, DriverRepository driverRepository,
+                         SalesOrderRepository salesOrderRepository) {
         this.batchRepository = batchRepository;
         this.recipeRepository = recipeRepository;
         this.clientRepository = clientRepository;
         this.siteRepository = siteRepository;
         this.vehicleRepository = vehicleRepository;
         this.driverRepository = driverRepository;
+        this.salesOrderRepository = salesOrderRepository;
     }
 
     @Transactional(readOnly = true)
@@ -142,6 +148,35 @@ public class BatchService {
                 .orElseThrow(() -> NotFoundException.forId("Batch", id));
     }
 
+    /**
+     * Resolves the optional sales order and refuses a batch that doesn't
+     * actually belong to it. A batch produced against an order but for a
+     * different recipe, customer or site would silently corrupt the order's
+     * fulfilment figures - and its material consumption, which is derived
+     * from the order's recipe.
+     */
+    private SalesOrder resolveOrder(BatchRequest request, Recipe recipe, Client client, Site site) {
+        if (request.orderId() == null) {
+            return null;
+        }
+        SalesOrder order = salesOrderRepository.findById(request.orderId())
+                .orElseThrow(() -> NotFoundException.forId("Order", request.orderId()));
+
+        if (!order.getRecipe().getId().equals(recipe.getId())) {
+            throw new InvalidRequestException("Order #" + order.getId() + " is for recipe '"
+                    + order.getRecipe().getName() + "', so this batch cannot use '" + recipe.getName() + "'.");
+        }
+        if (!order.getClient().getId().equals(client.getId())) {
+            throw new InvalidRequestException("Order #" + order.getId() + " belongs to customer '"
+                    + order.getClient().getName() + "', not '" + client.getName() + "'.");
+        }
+        if (!order.getSite().getId().equals(site.getId())) {
+            throw new InvalidRequestException("Order #" + order.getId() + " is for site '"
+                    + order.getSite().getName() + "', not '" + site.getName() + "'.");
+        }
+        return order;
+    }
+
     private void applyRequest(Batch batch, BatchRequest request, String batchNumber) {
         Recipe recipe = recipeRepository.findById(request.recipeId())
                 .orElseThrow(() -> NotFoundException.forId("Recipe", request.recipeId()));
@@ -155,6 +190,7 @@ public class BatchService {
                 .orElseThrow(() -> NotFoundException.forId("Driver", request.driverId()));
 
         batch.setBatchNumber(batchNumber);
+        batch.setOrder(resolveOrder(request, recipe, client, site));
         batch.setRecipe(recipe);
         batch.setClient(client);
         batch.setSite(site);

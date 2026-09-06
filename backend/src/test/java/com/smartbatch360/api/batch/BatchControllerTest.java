@@ -35,7 +35,7 @@ class BatchControllerTest {
     private BatchService batchService;
 
     private BatchResponse sample() {
-        return new BatchResponse(1L, "250201", 1L, "M25", 2L, "SmartBatch Solutions", 3L, "Kharadi",
+        return new BatchResponse(1L, "250201", 1L, "M25", null, 2L, "SmartBatch Solutions", 3L, "Kharadi",
                 4L, "MH12PQ3457", 5L, "Ganesh More",
                 new BigDecimal("3.00"), new BigDecimal("2.40"), new BigDecimal("0.60"),
                 Instant.now(), 1, "Day", BatchStatus.IN_PROGRESS,
@@ -47,7 +47,7 @@ class BatchControllerTest {
     }
 
     private BatchRequest sampleRequest() {
-        return new BatchRequest("250201", 1L, 2L, 3L, 4L, 5L,
+        return new BatchRequest("250201", 1L, null, 2L, 3L, 4L, 5L,
                 new BigDecimal("3.00"), BigDecimal.ZERO, null, 1, "Day",
                 BatchStatus.PENDING, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
                 EquipmentStatus.STOPPED, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
@@ -78,7 +78,7 @@ class BatchControllerTest {
 
     @Test
     void createRejectsBlankBatchNumber() throws Exception {
-        BatchRequest request = new BatchRequest("", 1L, 2L, 3L, 4L, 5L,
+        BatchRequest request = new BatchRequest("", 1L, null, 2L, 3L, 4L, 5L,
                 new BigDecimal("3.00"), BigDecimal.ZERO, null, 1, "Day",
                 BatchStatus.PENDING, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
                 EquipmentStatus.STOPPED, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
