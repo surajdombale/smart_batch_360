@@ -38,9 +38,11 @@ class SalesOrderServiceTest {
     @Mock private ClientRepository clientRepository;
     @Mock private SiteRepository siteRepository;
     @Mock private RecipeRepository recipeRepository;
+    @Mock private com.smartbatch360.api.batch.BatchRepository batchRepository;
 
     private SalesOrderService service() {
-        return new SalesOrderService(salesOrderRepository, clientRepository, siteRepository, recipeRepository);
+        return new SalesOrderService(salesOrderRepository, clientRepository, siteRepository, recipeRepository,
+                batchRepository);
     }
 
     private SalesOrder orderWith(OrderStatus status) {
@@ -62,6 +64,7 @@ class SalesOrderServiceTest {
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(salesOrderRepository.save(any(SalesOrder.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(batchRepository.sumProducedQuantityForOrder(any())).thenReturn(BigDecimal.ZERO);
         return order;
     }
 

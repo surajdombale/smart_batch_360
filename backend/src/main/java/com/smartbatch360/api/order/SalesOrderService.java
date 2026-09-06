@@ -1,6 +1,7 @@
 package com.smartbatch360.api.order;
 
 import com.smartbatch360.api.client.Client;
+import com.smartbatch360.api.batch.BatchRepository;
 import com.smartbatch360.api.client.ClientRepository;
 import com.smartbatch360.api.common.ConflictException;
 import com.smartbatch360.api.common.InvalidRequestException;
@@ -24,25 +25,33 @@ public class SalesOrderService {
     private final ClientRepository clientRepository;
     private final SiteRepository siteRepository;
     private final RecipeRepository recipeRepository;
+    private final BatchRepository batchRepository;
 
     public SalesOrderService(SalesOrderRepository salesOrderRepository, ClientRepository clientRepository,
-                              SiteRepository siteRepository, RecipeRepository recipeRepository) {
+                              SiteRepository siteRepository, RecipeRepository recipeRepository,
+                              BatchRepository batchRepository) {
         this.salesOrderRepository = salesOrderRepository;
         this.clientRepository = clientRepository;
         this.siteRepository = siteRepository;
         this.recipeRepository = recipeRepository;
+        this.batchRepository = batchRepository;
+    }
+
+    /** Wraps an order with how much has actually been produced against it. */
+    private SalesOrderResponse withFulfilment(SalesOrder order) {
+        return SalesOrderResponse.from(order, batchRepository.sumProducedQuantityForOrder(order.getId()));
     }
 
     @Transactional(readOnly = true)
     public List<SalesOrderResponse> findAll() {
         return salesOrderRepository.findAll().stream()
-                .map(SalesOrderResponse::from)
+                .map(this::withFulfilment)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public SalesOrderResponse findById(Long id) {
-        return SalesOrderResponse.from(getOrThrow(id));
+        return withFulfilment(getOrThrow(id));
     }
 
     public SalesOrderResponse create(SalesOrderRequest request) {
@@ -101,7 +110,7 @@ public class SalesOrderService {
                     + " cannot be moved to " + target + ".");
         }
         order.setStatus(target);
-        return SalesOrderResponse.from(salesOrderRepository.save(order));
+        return withFulfilment(salesOrderRepository.save(order));
     }
 
     public void delete(Long id) {
@@ -110,6 +119,12 @@ public class SalesOrderService {
         // a mistake to be erased - cancel it instead.
         if (order.getStatus() == OrderStatus.IN_PROGRESS) {
             throw new ConflictException("Order #" + id + " is in progress and cannot be deleted. Cancel it instead.");
+        }
+        // Batches record what was actually produced; deleting the order they
+        // point at would orphan that history.
+        if (batchRepository.existsByOrderId(id)) {
+            throw new ConflictException("Order #" + id
+                    + " has production batches recorded against it and cannot be deleted.");
         }
         salesOrderRepository.delete(order);
     }
