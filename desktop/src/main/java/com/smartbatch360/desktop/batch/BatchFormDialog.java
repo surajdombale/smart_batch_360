@@ -167,12 +167,31 @@ public class BatchFormDialog {
         SiteDto site = siteField.getValue();
 
         OrderDto current = orderField.getValue();
-        List<OrderDto> visible = allOrders.stream()
-                .filter(o -> o.status() == OrderStatus.UNFULFILLED || o.status() == OrderStatus.IN_PROGRESS)
+        if (current == null && existingOrderId != null) {
+            current = allOrders.stream().filter(o -> existingOrderId.equals(o.id())).findFirst().orElse(null);
+        }
+
+        // Split the two filters apart, because they mean different things.
+        // Recipe/customer/site is a hard requirement - the backend rejects a
+        // mismatch - while "still open" only shapes what is worth offering.
+        List<OrderDto> belongs = allOrders.stream()
                 .filter(o -> recipe == null || o.recipeId().equals(recipe.id()))
                 .filter(o -> client == null || o.clientId().equals(client.id()))
                 .filter(o -> site == null || o.siteId().equals(site.id()))
                 .toList();
+        List<OrderDto> visible = new ArrayList<>(belongs.stream()
+                .filter(o -> o.status() == OrderStatus.UNFULFILLED || o.status() == OrderStatus.IN_PROGRESS)
+                .toList());
+
+        // Keep the order this batch is already linked to, even once it has been
+        // fulfilled or cancelled. Replacing the items clears the selection, and
+        // a cleared selection saves as "no order" - so editing a batch to fix a
+        // typo would quietly unlink it and drop the order's produced total.
+        // Only a recipe/customer/site mismatch really disqualifies an order,
+        // and those are excluded above.
+        if (current != null && belongs.contains(current) && !visible.contains(current)) {
+            visible.add(current);
+        }
 
         orderField.setItems(FXCollections.observableArrayList(visible));
         orderField.setPromptText(visible.isEmpty() ? "No matching open orders" : "None");
@@ -213,11 +232,9 @@ public class BatchFormDialog {
 
         orderApiClient.list().whenComplete((items, throwable) -> Platform.runLater(() -> {
             allOrders = throwable == null ? items : List.of();
+            // narrowOrders() restores the existing link itself now, so there is
+            // one place deciding what may be selected instead of two.
             narrowOrders();
-            allOrders.stream()
-                    .filter(o -> existingOrderId != null && existingOrderId.equals(o.id()))
-                    .findFirst()
-                    .ifPresent(o -> orderField.getSelectionModel().select(o));
         }));
     }
 
