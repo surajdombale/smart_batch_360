@@ -27,6 +27,8 @@ The current phase is intentionally small:
 
 - Batch -> Order linking — built 2026-09-06, the pass held back on 2026-09-05 as the natural follow-on to the lifecycle. A batch may now name the order it was produced against (optional: ad-hoc batches are still normal), and an order reports produced vs remaining m3 summed from those batches, so fulfilment is MEASURED rather than asserted. The link is guarded: the batch's recipe, customer and site must match the order's, because a mismatch would corrupt both the fulfilment figures and the order's projected material consumption. An order with batches recorded against it can no longer be deleted.
   - Fixed while verifying: the dashboard's startup retry gave up after 30s against a cold boot measured at 32.4s, so a backend that was seconds from answering was reported as unreachable. The retry now runs until startup actually settles.
+  - Also found by looking at the running screens rather than the API: separate Produced/Remaining columns took Orders to nine and ellipsised every one of them, so the two figures now share one "0 of 10 m3" column; editing a batch whose order had since been fulfilled silently unlinked it on save; and SiteDto/VehicleDto had no toString, which both dumped raw records into the batch form's ComboBoxes and squeezed all twelve of its field labels down to "...".
+
 
 ### Do not build now
 - Batch Reports PDF/Excel/print export — deliberately deferred (docs/02_UI_REFERENCE.md, docs/03_ARCHITECTURE.md's "do not add reporting/PDF dependencies prematurely"); the search/filter/list part of Batch Reports is built
