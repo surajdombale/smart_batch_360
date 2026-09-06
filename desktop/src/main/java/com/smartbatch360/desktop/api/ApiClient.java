@@ -88,8 +88,18 @@ public class ApiClient {
                 .timeout(Duration.ofSeconds(15));
     }
 
-    /** How long to keep re-trying while the embedded backend is still starting up. */
-    private static final int STARTUP_RETRY_LIMIT = 40;
+    /**
+     * Backstop only. What actually ends the wait is
+     * {@link EmbeddedServer#isStartupSettled()}, which flips the moment the
+     * boot attempt finishes either way; this bound exists purely so a boot
+     * that hangs without ever settling cannot retry forever. It was 40
+     * (= 30s) and that made it the real governor: a cold start measured at
+     * 32.4s ran the counter out two seconds before Tomcat bound, and the
+     * dashboard showed "could not reach the server" for a backend that was
+     * about to answer. Boot time grows with every migration, so the number
+     * must not be anywhere near the expected duration.
+     */
+    private static final int STARTUP_RETRY_LIMIT = 240;
     private static final Duration STARTUP_RETRY_DELAY = Duration.ofMillis(750);
 
     private CompletableFuture<String> send(HttpRequest request) {
@@ -131,7 +141,7 @@ public class ApiClient {
      *
      * Requires a saved database config too: with none, the backend is never
      * going to start on its own and the right answer is the error state that
-     * points at Settings, not a 30-second wait.
+     * points at Settings, not a long silent wait.
      */
     private boolean shouldWaitForBackend(Throwable cause, int attempt) {
         return !(cause instanceof ApiException)
