@@ -25,8 +25,10 @@ The current phase is intentionally small:
 
 - Order lifecycle — built 2026-09-05, completing the module deferred on 2026-08-27. Statuses UNFULFILLED -> IN_PROGRESS -> FULFILLED, with CANCELLED reachable from either non-terminal state; terminal states cannot be left. Unlike Batch's deliberately permissive controls (which stand in for hardware that isn't wired up), these transitions are ENFORCED - an order's status is a business record. An in-progress order cannot be deleted, only cancelled.
 
+- Batch -> Order linking — built 2026-09-06, the pass held back on 2026-09-05 as the natural follow-on to the lifecycle. A batch may now name the order it was produced against (optional: ad-hoc batches are still normal), and an order reports produced vs remaining m3 summed from those batches, so fulfilment is MEASURED rather than asserted. The link is guarded: the batch's recipe, customer and site must match the order's, because a mismatch would corrupt both the fulfilment figures and the order's projected material consumption. An order with batches recorded against it can no longer be deleted.
+  - Fixed while verifying: the dashboard's startup retry gave up after 30s against a cold boot measured at 32.4s, so a backend that was seconds from answering was reported as unreachable. The retry now runs until startup actually settles.
+
 ### Do not build now
-- Linking Orders to the Batches produced against them (and fulfilment tracking by produced vs ordered m3) — the next natural pass; the lifecycle is currently operator-driven, like Production's controls
 - Batch Reports PDF/Excel/print export — deliberately deferred (docs/02_UI_REFERENCE.md, docs/03_ARCHITECTURE.md's "do not add reporting/PDF dependencies prematurely"); the search/filter/list part of Batch Reports is built
 - Material Consumption charts — deferred to a later pass; the aggregated table itself is built
 - Analytics
