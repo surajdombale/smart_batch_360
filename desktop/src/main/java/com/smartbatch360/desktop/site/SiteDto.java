@@ -15,4 +15,8 @@ public record SiteDto(
         Instant createdAt,
         Instant updatedAt
 ) {
+    @Override
+    public String toString() {
+        return name; // display label in the batch form's site ComboBox
+    }
 }

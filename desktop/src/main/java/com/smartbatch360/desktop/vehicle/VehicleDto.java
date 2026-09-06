@@ -16,4 +16,8 @@ public record VehicleDto(
         Instant createdAt,
         Instant updatedAt
 ) {
+    @Override
+    public String toString() {
+        return vehicleNumber; // display label in the batch form's vehicle ComboBox
+    }
 }

@@ -4,6 +4,7 @@ import com.smartbatch360.desktop.api.ApiErrorDto;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -35,6 +36,20 @@ public class FormDialog {
 
         grid.getStyleClass().add("form-grid");
         grid.setMaxWidth(Double.MAX_VALUE);
+
+        // The labels must never be what gives way. A control holding a wide
+        // value - a ComboBox item, say - pushes up the second column's
+        // preferred width, and in a dialog that cannot be resized the grid
+        // took that space out of column 0 until every label had been
+        // ellipsised to "...", leaving a form of unidentifiable fields. Pin
+        // the labels to their preferred width and let the controls absorb it.
+        ColumnConstraints labelColumn = new ColumnConstraints();
+        labelColumn.setMinWidth(Region.USE_PREF_SIZE);
+        labelColumn.setHgrow(Priority.NEVER);
+        ColumnConstraints controlColumn = new ColumnConstraints();
+        controlColumn.setHgrow(Priority.ALWAYS);
+        controlColumn.setFillWidth(true);
+        grid.getColumnConstraints().setAll(labelColumn, controlColumn);
 
         formError.getStyleClass().add("field-error");
         formError.setWrapText(true);
