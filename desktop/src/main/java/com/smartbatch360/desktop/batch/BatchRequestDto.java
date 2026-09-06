@@ -7,6 +7,7 @@ import java.util.List;
 public record BatchRequestDto(
         String batchNumber,
         Long recipeId,
+        Long orderId,
         Long clientId,
         Long siteId,
         Long vehicleId,

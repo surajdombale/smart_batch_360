@@ -6,6 +6,9 @@ import com.smartbatch360.desktop.client.ClientDto;
 import com.smartbatch360.desktop.common.FormDialog;
 import com.smartbatch360.desktop.driver.DriverApiClient;
 import com.smartbatch360.desktop.driver.DriverDto;
+import com.smartbatch360.desktop.order.OrderApiClient;
+import com.smartbatch360.desktop.order.OrderDto;
+import com.smartbatch360.desktop.order.OrderStatus;
 import com.smartbatch360.desktop.recipe.RecipeApiClient;
 import com.smartbatch360.desktop.recipe.RecipeDto;
 import com.smartbatch360.desktop.site.SiteApiClient;
@@ -41,6 +44,7 @@ public class BatchFormDialog {
     private final SiteApiClient siteApiClient = new SiteApiClient();
     private final VehicleApiClient vehicleApiClient = new VehicleApiClient();
     private final DriverApiClient driverApiClient = new DriverApiClient();
+    private final OrderApiClient orderApiClient = new OrderApiClient();
 
     private final FormDialog formDialog;
     private final TextField batchNumberField = new TextField();
@@ -49,6 +53,7 @@ public class BatchFormDialog {
     private final ComboBox<SiteDto> siteField = new ComboBox<>();
     private final ComboBox<VehicleDto> vehicleField = new ComboBox<>();
     private final ComboBox<DriverDto> driverField = new ComboBox<>();
+    private final ComboBox<OrderDto> orderField = new ComboBox<>();
     private final TextField targetQuantityField = new TextField();
     private final TextField producedQuantityField = new TextField();
     private final TextField cycleNumberField = new TextField();
@@ -70,6 +75,8 @@ public class BatchFormDialog {
     private final Long existingSiteId;
     private final Long existingVehicleId;
     private final Long existingDriverId;
+    private final Long existingOrderId;
+    private List<OrderDto> allOrders = List.of();
     private BatchDto saved;
 
     public BatchFormDialog(BatchDto existing) {
@@ -80,6 +87,7 @@ public class BatchFormDialog {
         this.existingSiteId = existing != null ? existing.siteId() : null;
         this.existingVehicleId = existing != null ? existing.vehicleId() : null;
         this.existingDriverId = existing != null ? existing.driverId() : null;
+        this.existingOrderId = existing != null ? existing.orderId() : null;
 
         formDialog = new FormDialog(isEdit ? "Edit Batch" : "Add Batch");
         formDialog.addField("Batch Number", "batchNumber", batchNumberField);
@@ -88,6 +96,7 @@ public class BatchFormDialog {
         formDialog.addField("Site", "siteId", siteField);
         formDialog.addField("Vehicle", "vehicleId", vehicleField);
         formDialog.addField("Driver", "driverId", driverField);
+        formDialog.addField("Order (optional)", "orderId", orderField);
         formDialog.addField("Target Quantity (m³)", "targetQuantity", targetQuantityField);
         formDialog.addField("Produced Quantity (m³)", "producedQuantity", producedQuantityField);
         formDialog.addField("Cycle Number", "cycleNumber", cycleNumberField);
@@ -130,6 +139,10 @@ public class BatchFormDialog {
 
         loadReferenceLists();
 
+        recipeField.valueProperty().addListener((o, was, is) -> narrowOrders());
+        clientField.valueProperty().addListener((o, was, is) -> narrowOrders());
+        siteField.valueProperty().addListener((o, was, is) -> narrowOrders());
+
         recipeField.valueProperty().addListener((obs, old, selected) -> {
             if (selected != null && materialRows.isEmpty()) {
                 selected.materials().forEach(m -> materialRows.add(new BatchMaterialRow(
@@ -141,6 +154,31 @@ public class BatchFormDialog {
         });
 
         formDialog.interceptSaveClose(event -> save());
+    }
+
+    /**
+     * Only orders this batch could actually belong to: same recipe, customer
+     * and site, and not already closed. The backend rejects a mismatch anyway -
+     * this just avoids offering choices that would be refused.
+     */
+    private void narrowOrders() {
+        RecipeDto recipe = recipeField.getValue();
+        ClientDto client = clientField.getValue();
+        SiteDto site = siteField.getValue();
+
+        OrderDto current = orderField.getValue();
+        List<OrderDto> visible = allOrders.stream()
+                .filter(o -> o.status() == OrderStatus.UNFULFILLED || o.status() == OrderStatus.IN_PROGRESS)
+                .filter(o -> recipe == null || o.recipeId().equals(recipe.id()))
+                .filter(o -> client == null || o.clientId().equals(client.id()))
+                .filter(o -> site == null || o.siteId().equals(site.id()))
+                .toList();
+
+        orderField.setItems(FXCollections.observableArrayList(visible));
+        orderField.setPromptText(visible.isEmpty() ? "No matching open orders" : "None");
+        if (current != null && visible.contains(current)) {
+            orderField.getSelectionModel().select(current);
+        }
     }
 
     private static ComboBox<EquipmentStatus> equipmentCombo() {
@@ -172,6 +210,15 @@ public class BatchFormDialog {
         driverApiClient.list().whenComplete((items, throwable) -> Platform.runLater(() ->
                 populateCombo(driverField, throwable == null ? items : List.of(), DriverDto::id, existingDriverId,
                         "No drivers exist yet. Add a driver before creating a batch.")));
+
+        orderApiClient.list().whenComplete((items, throwable) -> Platform.runLater(() -> {
+            allOrders = throwable == null ? items : List.of();
+            narrowOrders();
+            allOrders.stream()
+                    .filter(o -> existingOrderId != null && existingOrderId.equals(o.id()))
+                    .findFirst()
+                    .ifPresent(o -> orderField.getSelectionModel().select(o));
+        }));
     }
 
     private <T> void populateCombo(ComboBox<T> combo, List<T> items, java.util.function.Function<T, Long> idOf,
@@ -296,8 +343,10 @@ public class BatchFormDialog {
             return;
         }
 
+        OrderDto order = orderField.getValue();
         BatchRequestDto request = new BatchRequestDto(
-                batchNumberField.getText(), recipe.id(), client.id(), site.id(), vehicle.id(), driver.id(),
+                batchNumberField.getText(), recipe.id(), order != null ? order.id() : null,
+                client.id(), site.id(), vehicle.id(), driver.id(),
                 targetQuantity, producedQuantity, null, cycleNumber, shiftField.getText(),
                 statusField.getValue(), mixerField.getValue(), conveyorField.getValue(),
                 waterValveField.getValue(), cementScrewField.getValue(), compressorField.getValue(), materials);

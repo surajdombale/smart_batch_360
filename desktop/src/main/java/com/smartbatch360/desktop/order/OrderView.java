@@ -63,11 +63,21 @@ public class OrderView {
         quantityCol.setCellValueFactory(cd -> new SimpleStringProperty(
                 cd.getValue().quantityM3().toPlainString() + " m³"));
 
+        // Produced comes from the batches recorded against the order, so this
+        // is measured fulfilment rather than the operator's assertion.
+        TableColumn<OrderDto, String> producedCol = new TableColumn<>("Produced");
+        producedCol.setCellValueFactory(cd -> new SimpleStringProperty(
+                cd.getValue().producedQuantityM3().toPlainString() + " m³"));
+
+        TableColumn<OrderDto, String> remainingCol = new TableColumn<>("Remaining");
+        remainingCol.setCellValueFactory(cd -> new SimpleStringProperty(
+                cd.getValue().remainingQuantityM3().toPlainString() + " m³"));
+
         TableColumn<OrderDto, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().status().name()));
 
-        table.getColumns().setAll(List.of(idCol, clientCol, siteCol, recipeCol, quantityCol, statusCol,
-                buildActionsColumn()));
+        table.getColumns().setAll(List.of(idCol, clientCol, siteCol, recipeCol, quantityCol,
+                producedCol, remainingCol, statusCol, buildActionsColumn()));
     }
 
     private TableColumn<OrderDto, Void> buildActionsColumn() {

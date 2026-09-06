@@ -12,6 +12,7 @@ public record BatchDto(
         String batchNumber,
         Long recipeId,
         String recipeName,
+        Long orderId,
         Long clientId,
         String clientName,
         Long siteId,
