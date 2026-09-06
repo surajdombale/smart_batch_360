@@ -73,18 +73,47 @@ public class OrderView {
 
         TableColumn<OrderDto, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().status().name()));
-        // Enough for UNFULFILLED, the longest of them; the shared width would
-        // otherwise clip the one word this screen exists to show.
-        statusCol.setMinWidth(115);
+
+        // This one table opts out of the shared CONSTRAINED policy. That
+        // policy divides the width by column count and honours neither
+        // prefWidth nor, in the end, the Actions minimum, so with seven
+        // columns and a four-button Actions cell something was always
+        // clipped: pin one column and the ellipsis simply moved to the next,
+        // and Actions ended up too narrow to reach Consumption and Delete.
+        // Sizing the columns explicitly fits them all, and if the window is
+        // ever too narrow the overflow becomes a scrollbar you can use rather
+        // than buttons off the edge.
+        table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        sizeColumn(idCol, 55);
+        sizeColumn(clientCol, 72);
+        sizeColumn(siteCol, 60);
+        sizeColumn(recipeCol, 90);
+        sizeColumn(producedCol, 78);
+        sizeColumn(statusCol, 92);
 
         table.getColumns().setAll(List.of(idCol, clientCol, siteCol, recipeCol,
                 producedCol, statusCol, buildActionsColumn()));
     }
 
+    /**
+     * Fixes a data column at one width. prefWidth on its own did not hold -
+     * the columns still came out far wider and pushed Actions off the end -
+     * so max is set with it, which does.
+     */
+    private static void sizeColumn(TableColumn<OrderDto, ?> column, double width) {
+        column.setPrefWidth(width);
+        column.setMaxWidth(width);
+    }
+
     private TableColumn<OrderDto, Void> buildActionsColumn() {
         TableColumn<OrderDto, Void> column = new TableColumn<>("Actions");
         column.setSortable(false);
-        column.setMinWidth(320);
+        // Wide enough for the busiest row: Start/Cancel/Consumption/Delete.
+        // These are layout units, not screen pixels - on a 150% display each
+        // one paints as 1.5px, which is what made an earlier set of widths
+        // measured off a screenshot half again too large for the table.
+        column.setMinWidth(340);
+        column.setPrefWidth(340);
         column.setCellFactory(col -> new TableCell<>() {
             private final HBox box = new HBox(6);
 
@@ -132,6 +161,11 @@ public class OrderView {
             delete.setOnAction(e -> confirmAndDelete(order));
             buttons.add(delete);
         }
+        // Let the buttons keep their own width. An HBox will otherwise shrink
+        // them to fit the column and ellipsise the labels - "Can...",
+        // "Consumpt..." - which is worse than the table scrolling to reach
+        // them, since a clipped label still has to be guessed at.
+        buttons.forEach(button -> button.setMinWidth(Region.USE_PREF_SIZE));
         return buttons;
     }
 
