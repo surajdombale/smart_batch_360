@@ -13,6 +13,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -59,25 +60,25 @@ public class OrderView {
         TableColumn<OrderDto, String> recipeCol = new TableColumn<>("Recipe");
         recipeCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().recipeName()));
 
-        TableColumn<OrderDto, String> quantityCol = new TableColumn<>("Quantity");
-        quantityCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue().quantityM3().toPlainString() + " m³"));
-
-        // Produced comes from the batches recorded against the order, so this
-        // is measured fulfilment rather than the operator's assertion.
+        // Produced against ordered, in one column. Separate Quantity/Produced/
+        // Remaining columns were tried first and made the table unreadable:
+        // nine columns share a fixed width, so every one of them collapsed to
+        // an ellipsis ("10.000...", "UNFULFI...") and the figures this pass
+        // exists to show could not be read at all. Remaining is just the
+        // subtraction of the two, so it stays off the list; the API still
+        // returns it for anything that wants the figure directly.
         TableColumn<OrderDto, String> producedCol = new TableColumn<>("Produced");
         producedCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue().producedQuantityM3().toPlainString() + " m³"));
-
-        TableColumn<OrderDto, String> remainingCol = new TableColumn<>("Remaining");
-        remainingCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue().remainingQuantityM3().toPlainString() + " m³"));
+                trim(cd.getValue().producedQuantityM3()) + " of " + trim(cd.getValue().quantityM3()) + " m³"));
 
         TableColumn<OrderDto, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().status().name()));
+        // Enough for UNFULFILLED, the longest of them; the shared width would
+        // otherwise clip the one word this screen exists to show.
+        statusCol.setMinWidth(115);
 
-        table.getColumns().setAll(List.of(idCol, clientCol, siteCol, recipeCol, quantityCol,
-                producedCol, remainingCol, statusCol, buildActionsColumn()));
+        table.getColumns().setAll(List.of(idCol, clientCol, siteCol, recipeCol,
+                producedCol, statusCol, buildActionsColumn()));
     }
 
     private TableColumn<OrderDto, Void> buildActionsColumn() {
@@ -181,6 +182,15 @@ public class OrderView {
                 load();
             }
         }));
+    }
+
+    /**
+     * Quantities are DECIMAL(12,4), so an ordered 10 arrives as "10.0000" and
+     * three of those per row is what overflowed the table. The scale carries
+     * no information here - drop it and keep any digits that are real.
+     */
+    private static String trim(BigDecimal value) {
+        return value.stripTrailingZeros().toPlainString();
     }
 
     private String errorMessage(Throwable throwable) {
