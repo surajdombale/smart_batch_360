@@ -1,13 +1,14 @@
 # Setting up SmartBatch360 on a new PC
 
-You need one thing on the new PC besides MySQL: `SmartBatch360.exe` (bundles
+You need one thing on the new PC besides MySQL: `SmartBatch360 V4.exe` (bundles
 its own Java runtime - Java doesn't need to be installed separately). MySQL
 must already be installed and running - that's the only other prerequisite.
 No manual SQL, no separate server process.
 
 ## 1. Install and launch
 
-Unzip `SmartBatch360.zip` anywhere, then run `SmartBatch360.exe`. The app
+Unzip `SmartBatch360-V4.zip` anywhere, then run `SmartBatch360 V4.exe` from
+the `SmartBatch360 V4` folder inside it. The app
 opens straight away - the UI never waits on the database to start.
 
 ## 2. Connect the database (one-time)
@@ -38,7 +39,7 @@ to Settings to fix it.
 
 - Default port for the embedded backend: **8081** (used internally between
   the UI and the embedded server, and by anything else that wants to call
-  the REST API directly, e.g. `http://localhost:8081/api/v1/customers`). If
+  the REST API directly, e.g. `http://localhost:8081/api/v1/clients`). If
   it's taken on this PC, set `SERVER_PORT` before launching.
 - Scripted/unattended deployments can skip the Settings screen entirely by
   setting `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`
