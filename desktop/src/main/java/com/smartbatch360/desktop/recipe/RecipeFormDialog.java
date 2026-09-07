@@ -7,11 +7,9 @@ import com.smartbatch360.desktop.material.MaterialDto;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -265,19 +263,26 @@ public class RecipeFormDialog {
     }
 
     /**
-     * A material picker you can type into to narrow the list, after the
-     * reference's "Find or add a product" box. New materials are still created
-     * under Materials - they need a unit and a density, which is more than
-     * belongs on one line here.
+     * Material picker. Deliberately NOT an editable "type to search" box, though
+     * the reference has one and a first version of this did too.
+     *
+     * An editable JavaFX ComboBox commits its editor through the converter every
+     * time the popup hides, and SPACE is bound to toggling that popup. So typing
+     * a multi-word name lost everything at the first space: "OPC S3 Cement"
+     * hid the popup on the space, found no material named exactly "OPC",
+     * resolved to no value, and re-rendered the editor from that - empty. The
+     * name could not be typed at all. An event filter does not fix it either;
+     * the skin's own binding runs first.
+     *
+     * A plain ComboBox has no editor to clobber, and JavaFX's built-in
+     * type-ahead still jumps to a material as you type its first letters, which
+     * is the part of "find a material" that actually mattered here.
      */
     private ComboBox<MaterialDto> materialPicker() {
-        ComboBox<MaterialDto> combo = new ComboBox<>();
-        FilteredList<MaterialDto> filtered = new FilteredList<>(availableMaterials, m -> true);
-        combo.setItems(filtered);
-        combo.setEditable(true);
-        combo.setPromptText("Find a material...");
+        ComboBox<MaterialDto> combo = new ComboBox<>(availableMaterials);
+        combo.setPromptText("Select a material...");
         combo.getStyleClass().add("line-picker");
-
+        // Name only - the unit has its own column right beside this one.
         combo.setConverter(new StringConverter<>() {
             @Override
             public String toString(MaterialDto material) {
@@ -286,34 +291,9 @@ public class RecipeFormDialog {
 
             @Override
             public MaterialDto fromString(String text) {
-                if (text == null || text.isBlank()) {
-                    return null;
-                }
-                // Half-typed text must not null out a good selection: the
-                // editor here is a search box, not a second source of truth.
-                return availableMaterials.stream()
-                        .filter(m -> m.name().equalsIgnoreCase(text.trim()))
-                        .findFirst()
-                        .orElseGet(combo::getValue);
+                return combo.getValue(); // never called: the box is not editable
             }
         });
-
-        combo.getEditor().setOnKeyReleased(event -> {
-            KeyCode code = event.getCode();
-            if (code == KeyCode.UP || code == KeyCode.DOWN || code == KeyCode.ENTER
-                    || code == KeyCode.ESCAPE || code == KeyCode.TAB || code.isModifierKey()) {
-                return;
-            }
-            String text = combo.getEditor().getText();
-            filtered.setPredicate(m -> text == null || text.isBlank()
-                    || m.name().toLowerCase().contains(text.toLowerCase().trim()));
-            if (!combo.isShowing()) {
-                combo.show();
-            }
-        });
-        // Reopening should offer everything again, not the last search.
-        combo.setOnHidden(event -> filtered.setPredicate(m -> true));
-
         return combo;
     }
 
@@ -383,7 +363,7 @@ public class RecipeFormDialog {
     private void refreshTotal() {
         BigDecimal total = BigDecimal.ZERO;
         boolean incomplete = false;
-        boolean missingDensity = false;
+        List<String> missingDensity = new ArrayList<>();
 
         for (RecipeMaterialRow row : materialRows) {
             BigDecimal volume = volumeOf(row);
@@ -393,7 +373,9 @@ public class RecipeFormDialog {
             }
             MaterialDto material = row.getMaterial();
             if (material != null && material.unit().requiresDensity() && row.parsedQuantity() != null) {
-                missingDensity = true;
+                if (!missingDensity.contains(material.name())) {
+                    missingDensity.add(material.name());
+                }
             } else if (material != null || !isBlank(row.getQuantity())) {
                 // Only half-filled lines are worth mentioning. An untouched
                 // one is just the empty line waiting to be used, and saying
@@ -405,8 +387,16 @@ public class RecipeFormDialog {
         totalLabel.setText(total.setScale(TOTAL_SCALE, RoundingMode.HALF_UP).toPlainString() + " m³");
 
         String note = "";
-        if (missingDensity) {
-            note = "Some materials have no density set, so they add nothing here - fix them under Materials.";
+        if (!missingDensity.isEmpty()) {
+            // Say plainly that this BLOCKS the save. The old wording ("they add
+            // nothing here") read as harmless, and then Save was refused.
+            note = String.join(", ", missingDensity)
+                    + (missingDensity.size() == 1 ? " has" : " have")
+                    + " no density set, so there is no way to convert "
+                    + (missingDensity.size() == 1 ? "it" : "them")
+                    + " to m³. Saving will be refused until you set "
+                    + (missingDensity.size() == 1 ? "one" : "them")
+                    + " under Materials.";
         } else if (incomplete) {
             note = "Lines without both a material and a quantity are not counted.";
         }
