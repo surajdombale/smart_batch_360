@@ -279,3 +279,82 @@
     -fx-text-fill: -sb-danger;
     -fx-font-size: 11px;
 }
+
+/* ---------- Line items (Recipe materials) ----------
+ * Laid out after Stripe's invoice line-item editor, at the user's request
+ * 2026-09-07: a quiet header row, one row of live controls per material, and
+ * an "Add material" link with the running total opposite it.
+ */
+
+.line-items {
+    -fx-spacing: 0;
+}
+
+.line-header {
+    -fx-padding: 0 0 6 0;
+    -fx-border-color: transparent transparent -sb-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.line-header-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -sb-text-muted;
+}
+
+.line-row {
+    -fx-padding: 8 0 8 0;
+    -fx-border-color: transparent transparent -sb-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.line-unit {
+    -fx-font-size: 12px;
+    -fx-text-fill: -sb-text-muted;
+}
+
+.line-volume {
+    -fx-text-fill: -sb-text;
+}
+
+/* An unusable quantity is worth flagging where it was typed, rather than
+   only as a message after Save. */
+.line-row .text-field:invalid {
+    -fx-border-color: -sb-danger;
+    -fx-border-radius: 3;
+}
+
+.line-remove {
+    -fx-background-color: transparent;
+    -fx-text-fill: -sb-text-muted;
+    -fx-padding: 2 6 2 6;
+    -fx-cursor: hand;
+}
+
+.line-remove:hover {
+    -fx-text-fill: -sb-danger;
+}
+
+.line-footer {
+    -fx-padding: 10 0 0 0;
+}
+
+.link-action {
+    -fx-text-fill: -sb-blue;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.link-action:hover {
+    -fx-underline: true;
+}
+
+.line-total-caption {
+    -fx-font-size: 12px;
+    -fx-text-fill: -sb-text-muted;
+}
+
+.line-total-value {
+    -fx-font-weight: bold;
+    -fx-text-fill: -sb-text;
+}
