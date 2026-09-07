@@ -69,7 +69,7 @@ public class OrderView {
         // returns it for anything that wants the figure directly.
         TableColumn<OrderDto, String> producedCol = new TableColumn<>("Produced");
         producedCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                trim(cd.getValue().producedQuantityM3()) + " of " + trim(cd.getValue().quantityM3()) + " m³"));
+                trim(cd.getValue().producedQuantityKg()) + " of " + trim(cd.getValue().quantityKg()) + " kg"));
 
         TableColumn<OrderDto, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().status().name()));

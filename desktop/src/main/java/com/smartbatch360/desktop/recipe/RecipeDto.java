@@ -10,7 +10,7 @@ import java.util.List;
 public record RecipeDto(
         Long id,
         String name,
-        BigDecimal totalBatchQuantityM3,
+        BigDecimal totalBatchQuantityKg,
         String description,
         RecipeStatus status,
         List<RecipeMaterialDto> materials,

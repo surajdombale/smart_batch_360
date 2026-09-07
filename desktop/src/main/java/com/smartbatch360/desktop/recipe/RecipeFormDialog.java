@@ -42,25 +42,24 @@ import java.util.concurrent.CompletableFuture;
  * bound to its row, so there is no edit mode to commit or lose.
  *
  * The total shown is a live PREVIEW. The stored value is always the one the
- * backend derives on save (Recipe#recalculateTotalBatchQuantity); this mirrors
- * that formula from the same inputs (material density / 1000 L per m3).
+ * backend derives on save (Recipe#recalculateTotalBatchQuantity). Since
+ * 2026-09-07 that is simply the sum of the lines in kilograms - the per-material
+ * density conversion into m3 is gone, and with it the whole class of "this
+ * material cannot be totalled until someone sets its density".
  */
 public class RecipeFormDialog {
 
-    private static final BigDecimal LITRES_PER_CUBIC_METRE = new BigDecimal("1000");
-    private static final int CONVERSION_SCALE = 10;
     private static final int TOTAL_SCALE = 4;
 
     /** Column widths, shared by the header and every line so they line up. */
-    private static final double QUANTITY_WIDTH = 80;
-    private static final double UNIT_WIDTH = 46;
-    private static final double VOLUME_WIDTH = 88;
+    private static final double QUANTITY_WIDTH = 90;
+    private static final double UNIT_WIDTH = 32;
     private static final double REMOVE_WIDTH = 30;
-    private static final double PICKER_MIN_WIDTH = 170;
+    private static final double PICKER_MIN_WIDTH = 190;
     private static final double COLUMN_GAP = 8;
     /** Sum of the columns and their gaps - the width the dialog has to give us. */
     private static final double EDITOR_WIDTH =
-            PICKER_MIN_WIDTH + QUANTITY_WIDTH + UNIT_WIDTH + VOLUME_WIDTH + REMOVE_WIDTH + (4 * COLUMN_GAP);
+            PICKER_MIN_WIDTH + QUANTITY_WIDTH + UNIT_WIDTH + REMOVE_WIDTH + (3 * COLUMN_GAP);
 
     private final RecipeApiClient apiClient = new RecipeApiClient();
     private final MaterialApiClient materialApiClient = new MaterialApiClient();
@@ -148,8 +147,7 @@ public class RecipeFormDialog {
         HBox header = new HBox(COLUMN_GAP,
                 headerLabel("MATERIAL", -1),
                 headerLabel("QUANTITY", QUANTITY_WIDTH),
-                headerLabel("UNIT", UNIT_WIDTH),
-                headerLabel("VOLUME", VOLUME_WIDTH),
+                headerLabel("", UNIT_WIDTH),
                 headerLabel("", REMOVE_WIDTH));
         header.setAlignment(Pos.CENTER_LEFT);
         header.setMaxWidth(Double.MAX_VALUE);
@@ -189,9 +187,9 @@ public class RecipeFormDialog {
         quantityField.setMaxWidth(QUANTITY_WIDTH);
         quantityField.setAlignment(Pos.CENTER_RIGHT);
 
+        // Fixed, not read from the material: everything is kilograms.
         Label unitLabel = fixedLabel(UNIT_WIDTH, "line-unit");
-        Label volumeLabel = fixedLabel(VOLUME_WIDTH, "line-volume");
-        volumeLabel.setAlignment(Pos.CENTER_RIGHT);
+        unitLabel.setText("kg");
 
         Button remove = new Button("✕");
         remove.getStyleClass().add("line-remove");
@@ -199,15 +197,12 @@ public class RecipeFormDialog {
         remove.setPrefWidth(REMOVE_WIDTH);
         remove.setTooltip(new Tooltip("Remove this material"));
 
-        HBox line = new HBox(COLUMN_GAP, picker, quantityField, unitLabel, volumeLabel, remove);
+        HBox line = new HBox(COLUMN_GAP, picker, quantityField, unitLabel, remove);
         line.setAlignment(Pos.CENTER_LEFT);
         line.setMaxWidth(Double.MAX_VALUE);
         line.getStyleClass().add("line-row");
 
         Runnable refresh = () -> {
-            MaterialDto material = row.getMaterial();
-            unitLabel.setText(material == null ? "" : material.unit().name());
-            volumeLabel.setText(describeVolume(row));
             quantityField.pseudoClassStateChanged(INVALID, isQuantityInvalid(row));
             refreshTotal();
         };
@@ -325,31 +320,6 @@ public class RecipeFormDialog {
         }));
     }
 
-    /** This line's contribution in m3, or null when it isn't usable yet. */
-    private BigDecimal volumeOf(RecipeMaterialRow row) {
-        MaterialDto material = row.getMaterial();
-        BigDecimal quantity = row.parsedQuantity();
-        if (material == null || quantity == null) {
-            return null;
-        }
-        BigDecimal divisor;
-        if (material.unit().requiresDensity()) {
-            if (material.densityKgPerM3() == null
-                    || material.densityKgPerM3().compareTo(BigDecimal.ZERO) <= 0) {
-                return null;
-            }
-            divisor = material.densityKgPerM3();
-        } else {
-            divisor = LITRES_PER_CUBIC_METRE;
-        }
-        return quantity.divide(divisor, CONVERSION_SCALE, RoundingMode.HALF_UP);
-    }
-
-    private String describeVolume(RecipeMaterialRow row) {
-        BigDecimal volume = volumeOf(row);
-        return volume == null ? "—" : volume.setScale(TOTAL_SCALE, RoundingMode.HALF_UP).toPlainString();
-    }
-
     private static boolean isBlank(String text) {
         return text == null || text.isBlank();
     }
@@ -363,43 +333,21 @@ public class RecipeFormDialog {
     private void refreshTotal() {
         BigDecimal total = BigDecimal.ZERO;
         boolean incomplete = false;
-        List<String> missingDensity = new ArrayList<>();
 
         for (RecipeMaterialRow row : materialRows) {
-            BigDecimal volume = volumeOf(row);
-            if (volume != null) {
-                total = total.add(volume);
-                continue;
-            }
-            MaterialDto material = row.getMaterial();
-            if (material != null && material.unit().requiresDensity() && row.parsedQuantity() != null) {
-                if (!missingDensity.contains(material.name())) {
-                    missingDensity.add(material.name());
-                }
-            } else if (material != null || !isBlank(row.getQuantity())) {
-                // Only half-filled lines are worth mentioning. An untouched
-                // one is just the empty line waiting to be used, and saying
-                // so on a form nobody has typed in yet reads as an error.
+            BigDecimal quantity = row.parsedQuantity();
+            if (row.getMaterial() != null && quantity != null) {
+                total = total.add(quantity);
+            } else if (row.getMaterial() != null || !isBlank(row.getQuantity())) {
+                // Only half-filled lines are worth mentioning. An untouched one
+                // is just the empty line waiting to be used.
                 incomplete = true;
             }
         }
 
-        totalLabel.setText(total.setScale(TOTAL_SCALE, RoundingMode.HALF_UP).toPlainString() + " m³");
+        totalLabel.setText(total.setScale(TOTAL_SCALE, RoundingMode.HALF_UP).toPlainString() + " kg");
 
-        String note = "";
-        if (!missingDensity.isEmpty()) {
-            // Say plainly that this BLOCKS the save. The old wording ("they add
-            // nothing here") read as harmless, and then Save was refused.
-            note = String.join(", ", missingDensity)
-                    + (missingDensity.size() == 1 ? " has" : " have")
-                    + " no density set, so there is no way to convert "
-                    + (missingDensity.size() == 1 ? "it" : "them")
-                    + " to m³. Saving will be refused until you set "
-                    + (missingDensity.size() == 1 ? "one" : "them")
-                    + " under Materials.";
-        } else if (incomplete) {
-            note = "Lines without both a material and a quantity are not counted.";
-        }
+        String note = incomplete ? "Lines without both a material and a quantity are not counted." : "";
         totalNoteLabel.setText(note);
         totalNoteLabel.setVisible(!note.isEmpty());
         totalNoteLabel.setManaged(!note.isEmpty());

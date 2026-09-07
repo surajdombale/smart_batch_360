@@ -14,9 +14,9 @@ public record OrderDto(
         String siteName,
         Long recipeId,
         String recipeName,
-        BigDecimal quantityM3,
-        BigDecimal producedQuantityM3,
-        BigDecimal remainingQuantityM3,
+        BigDecimal quantityKg,
+        BigDecimal producedQuantityKg,
+        BigDecimal remainingQuantityKg,
         OrderStatus status,
         Instant createdAt,
         Instant updatedAt
@@ -25,6 +25,6 @@ public record OrderDto(
     /** ComboBox label wherever an order is picked (e.g. the batch form). */
     @Override
     public String toString() {
-        return "#" + id + " - " + recipeName + " (" + quantityM3.toPlainString() + " m³, " + status + ")";
+        return "#" + id + " - " + recipeName + " (" + quantityKg.toPlainString() + " kg, " + status + ")";
     }
 }

@@ -52,7 +52,7 @@ import java.util.Objects;
  * BatchMaterial data - first-pass scope is the table only, charts are a
  * later pass. Material and Order were added 2026-08-27 along with a reworked
  * Recipe flow: recipes now reference Material records and derive their batch
- * quantity in m3 from them, and an Order (Customer/Site/Recipe/quantity) is
+ * quantity in kg from them, and an Order (Customer/Site/Recipe/quantity) is
  * created UNFULFILLED - the rest of the order lifecycle is deliberately not
  * built yet. Analytics, Plant/PLC and Alarm/Event History remain NOT
  * implemented (docs/06_SCOPE_AND_ROADMAP.md, CLAUDE.md.md).

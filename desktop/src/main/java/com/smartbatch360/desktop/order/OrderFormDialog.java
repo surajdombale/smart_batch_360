@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Create Order: Customer, Site, Recipe, quantity in m³ (docs flow, user
+ * Create Order: Customer, Site, Recipe, quantity in kg (docs flow, user
  * request 2026-08-27). Status isn't asked for - a new order is always
  * UNFULFILLED.
  *
@@ -45,7 +45,7 @@ public class OrderFormDialog {
         formDialog.addField("Customer", "clientId", clientField);
         formDialog.addField("Site", "siteId", siteField);
         formDialog.addField("Recipe", "recipeId", recipeField);
-        formDialog.addField("Order Quantity (m³)", "quantityM3", quantityField);
+        formDialog.addField("Order Quantity (kg)", "quantityKg", quantityField);
 
         quantityField.setPromptText("e.g. 25");
         clientField.valueProperty().addListener((obs, old, client) -> narrowSitesTo(client));

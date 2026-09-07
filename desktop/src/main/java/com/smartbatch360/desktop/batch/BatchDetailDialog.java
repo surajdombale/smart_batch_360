@@ -36,7 +36,7 @@ public final class BatchDetailDialog {
         row = addRow(grid, row, "Vehicle", batch.vehicleNumber());
         row = addRow(grid, row, "Driver", batch.driverName());
         row = addRow(grid, row, "Target / Produced / Remaining",
-                batch.targetQuantity() + " / " + batch.producedQuantity() + " / " + batch.remainingQuantity() + " m³");
+                batch.targetQuantity() + " / " + batch.producedQuantity() + " / " + batch.remainingQuantity() + " kg");
         row = addRow(grid, row, "Cycle Date/Time", batch.cycleDateTime() != null ? TIMESTAMP_FORMAT.format(batch.cycleDateTime()) : "");
         row = addRow(grid, row, "Cycle Number / Shift",
                 (batch.cycleNumber() != null ? batch.cycleNumber().toString() : "-") + " / " + (batch.shift() != null ? batch.shift() : "-"));

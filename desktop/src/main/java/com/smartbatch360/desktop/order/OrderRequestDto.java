@@ -6,6 +6,6 @@ public record OrderRequestDto(
         Long clientId,
         Long siteId,
         Long recipeId,
-        BigDecimal quantityM3
+        BigDecimal quantityKg
 ) {
 }

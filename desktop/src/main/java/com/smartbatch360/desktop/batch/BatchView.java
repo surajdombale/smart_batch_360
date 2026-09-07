@@ -54,7 +54,7 @@ public class BatchView {
 
         TableColumn<BatchDto, String> quantityCol = new TableColumn<>("Target / Produced");
         quantityCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue().targetQuantity() + " / " + cd.getValue().producedQuantity() + " m³"));
+                cd.getValue().targetQuantity() + " / " + cd.getValue().producedQuantity() + " kg"));
 
         TableColumn<BatchDto, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().status().name()));

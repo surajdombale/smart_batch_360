@@ -97,8 +97,8 @@ public class BatchFormDialog {
         formDialog.addField("Vehicle", "vehicleId", vehicleField);
         formDialog.addField("Driver", "driverId", driverField);
         formDialog.addField("Order (optional)", "orderId", orderField);
-        formDialog.addField("Target Quantity (m³)", "targetQuantity", targetQuantityField);
-        formDialog.addField("Produced Quantity (m³)", "producedQuantity", producedQuantityField);
+        formDialog.addField("Target Quantity (kg)", "targetQuantity", targetQuantityField);
+        formDialog.addField("Produced Quantity (kg)", "producedQuantity", producedQuantityField);
         formDialog.addField("Cycle Number", "cycleNumber", cycleNumberField);
         formDialog.addField("Shift", "shift", shiftField);
         formDialog.addField("Status", "status", statusField);
@@ -146,10 +146,10 @@ public class BatchFormDialog {
         recipeField.valueProperty().addListener((obs, old, selected) -> {
             if (selected != null && materialRows.isEmpty()) {
                 selected.materials().forEach(m -> materialRows.add(new BatchMaterialRow(
-                        // unit is a MaterialUnit on the recipe side now; Batch still
-                        // stores its own free-text unit string, so take the name.
+                        // Batch keeps its own free-text unit string as a record of
+                        // what was weighed; every material is kilograms now.
                         m.materialName(), m.quantity().toPlainString(), m.quantity().toPlainString(), "0",
-                        m.unit().name())));
+                        "kg")));
             }
         });
 

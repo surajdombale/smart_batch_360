@@ -18,7 +18,7 @@ public class MaterialView {
     private final MaterialApiClient apiClient = new MaterialApiClient();
     private final CrudListView<MaterialDto> listView = new CrudListView<>(
             "Material Management", "Manage the materials recipes are built from.", "+ Add Material",
-            m -> String.join(" ", m.name(), m.unit().name()));
+            MaterialDto::name);
 
     public MaterialView() {
         setupColumns();
@@ -34,19 +34,9 @@ public class MaterialView {
         TableColumn<MaterialDto, String> nameCol = new TableColumn<>("Material Name");
         nameCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().name()));
 
-        TableColumn<MaterialDto, String> unitCol = new TableColumn<>("Unit");
-        unitCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().unit().name()));
-
-        // Blank for LITRE - a volume unit needs no density to convert to m³.
-        TableColumn<MaterialDto, String> densityCol = new TableColumn<>("Density (kg/m³)");
-        densityCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue().densityKgPerM3() != null
-                        ? cd.getValue().densityKgPerM3().toPlainString()
-                        : "-"));
-
         TableColumn<MaterialDto, Void> actionsCol = ActionsColumn.create(this::openEditDialog, this::confirmAndDelete);
 
-        table.getColumns().setAll(List.of(nameCol, unitCol, densityCol, actionsCol));
+        table.getColumns().setAll(List.of(nameCol, actionsCol));
     }
 
     private void load() {

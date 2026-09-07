@@ -72,8 +72,8 @@ public final class OrderConsumptionDialog {
         addRow(grid, row++, "Customer", dto.clientName());
         addRow(grid, row++, "Site", dto.siteName());
         addRow(grid, row++, "Recipe", dto.recipeName());
-        addRow(grid, row++, "Order Quantity", dto.orderQuantityM3().toPlainString() + " m³");
-        addRow(grid, row, "Recipe Batch Quantity", dto.recipeBatchQuantityM3().toPlainString() + " m³");
+        addRow(grid, row++, "Order Quantity", dto.orderQuantityKg().toPlainString() + " kg");
+        addRow(grid, row, "Recipe Batch Quantity", dto.recipeBatchQuantityKg().toPlainString() + " kg");
         return grid;
     }
 
@@ -98,7 +98,7 @@ public final class OrderConsumptionDialog {
 
         TableColumn<OrderMaterialConsumptionDto, String> quantityCol = new TableColumn<>("Consumption");
         quantityCol.setCellValueFactory(cd -> new SimpleStringProperty(
-                cd.getValue().quantity().toPlainString() + " " + cd.getValue().unit()));
+                cd.getValue().quantityKg().toPlainString() + " kg"));
 
         table.getColumns().setAll(List.of(nameCol, quantityCol));
         return table;

@@ -12,10 +12,10 @@ import java.math.BigDecimal;
  * One "Add Material" line in RecipeFormDialog: which Material was picked and
  * how much of it.
  *
- * As of 2026-08-27 the material is a real MaterialDto reference rather than a
- * typed-in name/unit pair - the unit now comes from the material itself, so it
- * can't be entered inconsistently. Quantity stays a String (parsed/validated on
- * save) to keep it a plain text cell.
+ * The material is a real MaterialDto reference rather than a typed-in
+ * name/unit pair. There is no unit to choose since 2026-09-07 - every quantity
+ * is kilograms. Quantity stays a String (parsed/validated on save) so a
+ * half-typed number is a normal state rather than an error.
  */
 public class RecipeMaterialRow {
 
@@ -44,11 +44,6 @@ public class RecipeMaterialRow {
 
     public String getQuantity() {
         return quantity.get();
-    }
-
-    /** The unit label shown alongside the quantity - always the material's own unit. */
-    public String getUnitLabel() {
-        return material.get() != null ? material.get().unit().name() : "";
     }
 
     /** Parsed quantity, or null when blank/invalid/not positive. */
