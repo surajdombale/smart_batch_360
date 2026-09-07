@@ -34,6 +34,11 @@ The current phase is intentionally small:
 
 - Recipe materials as line items — 2026-09-07, reported as a bug: adding ingredients to a recipe and entering their values did not work. The materials were an editable TableView, whose cells only write back to the model on Enter - pressing Save cancelled the edit and threw the typed quantity away, so the recipe was rejected for missing a value that was on screen. Rebuilt as line items (header row, one row per material, "+ Add material", running total) after the Stripe invoice editor the user supplied as reference. Every control is live and bound to its row, so there is no edit mode to commit or lose, and each row shows its own m3 contribution.
 
+- Everything measured in kilograms — 2026-09-07 at the user's request, replacing the unit + density model from 2026-08-27. Materials carried their own unit (KG/LITRE) and a density, and a recipe derived its batch size by converting each line to m3; orders and batches were then sized in m3 against recipes whose ingredients are weighed in kg on the plant floor, which is where processing an order into batches came apart. Material.unit and Material.density_kg_per_m3 are dropped, a recipe's batch size is the plain sum of its lines, and orders/batches are kg. The order-consumption projection is unchanged - it was always the ratio of order quantity to batch quantity, which is unit-agnostic.
+  - This also removed a failure mode rather than just a unit: a KG material was unusable in any recipe until someone supplied a density, so 'OPC S3 Cement' and 'Plasticizer' could not be used at all.
+  - Recipe totals were RECOMPUTED from their lines, not converted - the old m3 figures cannot be converted back once the densities are gone. Order quantities kept their numbers and read as kg, so pre-existing orders need reviewing by hand.
+  - Vehicle capacity stays in m3: a mixer drum is a volume.
+
 ### Do not build now
 - Batch Reports PDF/Excel/print export — deliberately deferred (docs/02_UI_REFERENCE.md, docs/03_ARCHITECTURE.md's "do not add reporting/PDF dependencies prematurely"); the search/filter/list part of Batch Reports is built
 - Material Consumption charts — deferred to a later pass; the aggregated table itself is built
