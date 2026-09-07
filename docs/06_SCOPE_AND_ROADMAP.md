@@ -30,6 +30,8 @@ The current phase is intentionally small:
   - Also found by looking at the running screens rather than the API: separate Produced/Remaining columns took Orders to nine and ellipsised every one of them, so the two figures now share one "0 of 10 m3" column; editing a batch whose order had since been fulfilled silently unlinked it on save; and SiteDto/VehicleDto had no toString, which both dumped raw records into the batch form's ComboBoxes and squeezed all twelve of its field labels down to "...".
 
 
+- API error messages were never reaching the user — 2026-09-07. ApiErrorDto did not declare the timestamp ApiError sends and did not ignore unknown properties, so Jackson threw on EVERY error body and ApiClient substituted generic per-status text ("The submitted data is invalid."). Every explanatory message the backend produces - order lifecycle rules, batch/order mismatch guards, delete conflicts - was being discarded app-wide. Found because a recipe save reported nothing useful about a material with no density.
+
 - Recipe materials as line items — 2026-09-07, reported as a bug: adding ingredients to a recipe and entering their values did not work. The materials were an editable TableView, whose cells only write back to the model on Enter - pressing Save cancelled the edit and threw the typed quantity away, so the recipe was rejected for missing a value that was on screen. Rebuilt as line items (header row, one row per material, "+ Add material", running total) after the Stripe invoice editor the user supplied as reference. Every control is live and bound to its row, so there is no edit mode to commit or lose, and each row shows its own m3 contribution.
 
 ### Do not build now
