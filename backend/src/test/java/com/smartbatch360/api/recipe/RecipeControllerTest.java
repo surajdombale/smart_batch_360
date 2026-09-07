@@ -1,7 +1,6 @@
 package com.smartbatch360.api.recipe;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smartbatch360.api.material.MaterialUnit;
 import com.smartbatch360.api.recipe.dto.RecipeMaterialRequest;
 import com.smartbatch360.api.recipe.dto.RecipeMaterialResponse;
 import com.smartbatch360.api.recipe.dto.RecipeRequest;
@@ -36,7 +35,7 @@ class RecipeControllerTest {
     private RecipeResponse sample() {
         return new RecipeResponse(1L, "M25", new BigDecimal("1.3158"), "Standard M25 Grade Concrete",
                 RecipeStatus.ACTIVE,
-                List.of(new RecipeMaterialResponse(1L, 7L, "OPC S3 Cement", new BigDecimal("960.00"), MaterialUnit.KG)),
+                List.of(new RecipeMaterialResponse(1L, 7L, "OPC S3 Cement", new BigDecimal("960.00"))),
                 Instant.now(), Instant.now());
     }
 

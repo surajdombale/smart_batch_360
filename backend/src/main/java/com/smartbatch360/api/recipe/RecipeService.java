@@ -78,13 +78,6 @@ public class RecipeService {
         for (RecipeMaterialRequest materialRequest : request.materials()) {
             Material material = materialRepository.findById(materialRequest.materialId())
                     .orElseThrow(() -> NotFoundException.forId("Material", materialRequest.materialId()));
-            // Caught here rather than letting the total blow up further down, so
-            // the message names the offending material and what to do about it.
-            if (!material.isConvertibleToVolume()) {
-                throw new InvalidRequestException("Material '" + material.getName() + "' is measured in "
-                        + material.getUnit() + " but has no density set, so the total batch quantity in m3 "
-                        + "cannot be calculated. Set its density under Materials first.");
-            }
             RecipeMaterial line = new RecipeMaterial();
             line.setRecipe(recipe);
             line.setMaterial(material);

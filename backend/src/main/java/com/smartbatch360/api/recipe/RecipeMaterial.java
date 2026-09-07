@@ -6,12 +6,12 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 /**
- * One line of a Recipe's material list: which Material, and how much of it
- * (in that material's own unit).
+ * One line of a Recipe's material list: which Material, and how many
+ * kilograms of it.
  *
- * As of 2026-08-27 this references a Material record rather than repeating the
- * material's name and unit as free text - those now live on Material alone, so
- * they cannot drift between recipes.
+ * References a Material record rather than repeating its name as free text, so
+ * the two cannot drift apart between recipes. There is no per-line unit: since
+ * 2026-09-07 every material is weighed in kilograms.
  */
 @Entity
 @Table(name = "recipe_material")
@@ -34,11 +34,6 @@ public class RecipeMaterial {
 
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
-
-    /** This line's contribution to the recipe's total batch quantity, in m3. */
-    public BigDecimal toCubicMetres() {
-        return material.toCubicMetres(quantity);
-    }
 
     public Long getId() {
         return id;

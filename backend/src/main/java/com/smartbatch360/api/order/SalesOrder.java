@@ -35,8 +35,8 @@ public class SalesOrder {
     @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
 
-    @Column(name = "quantity_m3", nullable = false, precision = 12, scale = 4)
-    private BigDecimal quantityM3;
+    @Column(name = "quantity_kg", nullable = false, precision = 12, scale = 4)
+    private BigDecimal quantityKg;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -91,12 +91,12 @@ public class SalesOrder {
         this.recipe = recipe;
     }
 
-    public BigDecimal getQuantityM3() {
-        return quantityM3;
+    public BigDecimal getQuantityKg() {
+        return quantityKg;
     }
 
-    public void setQuantityM3(BigDecimal quantityM3) {
-        this.quantityM3 = quantityM3;
+    public void setQuantityKg(BigDecimal quantityKg) {
+        this.quantityKg = quantityKg;
     }
 
     public OrderStatus getStatus() {

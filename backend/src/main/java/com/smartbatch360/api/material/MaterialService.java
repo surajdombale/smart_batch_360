@@ -71,15 +71,8 @@ public class MaterialService {
     }
 
     private void applyRequest(Material material, MaterialRequest request, String name) {
-        // Density is only meaningful for weight-based units, but it is what
-        // makes the recipe's m3 total possible at all - so require it there
-        // rather than silently accepting a material that can never be totalled.
-        if (request.unit().requiresDensity() && request.densityKgPerM3() == null) {
-            throw new InvalidRequestException("Density (kg/m3) is required for materials measured in "
-                    + request.unit() + ", so recipe quantities can be converted to m3.");
-        }
+        // A material is just a name now. The density check that used to live
+        // here went with the m3 conversion it existed to guarantee.
         material.setName(name);
-        material.setUnit(request.unit());
-        material.setDensityKgPerM3(request.unit().requiresDensity() ? request.densityKgPerM3() : null);
     }
 }

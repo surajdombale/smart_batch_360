@@ -73,7 +73,7 @@ public class SalesOrderService {
         order.setClient(client);
         order.setSite(site);
         order.setRecipe(recipe);
-        order.setQuantityM3(request.quantityM3());
+        order.setQuantityKg(request.quantityKg());
         order.setStatus(OrderStatus.UNFULFILLED);
         return SalesOrderResponse.from(salesOrderRepository.save(order));
     }

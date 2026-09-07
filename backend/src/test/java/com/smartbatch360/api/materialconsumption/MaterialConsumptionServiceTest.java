@@ -205,7 +205,7 @@ class MaterialConsumptionServiceTest {
     private Recipe recipe(String name) {
         Recipe r = new Recipe();
         r.setName(name);
-        r.setTotalBatchQuantityM3(new BigDecimal("3.00"));
+        r.setTotalBatchQuantityKg(new BigDecimal("3.00"));
         r.setStatus(RecipeStatus.ACTIVE);
         return r;
     }

@@ -22,6 +22,6 @@ public record SalesOrderRequest(
 
         @NotNull(message = "Order quantity is required.")
         @DecimalMin(value = "0.01", message = "Order quantity must be greater than zero.")
-        BigDecimal quantityM3
+        BigDecimal quantityKg
 ) {
 }

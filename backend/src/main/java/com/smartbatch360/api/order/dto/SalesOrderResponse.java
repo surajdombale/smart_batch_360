@@ -14,11 +14,11 @@ public record SalesOrderResponse(
         String siteName,
         Long recipeId,
         String recipeName,
-        BigDecimal quantityM3,
+        BigDecimal quantityKg,
         /** Total m3 produced against this order so far, summed from its batches. */
-        BigDecimal producedQuantityM3,
+        BigDecimal producedQuantityKg,
         /** Ordered minus produced, never negative (over-production isn't a debt). */
-        BigDecimal remainingQuantityM3,
+        BigDecimal remainingQuantityKg,
         OrderStatus status,
         Instant createdAt,
         Instant updatedAt
@@ -37,9 +37,9 @@ public record SalesOrderResponse(
                 o.getSite().getName(),
                 o.getRecipe().getId(),
                 o.getRecipe().getName(),
-                o.getQuantityM3(),
+                o.getQuantityKg(),
                 producedM3,
-                remaining(o.getQuantityM3(), producedM3),
+                remaining(o.getQuantityKg(), producedM3),
                 o.getStatus(),
                 o.getCreatedAt(),
                 o.getUpdatedAt());

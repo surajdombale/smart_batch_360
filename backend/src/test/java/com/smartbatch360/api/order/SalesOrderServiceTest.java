@@ -53,13 +53,13 @@ class SalesOrderServiceTest {
         site.setClient(client);
         Recipe recipe = new Recipe();
         recipe.setName("M20");
-        recipe.setTotalBatchQuantityM3(new BigDecimal("0.2072"));
+        recipe.setTotalBatchQuantityKg(new BigDecimal("0.2072"));
 
         SalesOrder order = new SalesOrder();
         order.setClient(client);
         order.setSite(site);
         order.setRecipe(recipe);
-        order.setQuantityM3(new BigDecimal("10"));
+        order.setQuantityKg(new BigDecimal("10"));
         order.setStatus(status);
 
         when(salesOrderRepository.findById(1L)).thenReturn(Optional.of(order));

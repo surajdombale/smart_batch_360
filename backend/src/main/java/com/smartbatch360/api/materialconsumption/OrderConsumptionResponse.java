@@ -10,8 +10,8 @@ public record OrderConsumptionResponse(
         String siteName,
         Long recipeId,
         String recipeName,
-        BigDecimal orderQuantityM3,
-        BigDecimal recipeBatchQuantityM3,
+        BigDecimal orderQuantityKg,
+        BigDecimal recipeBatchQuantityKg,
         List<OrderMaterialConsumptionResponse> materials
 ) {
 }

@@ -32,8 +32,8 @@ public class Recipe {
     @Column(name = "name", nullable = false, length = 150)
     private String name;
 
-    @Column(name = "total_batch_quantity_m3", nullable = false, precision = 12, scale = 4)
-    private BigDecimal totalBatchQuantityM3;
+    @Column(name = "total_batch_quantity_kg", nullable = false, precision = 12, scale = 4)
+    private BigDecimal totalBatchQuantityKg;
 
     @Column(name = "description", length = 255)
     private String description;
@@ -76,8 +76,8 @@ public class Recipe {
         this.name = name;
     }
 
-    public BigDecimal getTotalBatchQuantityM3() {
-        return totalBatchQuantityM3;
+    public BigDecimal getTotalBatchQuantityKg() {
+        return totalBatchQuantityKg;
     }
 
     /**
@@ -85,8 +85,8 @@ public class Recipe {
      * is preserved as-is. New/edited recipes go through
      * {@link #recalculateTotalBatchQuantity()} instead.
      */
-    public void setTotalBatchQuantityM3(BigDecimal totalBatchQuantityM3) {
-        this.totalBatchQuantityM3 = totalBatchQuantityM3;
+    public void setTotalBatchQuantityKg(BigDecimal totalBatchQuantityKg) {
+        this.totalBatchQuantityKg = totalBatchQuantityKg;
     }
 
     /**
@@ -99,9 +99,9 @@ public class Recipe {
     public void recalculateTotalBatchQuantity() {
         BigDecimal total = BigDecimal.ZERO;
         for (RecipeMaterial material : materials) {
-            total = total.add(material.toCubicMetres());
+            total = total.add(material.getQuantity());
         }
-        this.totalBatchQuantityM3 = total.setScale(TOTAL_SCALE, RoundingMode.HALF_UP);
+        this.totalBatchQuantityKg = total.setScale(TOTAL_SCALE, RoundingMode.HALF_UP);
     }
 
     public String getDescription() {

@@ -98,7 +98,7 @@ class BatchOrderLinkTest {
         order.setRecipe(forRecipe);
         order.setClient(forClient);
         order.setSite(forSite);
-        order.setQuantityM3(new BigDecimal("25"));
+        order.setQuantityKg(new BigDecimal("25"));
         when(salesOrderRepository.findById(9L)).thenReturn(Optional.of(order));
         return order;
     }
