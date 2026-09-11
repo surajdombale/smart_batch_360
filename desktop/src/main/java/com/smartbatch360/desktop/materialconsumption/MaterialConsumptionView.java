@@ -8,18 +8,33 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.util.Duration;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Material Consumption (docs/02_UI_REFERENCE.md's "Material Consumption
  * reference"): target vs achieved vs variance/wastage, grouped by day/week/
- * month, built from existing Batch/BatchMaterial data. First-pass scope
- * confirmed with the user 2026-08-26: this table only - charts are a later
- * pass.
+ * month, built from existing Batch/BatchMaterial data. The table came first
+ * (2026-08-26); the chart above it followed on 2026-09-11.
+ *
+ * The chart answers one question - which materials came in over or under
+ * their target - so it is an emphasis chart rather than a colourful one:
+ * Achieved is the series that matters and takes the accent blue, Target is
+ * context and sits in gray beside it. It sums each material across the
+ * filtered range; the per-period breakdown stays in the table underneath,
+ * which is also the chart's accessible twin. Both follow the one filter row.
  */
 public class MaterialConsumptionView {
 
@@ -29,6 +44,18 @@ public class MaterialConsumptionView {
     private final NotificationBanner banner = new NotificationBanner();
     private final StackPane centerStack = new StackPane();
     private final TableView<MaterialConsumptionDto> table = new TableView<>();
+
+    /** Mark spec: bars never thicker than this, however few materials there are. */
+    private static final double MAX_BAR_THICKNESS = 24;
+    /** The surface-coloured gap between a material's Target and Achieved bars. */
+    private static final double BAR_GAP = 2;
+
+    private final CategoryAxis materialAxis = new CategoryAxis();
+    private final NumberAxis quantityAxis = new NumberAxis();
+    private final BarChart<String, Number> chart = new BarChart<>(materialAxis, quantityAxis);
+    private final StackPane chartBody = new StackPane();
+    private final Label chartEmpty = new Label("No batches match these filters.");
+    private VBox chartCard;
 
     private final TextField materialNameField = new TextField();
     private final DatePicker dateFromField = new DatePicker();
@@ -46,6 +73,8 @@ public class MaterialConsumptionView {
         root.getStyleClass().add("content-area");
 
         setupTable();
+        setupChart();
+        chartCard = buildChartCard();
         search();
     }
 
@@ -130,6 +159,146 @@ public class MaterialConsumptionView {
         table.getColumns().setAll(List.of(periodCol, materialCol, targetCol, achievedCol, varianceCol, batchesCol));
     }
 
+    private void setupChart() {
+        quantityAxis.setLabel("kg");
+        quantityAxis.setForceZeroInRange(true);
+        quantityAxis.setMinorTickVisible(false);
+        materialAxis.setTickMarkVisible(false);
+
+        chart.getStyleClass().add("consumption-chart");
+        chart.setAnimated(false);
+        // Our own legend in the card header instead. JavaFX drops a chart's
+        // built-in legend without warning when it judges the plot too short,
+        // which left two series told apart by colour alone.
+        chart.setLegendVisible(false);
+        chart.setBarGap(BAR_GAP);
+        chart.setVerticalGridLinesVisible(false);
+        chart.setAlternativeRowFillVisible(false);
+        // Short on purpose: at the default window size a taller chart left the
+        // period table underneath only three rows, and the table is where the
+        // actual figures live.
+        chart.setPrefHeight(200);
+        chart.setMinHeight(170);
+
+        // A BarChart sizes its bars from whatever room each category gets, so
+        // with two or three materials they balloon into slabs. Spend the
+        // spare room on the gap between categories instead.
+        materialAxis.widthProperty().addListener((o, was, is) -> capBarThickness());
+
+        chartEmpty.getStyleClass().add("state-message");
+        chartBody.getChildren().setAll(chart);
+    }
+
+    private VBox buildChartCard() {
+        Label title = new Label("Target vs achieved, by material");
+        title.getStyleClass().add("state-title");
+        Label subtitle = new Label("Summed across the dates and material filtered above. "
+                + "Hover a bar for its figures; the table below breaks them down by period.");
+        subtitle.getStyleClass().add("state-message");
+        subtitle.setWrapText(true);
+
+        HBox legend = new HBox(16, legendKey("Target", "legend-swatch-target"),
+                legendKey("Achieved", "legend-swatch-achieved"));
+        legend.setAlignment(Pos.CENTER_LEFT);
+        legend.setPadding(new Insets(6, 0, 0, 0));
+
+        VBox card = new VBox(4, title, subtitle, legend, chartBody);
+        card.getStyleClass().add("card");
+        return card;
+    }
+
+    /** Swatch beside the name; the name itself stays in text colour. */
+    private HBox legendKey(String name, String swatchStyle) {
+        Region swatch = new Region();
+        swatch.getStyleClass().addAll("legend-swatch", swatchStyle);
+        swatch.setMinSize(10, 10);
+        swatch.setMaxSize(10, 10);
+        Label label = new Label(name);
+        label.getStyleClass().add("legend-label");
+        HBox key = new HBox(6, swatch, label);
+        key.setAlignment(Pos.CENTER_LEFT);
+        return key;
+    }
+
+    private void capBarThickness() {
+        int categories = materialAxis.getCategories().size();
+        int series = chart.getData().size();
+        if (categories == 0 || series == 0) {
+            return;
+        }
+        double perCategory = materialAxis.getWidth() / categories;
+        double barsAtCap = series * MAX_BAR_THICKNESS + (series - 1) * BAR_GAP;
+        chart.setCategoryGap(Math.max(8, perCategory - barsAtCap));
+    }
+
+    /** One entry per material, summed over every period the filters returned. */
+    private record MaterialTotal(String material, String unit, BigDecimal target, BigDecimal achieved) {
+        BigDecimal variance() {
+            return achieved.subtract(target);
+        }
+    }
+
+    private List<MaterialTotal> totalsByMaterial(List<MaterialConsumptionDto> rows) {
+        Map<String, MaterialTotal> totals = new LinkedHashMap<>();
+        for (MaterialConsumptionDto row : rows) {
+            BigDecimal target = row.totalTarget() != null ? row.totalTarget() : BigDecimal.ZERO;
+            BigDecimal achieved = row.totalAchieved() != null ? row.totalAchieved() : BigDecimal.ZERO;
+            totals.merge(row.materialName(),
+                    new MaterialTotal(row.materialName(), row.unit(), target, achieved),
+                    (a, b) -> new MaterialTotal(a.material(), a.unit(),
+                            a.target().add(b.target()), a.achieved().add(b.achieved())));
+        }
+        // Nominal categories have no order of their own; largest first makes
+        // the comparison easiest to read.
+        List<MaterialTotal> sorted = new ArrayList<>(totals.values());
+        sorted.sort(Comparator.comparing(MaterialTotal::target).reversed());
+        return sorted;
+    }
+
+    private void showChart(List<MaterialConsumptionDto> rows) {
+        List<MaterialTotal> totals = totalsByMaterial(rows);
+        if (totals.isEmpty()) {
+            chartBody.getChildren().setAll(chartEmpty);
+            return;
+        }
+
+        // Series order fixes colour: 0 = Target (gray, context), 1 = Achieved
+        // (blue, the point). Keep it - the stylesheet keys on the index.
+        XYChart.Series<String, Number> target = new XYChart.Series<>();
+        target.setName("Target");
+        XYChart.Series<String, Number> achieved = new XYChart.Series<>();
+        achieved.setName("Achieved");
+
+        for (MaterialTotal total : totals) {
+            XYChart.Data<String, Number> t = new XYChart.Data<>(total.material(), total.target().doubleValue());
+            XYChart.Data<String, Number> a = new XYChart.Data<>(total.material(), total.achieved().doubleValue());
+            attachTooltip(t, total);
+            attachTooltip(a, total);
+            target.getData().add(t);
+            achieved.getData().add(a);
+        }
+
+        materialAxis.getCategories().setAll(totals.stream().map(MaterialTotal::material).toList());
+        chart.getData().setAll(List.of(target, achieved));
+        chartBody.getChildren().setAll(chart);
+        Platform.runLater(this::capBarThickness);
+    }
+
+    /** Both bars of a material show the same figures: the comparison is the point. */
+    private void attachTooltip(XYChart.Data<String, Number> data, MaterialTotal total) {
+        String text = total.material()
+                + "\nAchieved  " + formatQuantity(total.achieved(), total.unit())
+                + "\nTarget  " + formatQuantity(total.target(), total.unit())
+                + "\nVariance  " + formatSignedQuantity(total.variance(), total.unit());
+        data.nodeProperty().addListener((o, was, node) -> {
+            if (node != null) {
+                Tooltip tooltip = new Tooltip(text);
+                tooltip.setShowDelay(Duration.millis(120));
+                Tooltip.install(node, tooltip);
+            }
+        });
+    }
+
     private String formatQuantity(BigDecimal value, String unit) {
         return value == null ? "" : value.toPlainString() + (unit != null ? " " + unit : "");
     }
@@ -194,7 +363,11 @@ public class MaterialConsumptionView {
 
     private void showResults(List<MaterialConsumptionDto> result) {
         table.setItems(FXCollections.observableArrayList(result));
-        centerStack.getChildren().setAll(table);
+        showChart(result);
+
+        VBox content = new VBox(12, chartCard, table);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        centerStack.getChildren().setAll(content);
     }
 
     public Region getView() {

@@ -39,9 +39,10 @@ The current phase is intentionally small:
   - Recipe totals were RECOMPUTED from their lines, not converted - the old m3 figures cannot be converted back once the densities are gone. Order quantities kept their numbers and read as kg, so pre-existing orders need reviewing by hand.
   - Vehicle capacity stays in m3: a mixer drum is a volume.
 
+- Material Consumption chart — 2026-09-11, the pass deferred on 2026-08-26. One chart above the existing table: target vs achieved per material, summed across whatever the page's filters select. It is an emphasis chart, not a colourful one - Achieved is the series that matters (accent blue), Target is context (gray) - because the question it answers is "which materials came in over or under target", and the table beneath stays as its per-period breakdown and accessible twin. Colours were checked with a colour-blindness validator rather than by eye; bars are capped at 24px so a short material list doesn't balloon into slabs; each bar has a hover tooltip with achieved / target / variance.
+
 ### Do not build now
 - Batch Reports PDF/Excel/print export — deliberately deferred (docs/02_UI_REFERENCE.md, docs/03_ARCHITECTURE.md's "do not add reporting/PDF dependencies prematurely"); the search/filter/list part of Batch Reports is built
-- Material Consumption charts — deferred to a later pass; the aggregated table itself is built
 - Analytics
 - PLC Monitoring
 - Settings (beyond the Database Connection tab noted above - Plant info, PLC communication, backup/restore, user management, general preferences)

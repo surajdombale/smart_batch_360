@@ -358,3 +358,81 @@
     -fx-font-weight: bold;
     -fx-text-fill: -sb-text;
 }
+
+/* ---------- Material Consumption chart ----------
+ * An emphasis chart: Achieved is the point (accent blue, the reference
+ * palette's categorical slot 1), Target is context (de-emphasis gray). Pair
+ * validated against the white card surface with the dataviz skill's
+ * validate_palette.js - CVD separation 15.9, normal-vision 17.8, both >=3:1.
+ * Series index keys the colour: 0 = Target, 1 = Achieved.
+ */
+
+.consumption-chart {
+    -fx-padding: 4 0 0 0;
+}
+
+.consumption-chart .chart-plot-background {
+    -fx-background-color: transparent;
+}
+
+/* Flat fill, 4px rounded data-end, square at the baseline. */
+.consumption-chart .chart-bar {
+    -fx-background-color: -fx-bar-fill;
+    -fx-background-radius: 4 4 0 0;
+    -fx-background-insets: 0;
+}
+
+.consumption-chart .default-color0.chart-bar {
+    -fx-bar-fill: #898781;
+}
+
+.consumption-chart .default-color1.chart-bar {
+    -fx-bar-fill: #2a78d6;
+}
+
+/* The legend lives in the card header, not inside the chart - JavaFX hides a
+   chart's own legend when the plot gets short. Swatch carries the colour; the
+   name beside it stays in text colour. */
+.legend-swatch {
+    -fx-background-radius: 2;
+}
+
+.legend-swatch-target {
+    -fx-background-color: #898781;
+}
+
+.legend-swatch-achieved {
+    -fx-background-color: #2a78d6;
+}
+
+.legend-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: -sb-text-muted;
+}
+
+/* Axis text wears text tokens, never the series colour. */
+.consumption-chart .axis,
+.consumption-chart .axis-label {
+    -fx-text-fill: -sb-text-muted;
+    -fx-tick-label-fill: -sb-text-muted;
+    -fx-font-size: 11px;
+}
+
+/* Recessive chrome: solid hairlines one step off the surface. */
+.consumption-chart .chart-horizontal-grid-lines {
+    -fx-stroke: #e1e0d9;
+    -fx-stroke-width: 1;
+    -fx-stroke-dash-array: null;
+}
+
+.consumption-chart .axis {
+    -fx-tick-mark-stroke: transparent;
+}
+
+.consumption-chart .axis:bottom {
+    -fx-border-color: #c3c2b7 transparent transparent transparent;
+}
+
+.consumption-chart .axis:left {
+    -fx-border-color: transparent;
+}
