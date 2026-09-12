@@ -81,10 +81,13 @@ The conceptual reports screen contains:
 - batch detail
 - PDF/Excel/print actions
 
-**Built 2026-08-24**, except PDF/Excel/print export - the user explicitly
-scoped this phase to search/filter/list only, deferring export as a
-separate follow-up rather than pulling in reporting dependencies
-(PDFBox/iText) before they're needed (docs/03_ARCHITECTURE.md). Batch
+**Built 2026-08-24**, except export, which the user deferred to keep this
+phase to search/filter/list rather than pull in reporting dependencies
+early (docs/03_ARCHITECTURE.md). **PDF export built 2026-09-12** once the
+user lifted that: an Export PDF button beside Search/Reset writes the whole
+filtered result (not just the visible page) to a landscape A4 table, with
+the filters in force printed under the title so a saved report says what it
+covers. Excel and print are still to come. Batch
 number range, date range, and exact Client/Site/Vehicle/Driver/Recipe
 filters are all real and combine together; pagination and sorting (newest
 first by default) are real, backed by a proper paginated query rather than

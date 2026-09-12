@@ -43,8 +43,12 @@ The current phase is intentionally small:
 
 - Regression pass — 2026-09-12, over everything that changed since V3 (kg switch, recipe line items, order lifecycle and fulfilment, batch-to-order link, the consumption chart). 114 backend tests plus 19 live checks against the real database all passed, so the only fix needed was on Production: its table clipped Status to "STOPP..." while the Controls column held a wide empty stripe - the same CONSTRAINED-policy problem the Orders table had, fixed the same way.
 
+- Batch Reports PDF export — 2026-09-12, after the user lifted the deferral (and with it the architecture doc's rule against reporting dependencies, for reporting only). An Export PDF button beside Search/Reset writes the whole filtered result to a landscape A4 table - re-fetched rather than taken from the table, since the table only holds the page being viewed. The filters in force are printed under the title so a saved report states what it covers, and a row cap of 2000 is admitted in the document rather than trailing off silently.
+  - PDFBox (Apache-2.0), not OpenPDF (LGPL): the app is delivered to a customer, so the licence matters more than OpenPDF's easier table API. The table is drawn by hand as a result, which is why it has tests - pagination, over-long values, and characters the standard-14 fonts cannot encode (showText throws on those, which would have failed a whole export over one customer name).
+  - Excel export is the next chunk; print follows from the PDF.
+
 ### Do not build now
-- Batch Reports PDF/Excel/print export — deliberately deferred (docs/02_UI_REFERENCE.md, docs/03_ARCHITECTURE.md's "do not add reporting/PDF dependencies prematurely"); the search/filter/list part of Batch Reports is built
+- Batch Reports Excel and print export — the PDF half is built (2026-09-12); Excel is the next chunk of the same pass
 - Analytics
 - PLC Monitoring
 - Settings (beyond the Database Connection tab noted above - Plant info, PLC communication, backup/restore, user management, general preferences)

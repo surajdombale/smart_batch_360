@@ -49,6 +49,8 @@ The supplied documents specify:
 
 For Phase 1 CRUD work, include only dependencies actually needed by the implemented functionality. Do not add reporting/PDF dependencies just because they appear in the long-term technology list.
 
+Updated 2026-09-12: the user lifted this for reporting specifically, to build the Batch Reports export. PDFBox (Apache-2.0) is now a desktop dependency; OpenPDF was rejected despite its friendlier table API because it is LGPL and this application is delivered to a customer. The rule still stands for anything else - a dependency needs the functionality to exist first.
+
 ## Recommended project separation
 
 ### Desktop client
