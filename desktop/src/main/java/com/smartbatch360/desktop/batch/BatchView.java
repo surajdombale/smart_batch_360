@@ -62,13 +62,33 @@ public class BatchView {
         TableColumn<BatchDto, Void> controlsCol = buildControlsColumn();
         TableColumn<BatchDto, Void> actionsCol = ActionsColumn.create(this::openEditDialog, this::confirmAndDelete);
 
+        // Same treatment the Orders table needed: the shared CONSTRAINED policy
+        // divides the width evenly and honours neither prefWidth nor, once it
+        // runs short, a column's minimum - so Status was clipped to "STOPP..."
+        // while Controls kept a wide empty stripe. Size them to their content
+        // instead, and let any overflow be a scrollbar that can be used.
+        table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
+        sizeColumn(numberCol, 95);
+        sizeColumn(recipeCol, 100);
+        sizeColumn(clientCol, 85);
+        sizeColumn(quantityCol, 120);
+        sizeColumn(statusCol, 100);   // IN_PROGRESS, the longest status
+
         table.getColumns().setAll(List.of(numberCol, recipeCol, clientCol, quantityCol, statusCol, controlsCol, actionsCol));
+    }
+
+    /** Fixes a data column at one width; max is set with pref, which alone does not hold. */
+    private static void sizeColumn(TableColumn<BatchDto, ?> column, double width) {
+        column.setPrefWidth(width);
+        column.setMaxWidth(width);
     }
 
     private TableColumn<BatchDto, Void> buildControlsColumn() {
         TableColumn<BatchDto, Void> column = new TableColumn<>("Controls");
         column.setSortable(false);
-        column.setMinWidth(260);
+        // Wide enough for the busiest row: Pause / Stop / E-Stop.
+        column.setMinWidth(210);
+        column.setPrefWidth(210);
 
         column.setCellFactory(col -> new TableCell<>() {
             private final HBox box = new HBox(4);
@@ -107,6 +127,8 @@ public class BatchView {
     private Button controlButton(String label, String styleClass, Function<Long, CompletableFuture<BatchDto>> action, BatchDto batch) {
         Button button = new Button(label);
         button.getStyleClass().add(styleClass);
+        // Keep the label readable rather than letting the HBox shrink it.
+        button.setMinWidth(Region.USE_PREF_SIZE);
         button.setOnAction(e -> runControl(action, batch, label));
         return button;
     }

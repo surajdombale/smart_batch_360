@@ -41,6 +41,8 @@ The current phase is intentionally small:
 
 - Material Consumption chart — 2026-09-11, the pass deferred on 2026-08-26. One chart above the existing table: target vs achieved per material, summed across whatever the page's filters select. It is an emphasis chart, not a colourful one - Achieved is the series that matters (accent blue), Target is context (gray) - because the question it answers is "which materials came in over or under target", and the table beneath stays as its per-period breakdown and accessible twin. Colours were checked with a colour-blindness validator rather than by eye; bars are capped at 24px so a short material list doesn't balloon into slabs; each bar has a hover tooltip with achieved / target / variance.
 
+- Regression pass — 2026-09-12, over everything that changed since V3 (kg switch, recipe line items, order lifecycle and fulfilment, batch-to-order link, the consumption chart). 114 backend tests plus 19 live checks against the real database all passed, so the only fix needed was on Production: its table clipped Status to "STOPP..." while the Controls column held a wide empty stripe - the same CONSTRAINED-policy problem the Orders table had, fixed the same way.
+
 ### Do not build now
 - Batch Reports PDF/Excel/print export — deliberately deferred (docs/02_UI_REFERENCE.md, docs/03_ARCHITECTURE.md's "do not add reporting/PDF dependencies prematurely"); the search/filter/list part of Batch Reports is built
 - Analytics
