@@ -20,6 +20,13 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.FileChooser;
+
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.CompletableFuture;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -65,6 +72,15 @@ public class BatchReportView {
 
     private int currentPage = 0;
     private static final int PAGE_SIZE = 20;
+    /**
+     * An export covers the whole filtered result, not the visible page - but it
+     * asks for one page of this size rather than streaming, so a runaway
+     * export cannot exhaust memory. If a filter selects more, the PDF says so
+     * rather than quietly trailing off.
+     */
+    private static final int EXPORT_LIMIT = 2000;
+
+    private final BatchReportPdfExporter pdfExporter = new BatchReportPdfExporter();
 
     public BatchReportView() {
         PageHeader header = new PageHeader("Batch Reports", "Search, filter and review historical production batches.");
@@ -117,7 +133,11 @@ public class BatchReportView {
         resetButton.getStyleClass().add("button-secondary");
         resetButton.setOnAction(e -> resetFilters());
 
-        HBox actions = new HBox(10, searchButton, resetButton);
+        Button exportButton = new Button("Export PDF");
+        exportButton.getStyleClass().add("button-secondary");
+        exportButton.setOnAction(e -> exportPdf(exportButton));
+
+        HBox actions = new HBox(10, searchButton, resetButton, exportButton);
         actions.setPadding(new Insets(8, 0, 0, 0));
 
         VBox panel = new VBox(8, grid, actions);
@@ -221,23 +241,126 @@ public class BatchReportView {
         search();
     }
 
-    private void search() {
-        centerStack.getChildren().setAll(loadingIndicator());
-
-        BatchReportFilter filter = new BatchReportFilter(
+    private BatchReportFilter currentFilter() {
+        return new BatchReportFilter(
                 blankToNull(batchNumberFromField.getText()), blankToNull(batchNumberToField.getText()),
                 dateFromField.getValue(), dateToField.getValue(),
                 idOf(clientField.getValue(), ClientDto::id), idOf(siteField.getValue(), SiteDto::id),
                 idOf(vehicleField.getValue(), VehicleDto::id), idOf(driverField.getValue(), DriverDto::id),
                 idOf(recipeField.getValue(), RecipeDto::id));
+    }
 
-        reportApiClient.search(filter, currentPage, PAGE_SIZE).whenComplete((result, throwable) -> Platform.runLater(() -> {
+    private void search() {
+        centerStack.getChildren().setAll(loadingIndicator());
+
+        reportApiClient.search(currentFilter(), currentPage, PAGE_SIZE).whenComplete((result, throwable) -> Platform.runLater(() -> {
             if (throwable != null) {
                 showError(throwable);
             } else {
                 showResults(result);
             }
         }));
+    }
+
+    /**
+     * Exports what the current filters select. The rows are re-fetched rather
+     * than taken from the table, because the table only holds the page being
+     * looked at and an export of page 3 of 7 would be misleading.
+     */
+    private void exportPdf(Button exportButton) {
+        exportButton.setDisable(true);
+        banner.hide();
+
+        reportApiClient.search(currentFilter(), 0, EXPORT_LIMIT)
+                .whenComplete((result, throwable) -> Platform.runLater(() -> {
+                    if (throwable != null) {
+                        exportButton.setDisable(false);
+                        banner.showError(apiMessage(throwable));
+                        return;
+                    }
+                    File file = chooseFile();
+                    if (file == null) {
+                        exportButton.setDisable(false);   // cancelled at the save dialog
+                        return;
+                    }
+                    writePdf(file, result, exportButton);
+                }));
+    }
+
+    private File chooseFile() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Export Batch Reports as PDF");
+        chooser.setInitialFileName("batch-reports-"
+                + DateTimeFormatter.ofPattern("yyyy-MM-dd").format(LocalDate.now()) + ".pdf");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF document", "*.pdf"));
+        // Without this the dialog opens on "This PC", where Save cannot
+        // succeed until the operator has navigated somewhere real.
+        File documents = new File(System.getProperty("user.home"), "Documents");
+        chooser.setInitialDirectory(documents.isDirectory()
+                ? documents : new File(System.getProperty("user.home")));
+        return chooser.showSaveDialog(root.getScene() == null ? null : root.getScene().getWindow());
+    }
+
+    private void writePdf(File file, BatchPageDto result, Button exportButton) {
+        String note = result.totalElements() > result.content().size()
+                ? "Showing the first " + result.content().size() + " of " + result.totalElements()
+                        + " matching batches - narrow the filters to export the rest."
+                : null;
+
+        // Off the UI thread: a few thousand rows is quick, but not so quick
+        // that the window should freeze for it.
+        CompletableFuture
+                .runAsync(() -> {
+                    try {
+                        pdfExporter.write(file, result.content(), describeFilters(), note);
+                    } catch (IOException e) {
+                        throw new IllegalStateException(e);
+                    }
+                })
+                .whenComplete((ignored, throwable) -> Platform.runLater(() -> {
+                    exportButton.setDisable(false);
+                    if (throwable != null) {
+                        banner.showError("Could not write the PDF: " + rootCauseMessage(throwable));
+                    } else {
+                        banner.showSuccess("Exported " + result.content().size()
+                                + (result.content().size() == 1 ? " batch to " : " batches to ") + file.getName()
+                                + (note == null ? "." : ".  " + note));
+                    }
+                }));
+    }
+
+    /** The filter line printed under the PDF's title, so a saved report says what it covers. */
+    private String describeFilters() {
+        StringBuilder parts = new StringBuilder();
+        appendFilter(parts, "Batch number from", blankToNull(batchNumberFromField.getText()));
+        appendFilter(parts, "to", blankToNull(batchNumberToField.getText()));
+        appendFilter(parts, "From", dateFromField.getValue() == null ? null : dateFromField.getValue().toString());
+        appendFilter(parts, "To", dateToField.getValue() == null ? null : dateToField.getValue().toString());
+        appendFilter(parts, "Client", clientField.getValue() == null ? null : clientField.getValue().name());
+        appendFilter(parts, "Site", siteField.getValue() == null ? null : siteField.getValue().name());
+        appendFilter(parts, "Vehicle", vehicleField.getValue() == null ? null
+                : vehicleField.getValue().vehicleNumber());
+        appendFilter(parts, "Driver", driverField.getValue() == null ? null : driverField.getValue().name());
+        appendFilter(parts, "Recipe", recipeField.getValue() == null ? null : recipeField.getValue().name());
+        return parts.isEmpty() ? "All batches (no filters applied)" : "Filters: " + parts;
+    }
+
+    private void appendFilter(StringBuilder parts, String label, String value) {
+        if (value == null) {
+            return;
+        }
+        if (!parts.isEmpty()) {
+            parts.append("  ·  ");
+        }
+        parts.append(label).append(' ').append(value);
+    }
+
+    private String rootCauseMessage(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        return cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
     }
 
     private <T> Long idOf(T item, java.util.function.Function<T, Long> idExtractor) {
@@ -254,9 +377,14 @@ public class BatchReportView {
         return indicator;
     }
 
-    private void showError(Throwable throwable) {
+    /** The message worth showing a user - the backend's own words when it gave any. */
+    private String apiMessage(Throwable throwable) {
         Throwable cause = throwable.getCause() != null ? throwable.getCause() : throwable;
-        String message = cause instanceof ApiException apiEx ? apiEx.getMessage() : "Something went wrong. Please try again.";
+        return cause instanceof ApiException apiEx ? apiEx.getMessage() : "Something went wrong. Please try again.";
+    }
+
+    private void showError(Throwable throwable) {
+        String message = apiMessage(throwable);
 
         VBox box = new VBox(8);
         box.getStyleClass().addAll("state-container", "state-error");

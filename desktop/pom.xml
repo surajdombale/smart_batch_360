@@ -18,6 +18,8 @@
         <javafx.version>21.0.4</javafx.version>
         <jackson.version>2.17.2</jackson.version>
         <junit.version>5.10.3</junit.version>
+        <pdfbox.version>3.0.3</pdfbox.version>
+        <assertj.version>3.26.3</assertj.version>
         <mainClass>com.smartbatch360.desktop.DesktopApplication</mainClass>
     </properties>
 
@@ -54,6 +56,23 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- Batch Reports PDF export. PDFBox (Apache-2.0) rather than
+                 OpenPDF (LGPL): this application is delivered to a customer,
+                 so the permissive licence matters more than OpenPDF's nicer
+                 table API - the table is drawn by hand in
+                 BatchReportPdfExporter. -->
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
+        </dependency>
+        <dependency>
+            <!-- Test scope only; matches the assertion style the backend tests use. -->
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
