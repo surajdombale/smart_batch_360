@@ -81,6 +81,24 @@ public class BatchReportView {
     private static final int EXPORT_LIMIT = 2000;
 
     private final BatchReportPdfExporter pdfExporter = new BatchReportPdfExporter();
+    private final BatchReportExcelExporter excelExporter = new BatchReportExcelExporter();
+
+    /** What an export writes, independent of the format it writes it in. */
+    @FunctionalInterface
+    private interface ReportWriter {
+        void write(File file, List<BatchDto> batches, String filterSummary, String note) throws IOException;
+    }
+
+    /** One export format: its name for messages, its file type, and its writer. */
+    private record ExportFormat(String name, String extension, String fileTypeLabel, ReportWriter writer) {
+    }
+
+    private final ExportFormat pdfFormat = new ExportFormat("PDF", "pdf", "PDF document", pdfExporter::write);
+    private final ExportFormat excelFormat =
+            new ExportFormat("Excel", "xlsx", "Excel workbook", excelExporter::write);
+
+    private final Button exportPdfButton = new Button("Export PDF");
+    private final Button exportExcelButton = new Button("Export Excel");
 
     public BatchReportView() {
         PageHeader header = new PageHeader("Batch Reports", "Search, filter and review historical production batches.");
@@ -133,11 +151,12 @@ public class BatchReportView {
         resetButton.getStyleClass().add("button-secondary");
         resetButton.setOnAction(e -> resetFilters());
 
-        Button exportButton = new Button("Export PDF");
-        exportButton.getStyleClass().add("button-secondary");
-        exportButton.setOnAction(e -> exportPdf(exportButton));
+        exportPdfButton.getStyleClass().add("button-secondary");
+        exportPdfButton.setOnAction(e -> export(pdfFormat));
+        exportExcelButton.getStyleClass().add("button-secondary");
+        exportExcelButton.setOnAction(e -> export(excelFormat));
 
-        HBox actions = new HBox(10, searchButton, resetButton, exportButton);
+        HBox actions = new HBox(10, searchButton, resetButton, exportPdfButton, exportExcelButton);
         actions.setPadding(new Insets(8, 0, 0, 0));
 
         VBox panel = new VBox(8, grid, actions);
@@ -267,32 +286,39 @@ public class BatchReportView {
      * than taken from the table, because the table only holds the page being
      * looked at and an export of page 3 of 7 would be misleading.
      */
-    private void exportPdf(Button exportButton) {
-        exportButton.setDisable(true);
+    private void export(ExportFormat format) {
+        setExporting(true);
         banner.hide();
 
         reportApiClient.search(currentFilter(), 0, EXPORT_LIMIT)
                 .whenComplete((result, throwable) -> Platform.runLater(() -> {
                     if (throwable != null) {
-                        exportButton.setDisable(false);
+                        setExporting(false);
                         banner.showError(apiMessage(throwable));
                         return;
                     }
-                    File file = chooseFile();
+                    File file = chooseFile(format);
                     if (file == null) {
-                        exportButton.setDisable(false);   // cancelled at the save dialog
+                        setExporting(false);   // cancelled at the save dialog
                         return;
                     }
-                    writePdf(file, result, exportButton);
+                    writeReport(format, file, result);
                 }));
     }
 
-    private File chooseFile() {
+    /** Both buttons go quiet during an export, so two cannot race for the same data. */
+    private void setExporting(boolean exporting) {
+        exportPdfButton.setDisable(exporting);
+        exportExcelButton.setDisable(exporting);
+    }
+
+    private File chooseFile(ExportFormat format) {
         FileChooser chooser = new FileChooser();
-        chooser.setTitle("Export Batch Reports as PDF");
+        chooser.setTitle("Export Batch Reports as " + format.name());
         chooser.setInitialFileName("batch-reports-"
-                + DateTimeFormatter.ofPattern("yyyy-MM-dd").format(LocalDate.now()) + ".pdf");
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF document", "*.pdf"));
+                + DateTimeFormatter.ofPattern("yyyy-MM-dd").format(LocalDate.now()) + "." + format.extension());
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter(format.fileTypeLabel(), "*." + format.extension()));
         // Without this the dialog opens on "This PC", where Save cannot
         // succeed until the operator has navigated somewhere real.
         File documents = new File(System.getProperty("user.home"), "Documents");
@@ -301,7 +327,7 @@ public class BatchReportView {
         return chooser.showSaveDialog(root.getScene() == null ? null : root.getScene().getWindow());
     }
 
-    private void writePdf(File file, BatchPageDto result, Button exportButton) {
+    private void writeReport(ExportFormat format, File file, BatchPageDto result) {
         String note = result.totalElements() > result.content().size()
                 ? "Showing the first " + result.content().size() + " of " + result.totalElements()
                         + " matching batches - narrow the filters to export the rest."
@@ -312,15 +338,16 @@ public class BatchReportView {
         CompletableFuture
                 .runAsync(() -> {
                     try {
-                        pdfExporter.write(file, result.content(), describeFilters(), note);
+                        format.writer().write(file, result.content(), describeFilters(), note);
                     } catch (IOException e) {
                         throw new IllegalStateException(e);
                     }
                 })
                 .whenComplete((ignored, throwable) -> Platform.runLater(() -> {
-                    exportButton.setDisable(false);
+                    setExporting(false);
                     if (throwable != null) {
-                        banner.showError("Could not write the PDF: " + rootCauseMessage(throwable));
+                        banner.showError("Could not write the " + format.name() + " file: "
+                                + rootCauseMessage(throwable));
                     } else {
                         banner.showSuccess("Exported " + result.content().size()
                                 + (result.content().size() == 1 ? " batch to " : " batches to ") + file.getName()
@@ -329,7 +356,7 @@ public class BatchReportView {
                 }));
     }
 
-    /** The filter line printed under the PDF's title, so a saved report says what it covers. */
+    /** The filters in force, recorded in every export so a saved report says what it covers. */
     private String describeFilters() {
         StringBuilder parts = new StringBuilder();
         appendFilter(parts, "Batch number from", blankToNull(batchNumberFromField.getText()));
