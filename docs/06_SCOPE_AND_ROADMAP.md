@@ -47,8 +47,13 @@ The current phase is intentionally small:
   - PDFBox (Apache-2.0), not OpenPDF (LGPL): the app is delivered to a customer, so the licence matters more than OpenPDF's easier table API. The table is drawn by hand as a result, which is why it has tests - pagination, over-long values, and characters the standard-14 fonts cannot encode (showText throws on those, which would have failed a whole export over one customer name).
   - Excel export is the next chunk; print follows from the PDF.
 
+- Batch Reports Excel export — 2026-09-13, the second half of the export pass. An Export Excel button beside Export PDF writes the same filtered result, through the same fetch-then-choose-a-file flow (now parameterised by format rather than duplicated). The reason for a spreadsheet beside the PDF is that figures stay figures, so quantities are real numeric cells and cycle times real dates - never the formatted strings the PDF prints - which is what lets someone sort, filter and total them. Three sheets: Batches (header frozen, autofilter on), Materials (target / setpoint / achieved / variance per line) and About (generated time, filters, any row-cap note), kept separate so both tables start at row 1.
+  - fastexcel (Apache-2.0) rather than Apache POI: the app only writes spreadsheets, and POI's .xlsx support would ship several MB of reading and formula code in every install.
+  - Control characters are stripped from text cells: an .xlsx is XML inside, XML 1.0 cannot hold them, and one in a customer or site name would make Excel reject the whole file as corrupt.
+  - Checked against the real API data, not just test rows - including the historical batch whose water was recorded in litres, which exports with its unit intact.
+
 ### Do not build now
-- Batch Reports Excel and print export — the PDF half is built (2026-09-12); Excel is the next chunk of the same pass
+- Batch Reports direct print — PDF (2026-09-12) and Excel (2026-09-13) export are built, and the exported PDF can be printed today; a dedicated Print button is still to do
 - Analytics
 - PLC Monitoring
 - Settings (beyond the Database Connection tab noted above - Plant info, PLC communication, backup/restore, user management, general preferences)
