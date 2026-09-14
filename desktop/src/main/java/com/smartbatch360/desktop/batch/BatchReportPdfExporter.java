@@ -67,6 +67,17 @@ public final class BatchReportPdfExporter {
      * @param note          optional extra line (e.g. a row cap that was hit), or null
      */
     public void write(File file, List<BatchDto> batches, String filterSummary, String note) throws IOException {
+        try (PDDocument document = build(batches, filterSummary, note)) {
+            document.save(file);
+        }
+    }
+
+    /**
+     * The report as an open document, for callers that do something other
+     * than save it - printing sends this same document to the printer, so the
+     * paper and the PDF can never disagree. The caller owns it and must close it.
+     */
+    public PDDocument build(List<BatchDto> batches, String filterSummary, String note) throws IOException {
         float usableWidth = PAGE_SIZE.getWidth() - (2 * MARGIN);
         float titleBlockHeight = note == null ? 58 : 70;
         float firstRowTop = PAGE_SIZE.getHeight() - MARGIN - titleBlockHeight;
@@ -74,7 +85,8 @@ public final class BatchReportPdfExporter {
         int rowsPerPage = Math.max(1, (int) ((firstRowTop - bottomLimit - ROW_HEIGHT) / ROW_HEIGHT));
         int totalPages = Math.max(1, (int) Math.ceil(batches.size() / (double) rowsPerPage));
 
-        try (PDDocument document = new PDDocument()) {
+        PDDocument document = new PDDocument();
+        try {
             for (int pageIndex = 0; pageIndex < totalPages; pageIndex++) {
                 PDPage page = new PDPage(PAGE_SIZE);
                 document.addPage(page);
@@ -131,7 +143,11 @@ public final class BatchReportPdfExporter {
                 }
             }
 
-            document.save(file);
+            return document;
+        } catch (IOException | RuntimeException e) {
+            // Handed back open on success, so on failure it is ours to close.
+            document.close();
+            throw e;
         }
     }
 

@@ -82,6 +82,7 @@ public class BatchReportView {
 
     private final BatchReportPdfExporter pdfExporter = new BatchReportPdfExporter();
     private final BatchReportExcelExporter excelExporter = new BatchReportExcelExporter();
+    private final BatchReportPrinter printer = new BatchReportPrinter(pdfExporter);
 
     /** What an export writes, independent of the format it writes it in. */
     @FunctionalInterface
@@ -99,6 +100,7 @@ public class BatchReportView {
 
     private final Button exportPdfButton = new Button("Export PDF");
     private final Button exportExcelButton = new Button("Export Excel");
+    private final Button printButton = new Button("Print");
 
     public BatchReportView() {
         PageHeader header = new PageHeader("Batch Reports", "Search, filter and review historical production batches.");
@@ -155,8 +157,10 @@ public class BatchReportView {
         exportPdfButton.setOnAction(e -> export(pdfFormat));
         exportExcelButton.getStyleClass().add("button-secondary");
         exportExcelButton.setOnAction(e -> export(excelFormat));
+        printButton.getStyleClass().add("button-secondary");
+        printButton.setOnAction(e -> print());
 
-        HBox actions = new HBox(10, searchButton, resetButton, exportPdfButton, exportExcelButton);
+        HBox actions = new HBox(10, searchButton, resetButton, exportPdfButton, exportExcelButton, printButton);
         actions.setPadding(new Insets(8, 0, 0, 0));
 
         VBox panel = new VBox(8, grid, actions);
@@ -310,6 +314,7 @@ public class BatchReportView {
     private void setExporting(boolean exporting) {
         exportPdfButton.setDisable(exporting);
         exportExcelButton.setDisable(exporting);
+        printButton.setDisable(exporting);
     }
 
     private File chooseFile(ExportFormat format) {
@@ -328,17 +333,18 @@ public class BatchReportView {
     }
 
     private void writeReport(ExportFormat format, File file, BatchPageDto result) {
-        String note = result.totalElements() > result.content().size()
-                ? "Showing the first " + result.content().size() + " of " + result.totalElements()
-                        + " matching batches - narrow the filters to export the rest."
-                : null;
+        String note = capNote(result);
+        // Read the filter controls here, on the JavaFX thread. The worker below
+        // used to call describeFilters() itself, reading UI controls off the FX
+        // thread - it happened to work, but it is not safe.
+        String filters = describeFilters();
 
         // Off the UI thread: a few thousand rows is quick, but not so quick
         // that the window should freeze for it.
         CompletableFuture
                 .runAsync(() -> {
                     try {
-                        format.writer().write(file, result.content(), describeFilters(), note);
+                        format.writer().write(file, result.content(), filters, note);
                     } catch (IOException e) {
                         throw new IllegalStateException(e);
                     }
@@ -352,6 +358,47 @@ public class BatchReportView {
                         banner.showSuccess("Exported " + result.content().size()
                                 + (result.content().size() == 1 ? " batch to " : " batches to ") + file.getName()
                                 + (note == null ? "." : ".  " + note));
+                    }
+                }));
+    }
+
+    /** Said in the report itself when the row cap cut it short, rather than trailing off silently. */
+    private String capNote(BatchPageDto result) {
+        return result.totalElements() > result.content().size()
+                ? "Showing the first " + result.content().size() + " of " + result.totalElements()
+                        + " matching batches - narrow the filters to export the rest."
+                : null;
+    }
+
+    /**
+     * Prints what the filters select - the same document the PDF export writes.
+     * The print dialog is AWT and modal, so it runs on a worker thread; holding
+     * the JavaFX thread on it would freeze the window behind it.
+     */
+    private void print() {
+        setExporting(true);
+        banner.hide();
+        String filters = describeFilters();   // UI controls: read on the FX thread
+
+        reportApiClient.search(currentFilter(), 0, EXPORT_LIMIT)
+                .thenApplyAsync(result -> {
+                    try {
+                        return printer.print(result.content(), filters, capNote(result)) ? result : null;
+                    } catch (IOException | java.awt.print.PrinterException e) {
+                        throw new IllegalStateException(e);
+                    }
+                })
+                .whenComplete((printed, throwable) -> Platform.runLater(() -> {
+                    setExporting(false);
+                    if (throwable != null) {
+                        Throwable cause = throwable.getCause() != null ? throwable.getCause() : throwable;
+                        banner.showError(cause instanceof ApiException
+                                ? apiMessage(throwable)
+                                : "Could not print: " + rootCauseMessage(throwable));
+                    } else if (printed != null) {   // null = cancelled at the print dialog
+                        int count = printed.content().size();
+                        banner.showSuccess("Sent " + count + (count == 1 ? " batch" : " batches")
+                                + " to the printer.");
                     }
                 }));
     }
