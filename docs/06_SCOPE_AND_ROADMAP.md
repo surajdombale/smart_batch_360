@@ -52,8 +52,11 @@ The current phase is intentionally small:
   - Control characters are stripped from text cells: an .xlsx is XML inside, XML 1.0 cannot hold them, and one in a customer or site name would make Excel reject the whole file as corrupt.
   - Checked against the real API data, not just test rows - including the historical batch whose water was recorded in litres, which exports with its unit intact.
 
+- Batch Reports print — 2026-09-14, completing the export line (PDF, Excel, print). A Print button beside the two export buttons sends the report to the standard system print dialog. It prints the very document the PDF export writes, through PDFBox's own printing support, so the paper and the PDF cannot disagree and there is no second layout to keep in step - and no new dependency, since PDFBox was already here and java.awt.print ships with the JDK.
+  - The print dialog is AWT and modal, so it runs on a worker thread; holding the JavaFX thread on it would freeze the window behind it.
+  - Fixed in passing: the export worker read the filter controls off the JavaFX thread to describe the filters. It happened to work, but it was not safe; both export and print now read them on the FX thread before handing off.
+
 ### Do not build now
-- Batch Reports direct print — PDF (2026-09-12) and Excel (2026-09-13) export are built, and the exported PDF can be printed today; a dedicated Print button is still to do
 - Analytics
 - PLC Monitoring
 - Settings (beyond the Database Connection tab noted above - Plant info, PLC communication, backup/restore, user management, general preferences)

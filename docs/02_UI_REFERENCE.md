@@ -87,7 +87,7 @@ early (docs/03_ARCHITECTURE.md). **PDF export built 2026-09-12** once the
 user lifted that: an Export PDF button beside Search/Reset writes the whole
 filtered result (not just the visible page) to a landscape A4 table, with
 the filters in force printed under the title so a saved report says what it
-covers. **Excel export built 2026-09-13** beside it: the same filtered result as a workbook whose quantities and dates are real numeric/date cells (Batches, Materials and About sheets), so it can be sorted and totalled. A dedicated Print button is still to come. Batch
+covers. **Excel export built 2026-09-13** beside it: the same filtered result as a workbook whose quantities and dates are real numeric/date cells (Batches, Materials and About sheets), so it can be sorted and totalled. **Print built 2026-09-14**: a Print button sends the same document the PDF export writes to the system print dialog, so paper and file always match. Batch
 number range, date range, and exact Client/Site/Vehicle/Driver/Recipe
 filters are all real and combine together; pagination and sorting (newest
 first by default) are real, backed by a proper paginated query rather than
