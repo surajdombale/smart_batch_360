@@ -56,6 +56,8 @@ The current phase is intentionally small:
   - The print dialog is AWT and modal, so it runs on a worker thread; holding the JavaFX thread on it would freeze the window behind it.
   - Fixed in passing: the export worker read the filter controls off the JavaFX thread to describe the filters. It happened to work, but it was not safe; both export and print now read them on the FX thread before handing off.
 
+- Packaged as V5 (5.0.0) — 2026-09-18, for client review: everything since V4 (consumption chart, Production column fix, Batch Reports PDF/Excel export and printing). Before packaging, all three report buttons were clicked through in the running app for the first time, which caught a bug no test could: Spring Boot had switched the whole JVM to headless AWT, so Print threw HeadlessException. Fixed by starting the embedded backend non-headless.
+
 ### Do not build now
 - Analytics
 - PLC Monitoring

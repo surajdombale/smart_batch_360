@@ -2,11 +2,11 @@
 # Spring Boot backend embedded in one process (bundles its own Java runtime;
 # the target machine only needs MySQL, not Java or Maven).
 #
-# Named/versioned as "SmartBatch360 V4" (app version 4.0.0) so it installs
-# into its own folder alongside existing V1/V2/V3 installs without colliding.
-# V4 (2026-09-07) carries the order lifecycle, batch-to-order fulfilment
-# tracking, the recipe line-item editor, and the switch to measuring every
-# material in kilograms. Bump $AppName/$AppVersion here for future releases.
+# Named/versioned as "SmartBatch360 V5" (app version 5.0.0) so it installs
+# into its own folder alongside existing V1-V4 installs without colliding.
+# V5 (2026-09-18) adds Batch Reports export to PDF and Excel plus printing,
+# the Material Consumption chart, and the Production column fix. Bump
+# $AppName/$AppVersion here for future releases.
 #
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\package-app.ps1
 
@@ -14,8 +14,8 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $backend = Join-Path $root "backend"
 $desktop = Join-Path $root "desktop"
-$AppName = "SmartBatch360 V4"
-$AppVersion = "4.0.0"
+$AppName = "SmartBatch360 V5"
+$AppVersion = "5.0.0"
 $IconPath = Join-Path $root "desktop\src\main\resources\images\app-icon.ico"
 
 Push-Location $backend
@@ -63,12 +63,12 @@ try {
         --app-version $AppVersion `
         --vendor "SmartBatch360" `
         --icon $IconPath `
-        --description "SmartBatch360 - Industrial Batching Plant Management System (V4: Materials, Recipes, Orders with lifecycle and fulfilment, Production, Batch Reports, Material Consumption - all quantities in kg)"
+        --description "SmartBatch360 - Industrial Batching Plant Management System (V5: Materials, Recipes, Orders with lifecycle and fulfilment, Production, Batch Reports with PDF/Excel export and printing, Material Consumption with chart - all quantities in kg)"
     if ($LASTEXITCODE -ne 0) { throw "jpackage failed" }
 
     Copy-Item (Join-Path $root "scripts\SETUP_ON_NEW_PC.md") "target/dist/$AppName/" -Force
 
-    $zipPath = Join-Path $desktop "target\SmartBatch360-V4.zip"
+    $zipPath = Join-Path $desktop "target\SmartBatch360-V5.zip"
     Remove-Item $zipPath -ErrorAction SilentlyContinue
     Compress-Archive -Path "target/dist/$AppName" -DestinationPath $zipPath
     Write-Host "Done: $zipPath"
