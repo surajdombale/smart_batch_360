@@ -105,7 +105,14 @@ public final class EmbeddedServer {
             context.close();
             context = null;
         }
-        context = SpringApplication.run(SmartBatch360ApiApplication.class);
+        SpringApplication application = new SpringApplication(SmartBatch360ApiApplication.class);
+        // Spring Boot sets java.awt.headless=true for the whole JVM by default -
+        // right for a server, wrong here, where the backend shares its process
+        // with a desktop UI. Left on, every AWT dialog throws HeadlessException;
+        // that is how Batch Reports' Print button failed the first time it was
+        // clicked in the running app (2026-09-18), after passing every test.
+        application.setHeadless(false);
+        context = application.run();
         startupSettled = true;
 
         config.saveTo(configPath());
