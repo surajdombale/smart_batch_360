@@ -90,11 +90,9 @@ public class Recipe {
     }
 
     /**
-     * Sums every material line's volume contribution. Rounded once, at the end,
-     * to the persisted scale - the per-material conversions deliberately keep
-     * more precision than that so the rounding doesn't compound.
-     *
-     * @throws IllegalStateException if any material is a weight with no density set
+     * Sums the kilograms on every material line, rounded to the persisted
+     * scale. Since 2026-09-07 there is no per-material conversion, so nothing
+     * here can fail for want of a density.
      */
     public void recalculateTotalBatchQuantity() {
         BigDecimal total = BigDecimal.ZERO;

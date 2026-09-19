@@ -26,7 +26,7 @@ public interface BatchRepository extends JpaRepository<Batch, Long>, JpaSpecific
     boolean existsByOrderId(Long orderId);
 
     /**
-     * Total m3 already produced against an order. COALESCE so an order with no
+     * Total kg already produced against an order. COALESCE so an order with no
      * batches yet reports 0 rather than null.
      */
     @Query("SELECT COALESCE(SUM(b.producedQuantity), 0) FROM Batch b WHERE b.order.id = :orderId")

@@ -171,8 +171,8 @@ public class RecipeFormDialog {
 
     /**
      * One material line. Everything is a live control bound straight to the
-     * row - selecting a material or typing a quantity updates the row, its own
-     * volume and the total immediately, with nothing to commit.
+     * row - selecting a material or typing a quantity updates the row and
+     * the total immediately, with nothing to commit.
      */
     private RecipeMaterialRow addLine(RecipeMaterialRow row) {
         ComboBox<MaterialDto> picker = materialPicker();

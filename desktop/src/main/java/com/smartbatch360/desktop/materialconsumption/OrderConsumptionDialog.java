@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * Read-only view of how much of each material an order consumes, following
  * Order -> Recipe -> Recipe Materials -> Material. The numbers come from the
- * backend (which scales the recipe to the ordered volume); nothing is
+ * backend (which scales the recipe to the ordered quantity); nothing is
  * calculated here.
  */
 public final class OrderConsumptionDialog {

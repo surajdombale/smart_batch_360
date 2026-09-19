@@ -15,7 +15,7 @@ public record SalesOrderResponse(
         Long recipeId,
         String recipeName,
         BigDecimal quantityKg,
-        /** Total m3 produced against this order so far, summed from its batches. */
+        /** Total kg produced against this order so far, summed from its batches. */
         BigDecimal producedQuantityKg,
         /** Ordered minus produced, never negative (over-production isn't a debt). */
         BigDecimal remainingQuantityKg,
@@ -28,7 +28,7 @@ public record SalesOrderResponse(
         return from(o, BigDecimal.ZERO);
     }
 
-    public static SalesOrderResponse from(SalesOrder o, BigDecimal producedM3) {
+    public static SalesOrderResponse from(SalesOrder o, BigDecimal producedKg) {
         return new SalesOrderResponse(
                 o.getId(),
                 o.getClient().getId(),
@@ -38,8 +38,8 @@ public record SalesOrderResponse(
                 o.getRecipe().getId(),
                 o.getRecipe().getName(),
                 o.getQuantityKg(),
-                producedM3,
-                remaining(o.getQuantityKg(), producedM3),
+                producedKg,
+                remaining(o.getQuantityKg(), producedKg),
                 o.getStatus(),
                 o.getCreatedAt(),
                 o.getUpdatedAt());

@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 /**
  * Create Order: Customer (the existing Client entity), Site, Recipe, quantity
- * in m3. Status is not accepted - a new order is always UNFULFILLED.
+ * in kg. Status is not accepted - a new order is always UNFULFILLED.
  */
 public record SalesOrderRequest(
 
