@@ -36,10 +36,12 @@ public record BatchRequest(
 
         @NotNull(message = "Target quantity is required.")
         @DecimalMin(value = "0.01", message = "Target quantity must be greater than zero.")
+        @Digits(integer = 6, fraction = 2, message = "Target quantity must be at most 999999.99, with at most 2 decimal places.")
         BigDecimal targetQuantity,
 
         @NotNull(message = "Produced quantity is required.")
         @DecimalMin(value = "0.00", message = "Produced quantity cannot be negative.")
+        @Digits(integer = 6, fraction = 2, message = "Produced quantity must be at most 999999.99, with at most 2 decimal places.")
         BigDecimal producedQuantity,
 
         Instant cycleDateTime,

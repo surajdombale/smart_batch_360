@@ -87,6 +87,18 @@ class RecipeControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    /** decimal(8,2) stops at 999999.99; without a digit limit this reached the database. */
+    @Test
+    void createRejectsAQuantityTooLargeForTheColumn() throws Exception {
+        RecipeRequest request = new RecipeRequest("M25", null, RecipeStatus.ACTIVE,
+                List.of(new RecipeMaterialRequest(7L, new BigDecimal("1000000"))));
+
+        mockMvc.perform(post("/api/v1/recipes")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test
     void createRejectsInvalidMaterialQuantity() throws Exception {
         RecipeRequest request = new RecipeRequest("M25", null, RecipeStatus.ACTIVE,

@@ -58,6 +58,10 @@ The current phase is intentionally small:
 
 - Packaged as V5 (5.0.0) — 2026-09-18, for client review: everything since V4 (consumption chart, Production column fix, Batch Reports PDF/Excel export and printing). Before packaging, all three report buttons were clicked through in the running app for the first time, which caught a bug no test could: Spring Boot had switched the whole JVM to headless AWT, so Print threw HeadlessException. Fixed by starting the embedded backend non-headless.
 
+- Hardening: values that do not fit the database — 2026-09-20. Probing the API with well-formed requests carrying out-of-range numbers found them coming back as 409 "This record conflicts with an existing one or is referenced elsewhere", which is simply untrue: nothing conflicted, the number had too many digits for its column. Over-long names were already correct (400), because they carry @Size; the numeric fields had minimums but no maximums.
+  - Digit limits now match the columns on all seven numeric request fields (recipe line, batch target/produced, batch material target/setpoint/achieved, order quantity), so these are rejected as a field-level 400 naming the limit before reaching the database.
+  - As a safety net for anything the annotations cannot cover (a derived total, say), the data-integrity handler now separates SQLState class 22 - a data exception, i.e. the caller's value - from a genuine constraint clash, returning 400 rather than 409. Duplicates are still 409 with their own message.
+
 ### Do not build now
 - Analytics
 - PLC Monitoring

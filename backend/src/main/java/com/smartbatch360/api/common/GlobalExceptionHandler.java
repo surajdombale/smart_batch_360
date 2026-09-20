@@ -3,6 +3,8 @@ package com.smartbatch360.api.common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+
+import java.sql.SQLException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -88,8 +90,29 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {
+        // SQLState class 22 is "data exception" - a value too large or too long
+        // for its column. That is the caller's input being wrong, not a clash
+        // with another record, so reporting it as a conflict told the operator
+        // their order "conflicts with an existing one" when the real problem
+        // was a quantity with too many digits.
+        String sqlState = sqlStateOf(ex);
+        if (sqlState != null && sqlState.startsWith("22")) {
+            log.warn("Value out of range for its column", ex);
+            return build(HttpStatus.BAD_REQUEST,
+                    "A value in this request is too large or too long for the field it is stored in.");
+        }
         log.warn("Data integrity violation", ex);
         return build(HttpStatus.CONFLICT, "This record conflicts with an existing one or is referenced elsewhere.");
+    }
+
+    /** The driver's SQLState, from wherever in the cause chain the SQLException sits. */
+    private String sqlStateOf(Throwable ex) {
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause instanceof SQLException sqlException) {
+                return sqlException.getSQLState();
+            }
+        }
+        return null;
     }
 
     @ExceptionHandler(Exception.class)

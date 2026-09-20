@@ -1,6 +1,7 @@
 package com.smartbatch360.api.batch.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -15,14 +16,17 @@ public record BatchMaterialRequest(
 
         @NotNull(message = "Target is required.")
         @DecimalMin(value = "0.00", message = "Target cannot be negative.")
+        @Digits(integer = 6, fraction = 2, message = "Target must be at most 999999.99, with at most 2 decimal places.")
         BigDecimal target,
 
         @NotNull(message = "Setpoint is required.")
         @DecimalMin(value = "0.00", message = "Setpoint cannot be negative.")
+        @Digits(integer = 6, fraction = 2, message = "Setpoint must be at most 999999.99, with at most 2 decimal places.")
         BigDecimal setpoint,
 
         @NotNull(message = "Achieved is required.")
         @DecimalMin(value = "0.00", message = "Achieved cannot be negative.")
+        @Digits(integer = 6, fraction = 2, message = "Achieved must be at most 999999.99, with at most 2 decimal places.")
         BigDecimal achieved,
 
         @NotBlank(message = "Unit is required.")
