@@ -11,6 +11,10 @@ import javafx.scene.layout.Region;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.util.Set;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -163,10 +167,39 @@ public class FormDialog {
                 label.setText(fieldError.message());
                 label.setManaged(true);
                 label.setVisible(true);
-            } else {
-                setFormError(fieldError.message());
             }
         }
+        String unplaced = unplacedMessage(errors, fieldErrorLabels.keySet());
+        if (unplaced != null) {
+            setFormError(unplaced);
+        }
+    }
+
+    private static final Pattern LIST_ITEM = Pattern.compile("^\\w+\\[(\\d+)]\\..+$");
+
+    /**
+     * Every error with no field of its own on the form, as one message.
+     *
+     * These are mostly one line of a list - "materials[1].quantity" - since a
+     * form registers the list, not each line. They used to be shown one at a
+     * time, each replacing the last, so with two bad lines only the second was
+     * ever seen; and without the index nobody could tell which line was meant.
+     * Static and free of JavaFX so it can be tested without a toolkit.
+     *
+     * @return the combined message, or null if every error had a field to go to
+     */
+    static String unplacedMessage(List<ApiErrorDto.FieldErrorDto> errors, Set<String> fieldsOnForm) {
+        List<String> lines = new ArrayList<>();
+        for (ApiErrorDto.FieldErrorDto error : errors) {
+            if (error.field() != null && fieldsOnForm.contains(error.field())) {
+                continue;
+            }
+            Matcher item = LIST_ITEM.matcher(error.field() == null ? "" : error.field());
+            lines.add(item.matches()
+                    ? "Line " + (Integer.parseInt(item.group(1)) + 1) + ": " + error.message()
+                    : error.message());
+        }
+        return lines.isEmpty() ? null : String.join("\n", lines);
     }
 
     public void setSaving(boolean saving) {

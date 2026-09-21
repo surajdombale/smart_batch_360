@@ -62,6 +62,8 @@ The current phase is intentionally small:
   - Digit limits now match the columns on all seven numeric request fields (recipe line, batch target/produced, batch material target/setpoint/achieved, order quantity), so these are rejected as a field-level 400 naming the limit before reaching the database.
   - As a safety net for anything the annotations cannot cover (a derived total, say), the data-integrity handler now separates SQLState class 22 - a data exception, i.e. the caller's value - from a genuine constraint clash, returning 400 rather than 409. Duplicates are still 409 with their own message.
 
+- Hardening: form errors for list lines — 2026-09-21, the desktop half of the previous day's fix. The backend reports a bad recipe or batch line as "materials[0].quantity", but forms register the list, not each line, so these fell through to the form-level message - where each one replaced the last. Two bad lines meant only the second was ever shown, and none said which line was meant. They are now collected and shown together, labelled "Line 1:", "Line 2:" and so on.
+
 ### Do not build now
 - Analytics
 - PLC Monitoring
