@@ -32,6 +32,8 @@ public class CrudListView<T> {
     private final BorderPane root = new BorderPane();
     private final Toolbar toolbar;
     private final NotificationBanner banner = new NotificationBanner();
+    /** Standing note about what the list is showing - unlike the banner, it does not fade. */
+    private final Label noteLabel = new Label();
     private final TableView<T> table = new TableView<>();
     private final StackPane centerStack = new StackPane();
 
@@ -79,7 +81,12 @@ public class CrudListView<T> {
         emptyView.setAlignment(Pos.CENTER);
         errorView.setAlignment(Pos.CENTER);
 
-        VBox top = new VBox(pageHeader, banner, toolbar);
+        noteLabel.getStyleClass().add("state-message");
+        noteLabel.setWrapText(true);
+        noteLabel.setManaged(false);
+        noteLabel.setVisible(false);
+
+        VBox top = new VBox(pageHeader, banner, noteLabel, toolbar);
         root.setTop(top);
         root.setCenter(centerStack);
         root.getStyleClass().add("content-area");
@@ -128,6 +135,14 @@ public class CrudListView<T> {
 
     public Button getRefreshButton() {
         return toolbar.getRefreshButton();
+    }
+
+    /** A standing note above the toolbar, or null/blank to remove it. */
+    public void setNote(String note) {
+        boolean show = note != null && !note.isBlank();
+        noteLabel.setText(show ? note : "");
+        noteLabel.setManaged(show);
+        noteLabel.setVisible(show);
     }
 
     public NotificationBanner getBanner() {

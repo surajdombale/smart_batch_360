@@ -64,6 +64,10 @@ The current phase is intentionally small:
 
 - Hardening: form errors for list lines — 2026-09-21, the desktop half of the previous day's fix. The backend reports a bad recipe or batch line as "materials[0].quantity", but forms register the list, not each line, so these fell through to the form-level message - where each one replaced the last. Two bad lines meant only the second was ever shown, and none said which line was meant. They are now collected and shown together, labelled "Line 1:", "Line 2:" and so on.
 
+- Hardening: behaviour at real data volume — 2026-09-24. Everything until now had been checked against a single batch. Seeded 4800 throwaway batches (since removed) and measured: Batch Reports 28ms, Material Consumption 50ms and the Dashboard 26ms all held up, because they are paginated or aggregated. Production did not: it loaded every batch ever made, with all its materials, on every open - 3.3 MB and 1.7-2.8 seconds at 4800, growing without limit. A plant making 50-200 batches a day reaches that within a year.
+  - Production now loads the 200 most recent batches (newest first, the search endpoint's own default order) and says so, pointing at Batch Reports for the rest: 0.054s and 150 KB, and flat as history grows. Its search box now filters those 200 rather than everything, which is what the note explains.
+  - The 2000-row export cap also behaved correctly at volume, reporting "the first 2000 of 4801" in the exported file.
+
 ### Do not build now
 - Analytics
 - PLC Monitoring

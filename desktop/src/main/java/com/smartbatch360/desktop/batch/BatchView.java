@@ -27,6 +27,9 @@ import java.util.function.Function;
 public class BatchView {
 
     private final BatchApiClient apiClient = new BatchApiClient();
+
+    /** Enough for the working screen; the history lives in Batch Reports. */
+    private static final int RECENT_LIMIT = 200;
     private final CrudListView<BatchDto> listView = new CrudListView<>(
             "Production", "Manage production batches.", "+ Add Batch",
             b -> String.join(" ", b.batchNumber(), b.recipeName(), b.clientName(), b.siteName(),
@@ -144,15 +147,30 @@ public class BatchView {
         }));
     }
 
+    /**
+     * Production is the working screen: what is running now and what ran
+     * recently. It used to load the plant's entire history on every open,
+     * which grows without limit - 3.3 MB and ~3 seconds at 4800 batches. It
+     * now loads the most recent RECENT_LIMIT and says so; the full history is
+     * Batch Reports, which is paginated and filterable.
+     */
     private void load() {
         listView.showLoading();
-        apiClient.list().whenComplete((batches, throwable) -> Platform.runLater(() -> {
+        apiClient.recent(RECENT_LIMIT).whenComplete((page, throwable) -> Platform.runLater(() -> {
             if (throwable != null) {
                 listView.showError(errorMessage(throwable));
             } else {
-                listView.showData(batches);
+                listView.showData(page.content());
+                listView.setNote(recentNote(page.content().size(), page.totalElements()));
             }
         }));
+    }
+
+    /** Says what the list is showing whenever it is not everything. Null when it is. */
+    static String recentNote(int shown, long total) {
+        return total <= shown ? null
+                : "Showing the " + shown + " most recent batches of " + total
+                        + ". Use Batch Reports to search the rest.";
     }
 
     private void openAddDialog() {

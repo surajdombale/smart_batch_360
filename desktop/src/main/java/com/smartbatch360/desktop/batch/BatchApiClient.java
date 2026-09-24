@@ -11,6 +11,15 @@ public class BatchApiClient {
 
     private final ApiClient apiClient = new ApiClient();
 
+    /**
+     * The most recent batches, newest first. Production used to load every
+     * batch ever made through list(): at 4800 batches that was 3.3 MB and
+     * nearly three seconds, and it grows with the plant's whole history.
+     */
+    public CompletableFuture<BatchPageDto> recent(int size) {
+        return apiClient.get(BASE_PATH + "/search?page=0&size=" + size, BatchPageDto.class);
+    }
+
     public CompletableFuture<List<BatchDto>> list() {
         return apiClient.getList(BASE_PATH, BatchDto.class);
     }
