@@ -2,6 +2,7 @@ package com.smartbatch360.api.order;
 
 import com.smartbatch360.api.client.Client;
 import com.smartbatch360.api.batch.BatchRepository;
+import com.smartbatch360.api.batch.OrderProducedQuantity;
 import com.smartbatch360.api.client.ClientRepository;
 import com.smartbatch360.api.common.ConflictException;
 import com.smartbatch360.api.common.InvalidRequestException;
@@ -15,7 +16,10 @@ import com.smartbatch360.api.site.SiteRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -42,10 +46,20 @@ public class SalesOrderService {
         return SalesOrderResponse.from(order, batchRepository.sumProducedQuantityForOrder(order.getId()));
     }
 
+    /**
+     * The whole order list. Fulfilment is summed for every order in one grouped
+     * query rather than per order: the per-order sum is fine for a single order,
+     * but on the list it cost one query each, so the screen got slower with
+     * every order the plant took.
+     */
     @Transactional(readOnly = true)
     public List<SalesOrderResponse> findAll() {
-        return salesOrderRepository.findAll().stream()
-                .map(this::withFulfilment)
+        Map<Long, BigDecimal> producedByOrder = batchRepository.sumProducedQuantityByOrder().stream()
+                .collect(Collectors.toMap(OrderProducedQuantity::orderId,
+                        OrderProducedQuantity::producedQuantity));
+        return salesOrderRepository.findAllForList().stream()
+                .map(order -> SalesOrderResponse.from(order,
+                        producedByOrder.getOrDefault(order.getId(), BigDecimal.ZERO)))
                 .toList();
     }
 

@@ -4,8 +4,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.math.BigDecimal;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 public interface BatchRepository extends JpaRepository<Batch, Long>, JpaSpecificationExecutor<Batch> {
 
@@ -31,4 +33,15 @@ public interface BatchRepository extends JpaRepository<Batch, Long>, JpaSpecific
      */
     @Query("SELECT COALESCE(SUM(b.producedQuantity), 0) FROM Batch b WHERE b.order.id = :orderId")
     BigDecimal sumProducedQuantityForOrder(@Param("orderId") Long orderId);
+
+    /**
+     * The same sum for every order at once. The order list needs one number per
+     * order, and asking per order cost one query each - 2,002 queries for 2,002
+     * orders. Orders with no batches yet are simply absent; the caller treats a
+     * missing entry as zero.
+     */
+    @Query("SELECT new com.smartbatch360.api.batch.OrderProducedQuantity("
+            + "b.order.id, COALESCE(SUM(b.producedQuantity), 0)) "
+            + "FROM Batch b WHERE b.order IS NOT NULL GROUP BY b.order.id")
+    List<OrderProducedQuantity> sumProducedQuantityByOrder();
 }
