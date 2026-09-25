@@ -68,6 +68,11 @@ The current phase is intentionally small:
   - Production now loads the 200 most recent batches (newest first, the search endpoint's own default order) and says so, pointing at Batch Reports for the rest: 0.054s and 150 KB, and flat as history grows. Its search box now filters those 200 rather than everything, which is what the note explains.
   - The 2000-row export cap also behaved correctly at volume, reporting "the first 2000 of 4801" in the exported file.
 
+- Hardening: the order list's query count — 2026-09-25, following the same question as yesterday to the other screen that grows per delivery. Of the eight screens that load their whole list, seven hold reference data that stays small; Orders does not. It was worse than Production's payload problem: the list shows how much has been produced against each order and asked for that number one order at a time, so the query count tracked the order count exactly - 2,002 orders, 2,002 queries. The customer, site and recipe names on each row are lazy associations, adding one query per distinct row on top.
+  - Measured against the real database with 2,002 seeded orders spread over 100 customers (all since removed): 2,213 queries and 2.0s before, 8 queries and 0.08s after. Fulfilment is now one grouped query and the list fetches the three names with it; the single-order endpoint still sums one order on its own, which is correct there.
+  - Both new tests were checked against the old code before being kept: the query-count test counted 65 instead of 11, and the fetch test found the associations uninitialised. A test that passes either way is worth less than no test.
+  - Orders still loads every row, unlike Production. At 2,002 orders that is now 0.08s, so the query count was the defect worth fixing; a row cap can wait until the payload itself is the problem.
+
 ### Do not build now
 - Analytics
 - PLC Monitoring
