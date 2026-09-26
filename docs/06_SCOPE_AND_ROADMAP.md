@@ -73,6 +73,12 @@ The current phase is intentionally small:
   - Both new tests were checked against the old code before being kept: the query-count test counted 65 instead of 11, and the fetch test found the associations uninitialised. A test that passes either way is worth less than no test.
   - Orders still loads every row, unlike Production. At 2,002 orders that is now 0.08s, so the query count was the defect worth fixing; a row cap can wait until the payload itself is the problem.
 
+- Hardening: the batch read path — 2026-09-26, the same question one level down. A batch row shows six names (recipe, order, customer, site, vehicle, driver) and carries its list of materials, all lazy, so reading a list of batches cost a query per row. Measured at 3,000 batches over 100 customers: opening a page of Batch Reports took 109 queries and 0.44s, and the 2,000 rows an export re-fetches took 2,413 queries and 2.7-4.8s. With @BatchSize on the mappings: 13 queries and 0.035s, 36 and 0.19s. Production's 200-row load benefits too, at 14 queries.
+  - An entity graph on the search query was the obvious fix and was rejected on measurement: it cut the page to 9 queries but made it three times slower (0.03s to 0.8s), because joining six tables before the sort and limit costs more than the round trips it saves. Worth remembering the next time a query count looks like the thing to optimise.
+  - The setting lives on the mappings, not in application.yml as hibernate.default_batch_fetch_size. The test profile replaces that file wholesale, so a value there cannot be tested, and the test would have been guarding the test config rather than the app. Annotations travel with the entities and BatchSearchQueryCountTest fails if they are removed.
+  - Separately, cycle_date_time had no index, though both batch screens sort by it - a full scan plus filesort on every open. V9 adds one. At 3,000 rows it changed nothing measurable; at 30,000 (about six months at 200 batches a day) Production went from 0.15-0.78s to 0.03-0.05s. Deep pages still do not benefit, since a large OFFSET walks the index anyway.
+  - Seeded 30,000 batches with 180,000 material rows for this, all since removed. One seeding mistake is worth noting: the equipment-status columns are plain VARCHAR, so rows with a value the enum does not have ('OFF') loaded fine and then failed every read with a 500. The API is the only writer, so this is not a live defect, but the schema does not stop it.
+
 ### Do not build now
 - Analytics
 - PLC Monitoring

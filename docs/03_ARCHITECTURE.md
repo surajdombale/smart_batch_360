@@ -141,6 +141,7 @@ Within each backend feature:
 - Do not expose MySQL directly to the desktop client.
 - Do not hard-code secrets.
 - Use Flyway for schema changes.
+- A list endpoint must not cost a query per row. Lazy associations are batch-fetched (@BatchSize on the mapping, not a setting in application.yml - the test profile replaces that file, so a value there cannot be tested). Where a per-row aggregate is needed, group it into one query, as the order list does for fulfilment. Measure before reaching for a fetch join: on the batch search one cut the query count and tripled the wall time.
 
 ## Current development status from source
 
