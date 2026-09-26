@@ -2,10 +2,17 @@ package com.smartbatch360.api.vehicle;
 
 import com.smartbatch360.api.driver.Driver;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
+/**
+ * Batch fetching: rows of a list name this entity, and each name is a lazy
+ * proxy, so loading them on demand cost one query per distinct row. 100 at a
+ * time instead. See Batch.materials for the collection side of the same problem.
+ */
+@BatchSize(size = 100)
 @Entity
 @Table(name = "vehicle")
 public class Vehicle {

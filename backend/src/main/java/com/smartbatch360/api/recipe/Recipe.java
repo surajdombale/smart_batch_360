@@ -1,6 +1,7 @@
 package com.smartbatch360.api.recipe;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,6 +19,12 @@ import java.util.List;
  * (see {@link #recalculateTotalBatchQuantity()}) rather than typed in, so it
  * cannot drift from the actual mix.
  */
+/**
+ * Batch fetching: rows of a list name this entity, and each name is a lazy
+ * proxy, so loading them on demand cost one query per distinct row. 100 at a
+ * time instead. See Batch.materials for the collection side of the same problem.
+ */
+@BatchSize(size = 100)
 @Entity
 @Table(name = "recipe")
 public class Recipe {

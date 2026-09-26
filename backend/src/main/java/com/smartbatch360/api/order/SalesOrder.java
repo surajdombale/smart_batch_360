@@ -4,6 +4,7 @@ import com.smartbatch360.api.client.Client;
 import com.smartbatch360.api.recipe.Recipe;
 import com.smartbatch360.api.site.Site;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -15,6 +16,12 @@ import java.time.Instant;
  * Named SalesOrder rather than Order because ORDER is a SQL reserved word -
  * the table is sales_order for the same reason.
  */
+/**
+ * Batch fetching: rows of a list name this entity, and each name is a lazy
+ * proxy, so loading them on demand cost one query per distinct row. 100 at a
+ * time instead. See Batch.materials for the collection side of the same problem.
+ */
+@BatchSize(size = 100)
 @Entity
 @Table(name = "sales_order")
 public class SalesOrder {

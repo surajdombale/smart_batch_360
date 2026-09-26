@@ -8,6 +8,8 @@ import com.smartbatch360.api.site.Site;
 import com.smartbatch360.api.vehicle.Vehicle;
 import jakarta.persistence.*;
 
+import org.hibernate.annotations.BatchSize;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -101,6 +103,10 @@ public class Batch {
 
     @OneToMany(mappedBy = "batch", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
+    // Loaded 100 batches at a time rather than one. Reading a list of batches
+    // reads each one's materials, so on demand meant a query per row - 2,000 of
+    // them for the rows an export re-fetches.
+    @BatchSize(size = 100)
     private List<BatchMaterial> materials = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
