@@ -142,8 +142,52 @@ class MaterialConsumptionServiceTest {
                 .contains("Cement", "Water");
     }
 
+    /**
+     * The plant has pre-kilogram history: one water line in the real database
+     * still carries "L" from before the switch to kilograms. When rows in the
+     * same group disagree, the reported unit used to be whichever row the
+     * database returned first, so the same period could read "L" on one request
+     * and "kg" on the next. It now reports the unit most rows agree on.
+     */
+    @Test
+    void reportsTheUnitMostRowsAgreeOnWhenTheyDisagree() {
+        Client client = client("Client A");
+        entityManager.persist(client);
+        Site site = site("Kharadi", client);
+        entityManager.persist(site);
+        Driver driver = driver("Ganesh More");
+        entityManager.persist(driver);
+        Vehicle vehicle = vehicle("MH12PQ0001", driver);
+        entityManager.persist(vehicle);
+        Recipe recipe = recipe("M25");
+        entityManager.persist(recipe);
+
+        LocalDate day = LocalDate.of(2026, 9, 20);
+        persistBatch("250901", client, site, vehicle, driver, recipe, day, "Water", "10", "10", "L");
+        persistBatch("250902", client, site, vehicle, driver, recipe, day, "Water", "10", "10", "kg");
+        persistBatch("250903", client, site, vehicle, driver, recipe, day, "Water", "10", "10", "kg");
+        entityManager.flush();
+
+        List<MaterialConsumptionResponse> result = service.search(
+                new MaterialConsumptionSearchCriteria(null, null, null, MaterialConsumptionGroupBy.DAY));
+
+        assertThat(result).singleElement()
+                .satisfies(row -> {
+                    assertThat(row.unit()).isEqualTo("kg");
+                    // The totals must still count every row, mislabelled or not.
+                    assertThat(row.totalTarget()).isEqualByComparingTo("30");
+                    assertThat(row.batchCount()).isEqualTo(3);
+                });
+    }
+
     private void persistBatch(String number, Client client, Site site, Vehicle vehicle, Driver driver,
                                Recipe recipe, LocalDate date, String materialName, String target, String achieved) {
+        persistBatch(number, client, site, vehicle, driver, recipe, date, materialName, target, achieved, "kg");
+    }
+
+    private void persistBatch(String number, Client client, Site site, Vehicle vehicle, Driver driver,
+                               Recipe recipe, LocalDate date, String materialName, String target, String achieved,
+                               String unit) {
         Batch batch = new Batch();
         batch.setBatchNumber(number);
         batch.setClient(client);
@@ -161,7 +205,7 @@ class MaterialConsumptionServiceTest {
         material.setTarget(new BigDecimal(target));
         material.setSetpoint(new BigDecimal(target));
         material.setAchieved(new BigDecimal(achieved));
-        material.setUnit("kg");
+        material.setUnit(unit);
         batch.getMaterials().add(material);
         entityManager.persist(batch);
     }

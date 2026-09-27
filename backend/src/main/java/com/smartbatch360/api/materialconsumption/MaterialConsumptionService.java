@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Material Consumption (docs/02_UI_REFERENCE.md's "Material Consumption
@@ -114,8 +115,8 @@ public class MaterialConsumptionService {
             String period = periodLabel(row.cycleDateTime(), groupBy);
             GroupKey key = new GroupKey(row.materialName(), period);
             Accumulator acc = grouped.computeIfAbsent(key,
-                    k -> new Accumulator(row.materialName(), row.unit(), period));
-            acc.add(row.target(), row.achieved());
+                    k -> new Accumulator(row.materialName(), period));
+            acc.add(row.unit(), row.target(), row.achieved());
         }
 
         return grouped.values().stream()
@@ -146,27 +147,42 @@ public class MaterialConsumptionService {
 
     private static final class Accumulator {
         private final String materialName;
-        private final String unit;
         private final String period;
+        /**
+         * How many rows carried each unit. The unit used to be whichever row
+         * happened to create the group, so a period whose rows disagree - the
+         * plant has pre-kilogram history, where one water line still says "L" -
+         * reported a different unit depending on the order the database
+         * returned rows in. Counting makes it the same every time.
+         */
+        private final Map<String, Long> unitCounts = new TreeMap<>();
         private BigDecimal totalTarget = BigDecimal.ZERO;
         private BigDecimal totalAchieved = BigDecimal.ZERO;
         private long count;
 
-        Accumulator(String materialName, String unit, String period) {
+        Accumulator(String materialName, String period) {
             this.materialName = materialName;
-            this.unit = unit;
             this.period = period;
         }
 
-        void add(BigDecimal target, BigDecimal achieved) {
+        void add(String unit, BigDecimal target, BigDecimal achieved) {
+            unitCounts.merge(unit == null ? "" : unit, 1L, Long::sum);
             totalTarget = totalTarget.add(target != null ? target : BigDecimal.ZERO);
             totalAchieved = totalAchieved.add(achieved != null ? achieved : BigDecimal.ZERO);
             count++;
         }
 
         MaterialConsumptionResponse toResponse() {
-            return new MaterialConsumptionResponse(materialName, unit, period, totalTarget, totalAchieved,
-                    totalAchieved.subtract(totalTarget), count);
+            return new MaterialConsumptionResponse(materialName, dominantUnit(), period, totalTarget,
+                    totalAchieved, totalAchieved.subtract(totalTarget), count);
+        }
+
+        /** The unit most of the rows agree on; ties go to the first alphabetically. */
+        private String dominantUnit() {
+            return unitCounts.entrySet().stream()
+                    .max(Comparator.comparingLong(Map.Entry<String, Long>::getValue))
+                    .map(Map.Entry::getKey)
+                    .orElse(null);
         }
     }
 }
