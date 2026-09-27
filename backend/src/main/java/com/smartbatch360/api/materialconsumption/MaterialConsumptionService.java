@@ -1,6 +1,6 @@
 package com.smartbatch360.api.materialconsumption;
 
-import com.smartbatch360.api.batch.BatchMaterial;
+import com.smartbatch360.api.batch.MaterialConsumptionRow;
 import com.smartbatch360.api.batch.BatchMaterialRepository;
 import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.NotFoundException;
@@ -30,7 +30,9 @@ import java.util.Map;
  *
  * Aggregation happens in Java rather than a grouped SQL query so the date
  * bucketing (day/week/month) stays portable across MySQL (runtime) and H2
- * (tests) instead of relying on MySQL-specific date functions.
+ * (tests) instead of relying on MySQL-specific date functions. The rows it
+ * aggregates are projections, not entities: with no date filter this covers
+ * every batch ever made, and building the entity graph for that cost seconds.
  *
  * Two different questions are answered here, deliberately kept separate:
  *  - search(...)      : what production ACTUALLY consumed, from batch history.
@@ -105,15 +107,15 @@ public class MaterialConsumptionService {
         MaterialConsumptionGroupBy groupBy = criteria.groupBy() != null
                 ? criteria.groupBy() : MaterialConsumptionGroupBy.DAY;
 
-        List<BatchMaterial> rows = batchMaterialRepository.findForConsumption(from, to, materialName);
+        List<MaterialConsumptionRow> rows = batchMaterialRepository.findForConsumption(from, to, materialName);
 
         Map<GroupKey, Accumulator> grouped = new LinkedHashMap<>();
-        for (BatchMaterial row : rows) {
-            String period = periodLabel(row.getBatch().getCycleDateTime(), groupBy);
-            GroupKey key = new GroupKey(row.getMaterialName(), period);
+        for (MaterialConsumptionRow row : rows) {
+            String period = periodLabel(row.cycleDateTime(), groupBy);
+            GroupKey key = new GroupKey(row.materialName(), period);
             Accumulator acc = grouped.computeIfAbsent(key,
-                    k -> new Accumulator(row.getMaterialName(), row.getUnit(), period));
-            acc.add(row.getTarget(), row.getAchieved());
+                    k -> new Accumulator(row.materialName(), row.unit(), period));
+            acc.add(row.target(), row.achieved());
         }
 
         return grouped.values().stream()
