@@ -10,7 +10,14 @@ spring:
   # MySQL connection is fully externalized. Nothing here is a real credential -
   # these are local-dev defaults only, overridden by environment variables.
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:smartbatch360}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    # connectionTimeZone + forceConnectionTimeZoneToSession makes the session UTC.
+    # serverTimezone=UTC used to be here, but it only tells the driver what to
+    # assume - the session stayed on SYSTEM, so an Instant of 10:00Z was written
+    # as 10:00 local and stored as 04:30Z. Reads shifted it back, so the app was
+    # self-consistent and the desktop showed the right local time, but the stored
+    # instants were 5:30 out and anything else reading this database - a report, an
+    # export, a future integration - saw times that never happened.
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:smartbatch360}?useSSL=false&allowPublicKeyRetrieval=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
     username: ${DB_USERNAME:smartbatch360}
     password: ${DB_PASSWORD:smartbatch360}
     driver-class-name: com.mysql.cj.jdbc.Driver
