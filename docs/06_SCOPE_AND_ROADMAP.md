@@ -100,6 +100,15 @@ The current phase is intentionally small:
   - The zone is injected rather than read from config inside the conversion, which is what makes it testable: the tests pin behaviour for a real plant zone (Asia/Kolkata) instead of whatever the build machine is set to. The existing tests pass UTC explicitly and keep their meaning. All seven new tests fail against the UTC version - checked, not assumed.
   - Worth recording as a pattern: fixing the storage layer moved a bug rather than removing it, because two wrongs had been cancelling. The first fix was verified in isolation and looked complete; only asking what else depended on the old behaviour found this. 132 tests now.
 
+- Backlog cleared — 2026-09-30, at the user's request, with their decisions on the four items that needed them.
+  - The three pre-kilogram rows were deleted, their choice of the three options offered. Batch 250201 held target 3.00 - a 3 m3 figure read as 3 kg, with 960 kg cement and 540 L water against it - and orders #1 (10) and #9 (89) were volumes read as kilograms, both smaller than a single 315 kg batch of their own recipe. Deleted through the API so the delete rules were exercised, after a dump to the scratchpad. No non-kilogram unit remains anywhere. The reference data (client, site, vehicle, driver, two recipes, six materials, header) was untouched.
+  - That also settled the timestamp question: the only row written before the UTC fix is gone, so nothing needs correcting and no assumption about which zone it was written in is required.
+  - Material Consumption opens on the last 30 days, and Reset returns to that range rather than clearing it. The date fields are still on the panel, so all history is one click away.
+  - Status columns are constrained to their enum values (V10). They were plain VARCHAR, which is what let a hand-seeded 'OFF' equipment status in during load testing and then made every read of those rows fail with a 500. Checked the data first - every row already satisfied the constraints - and verified afterwards that 'OFF' is rejected and valid values still write. batch.shift is left free text deliberately.
+  - CLAUDE.md was named CLAUDE.md.md, so it had never been loaded as project instructions. Renaming it alone would have been worse than leaving it: it still described the first phase and listed Production, Recipe Management, Material Consumption and Reports under "do NOT implement". Its scope section now points here, and the standing constraints the user has given are written down.
+  - Packaged as V6 (6.0.0) for client review, replacing V5. Zip verified the same way V5 was: names, all ten migrations, report libraries present, test-only libraries absent, and the packaged exe launched and served every screen.
+  - Deliberately not done: capping the Orders list. It was on the list, but at 2,002 orders it is 0.08s - the query count was the defect and that is fixed. A cap would cost searchability for no measured gain.
+
 ### Do not build now
 - Analytics
 - PLC Monitoring
