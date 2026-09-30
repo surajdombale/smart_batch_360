@@ -35,7 +35,7 @@ public class HeaderFormDialog {
         this.isEdit = existing != null;
         this.id = existing != null ? existing.id() : null;
 
-        formDialog = new FormDialog(isEdit ? "Edit Header" : "Add Header");
+        formDialog = new FormDialog(isEdit ? "Edit Company" : "Add Company");
         formDialog.addField("Company Name", "companyName", companyNameField);
         formDialog.addField("Plant/Branch Name", "plantName", plantNameField);
         formDialog.addField("Address", "address", addressField);

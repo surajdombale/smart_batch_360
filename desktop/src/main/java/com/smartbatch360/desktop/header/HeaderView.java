@@ -13,15 +13,15 @@ import javafx.scene.layout.Region;
 import java.util.List;
 
 /**
- * Header Management list screen: table + Add/Edit/Delete wired to the REST API.
- * Header stores the company/plant letterhead used on printed Batch Logs and
+ * Company Details list screen: table + Add/Edit/Delete wired to the REST API.
+ * Stores the company/plant details used on printed Batch Logs and
  * Order/Recipe reports once those (out-of-scope) modules exist.
  */
 public class HeaderView {
 
     private final HeaderApiClient apiClient = new HeaderApiClient();
     private final CrudListView<HeaderDto> listView = new CrudListView<>(
-            "Header Management", "Manage company/plant letterheads used on printed reports.", "+ Add Header",
+            "Company Details", "Company and plant details used on printed reports.", "+ Add Company",
             h -> String.join(" ", h.companyName(), h.plantName(), emptyIfNull(h.address()),
                     emptyIfNull(h.phone()), emptyIfNull(h.email()), emptyIfNull(h.gstin()), h.status().name()));
 
@@ -70,14 +70,14 @@ public class HeaderView {
 
     private void openAddDialog() {
         new HeaderFormDialog(null).showAndWait().ifPresent(saved -> {
-            listView.getBanner().showSuccess("Header \"" + saved.companyName() + "\" created.");
+            listView.getBanner().showSuccess("Company \"" + saved.companyName() + "\" created.");
             load();
         });
     }
 
     private void openEditDialog(HeaderDto header) {
         new HeaderFormDialog(header).showAndWait().ifPresent(saved -> {
-            listView.getBanner().showSuccess("Header \"" + saved.companyName() + "\" updated.");
+            listView.getBanner().showSuccess("Company \"" + saved.companyName() + "\" updated.");
             load();
         });
     }
@@ -90,7 +90,7 @@ public class HeaderView {
             if (throwable != null) {
                 listView.getBanner().showError(errorMessage(throwable));
             } else {
-                listView.getBanner().showSuccess("Header \"" + header.companyName() + "\" deleted.");
+                listView.getBanner().showSuccess("Company \"" + header.companyName() + "\" deleted.");
                 load();
             }
         }));

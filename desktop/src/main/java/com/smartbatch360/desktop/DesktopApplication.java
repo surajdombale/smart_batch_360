@@ -75,7 +75,7 @@ public class DesktopApplication extends Application {
                 )),
                 new NavItem("materials", "Materials", () -> new MaterialView().getView()),
                 new NavItem("recipes", "Recipes", () -> new RecipeView().getView()),
-                new NavItem("headers", "Headers", () -> new HeaderView().getView()),
+                new NavItem("headers", "Company Details", () -> new HeaderView().getView()),
                 new NavItem("settings", "Settings", () -> new SettingsView().getView())
         );
 
