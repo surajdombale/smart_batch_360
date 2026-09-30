@@ -39,7 +39,8 @@ class RecipeServiceTest {
     private MaterialRepository materialRepository;
 
     private RecipeService service() {
-        return new RecipeService(recipeRepository, batchRepository, materialRepository);
+        return new RecipeService(recipeRepository, batchRepository, materialRepository,
+                RecipeTotalLimit.none());
     }
 
     private Material material(Long id, String name) {
@@ -48,6 +49,62 @@ class RecipeServiceTest {
         // id has no setter (generated); tests only need findById to return this.
         when(materialRepository.findById(id)).thenReturn(Optional.of(m));
         return m;
+    }
+
+    /**
+     * The sample mix adds up to 1740 kg. With the plant's batch limit set below
+     * that, saving it is refused rather than storing a mix the mixer cannot hold.
+     */
+    @Test
+    void refusesARecipeWhoseMaterialsExceedTheBatchLimit() {
+        when(recipeRepository.save(any(Recipe.class))).thenAnswer(inv -> inv.getArgument(0));
+        RecipeService limited = new RecipeService(recipeRepository, batchRepository, materialRepository,
+                RecipeTotalLimit.of("1000"));
+
+        assertThatThrownBy(() -> limited.create(sampleRequest()))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("1740.00 kg")
+                .hasMessageContaining("1000.00 kg limit")
+                .hasMessageContaining("Reduce a quantity or remove a material");
+
+        verify(recipeRepository, never()).save(any(Recipe.class));
+    }
+
+    /** Editing an existing recipe is held to the same limit as creating one. */
+    @Test
+    void refusesAnUpdateThatPushesTheTotalOverTheLimit() {
+        Recipe existing = new Recipe();
+        existing.setName("M25");
+        when(recipeRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(recipeRepository.save(any(Recipe.class))).thenAnswer(inv -> inv.getArgument(0));
+        RecipeService limited = new RecipeService(recipeRepository, batchRepository, materialRepository,
+                RecipeTotalLimit.of("1000"));
+
+        assertThatThrownBy(() -> limited.update(1L, sampleRequest()))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("over the 1000.00 kg limit");
+    }
+
+    /** A mix within the limit saves exactly as before. */
+    @Test
+    void acceptsARecipeWithinTheBatchLimit() {
+        when(recipeRepository.save(any(Recipe.class))).thenAnswer(inv -> inv.getArgument(0));
+        RecipeService limited = new RecipeService(recipeRepository, batchRepository, materialRepository,
+                RecipeTotalLimit.of("2000"));
+
+        RecipeResponse response = limited.create(sampleRequest());
+
+        assertThat(response.totalBatchQuantityKg()).isEqualByComparingTo("1740.00");
+    }
+
+    /** With no limit configured - the default - nothing is refused. */
+    @Test
+    void savesAnyTotalWhenNoLimitIsConfigured() {
+        when(recipeRepository.save(any(Recipe.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        RecipeResponse response = service().create(sampleRequest());
+
+        assertThat(response.totalBatchQuantityKg()).isEqualByComparingTo("1740.00");
     }
 
     private RecipeRequest sampleRequest() {

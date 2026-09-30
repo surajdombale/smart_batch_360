@@ -12,6 +12,8 @@ import com.smartbatch360.api.recipe.dto.RecipeResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -21,12 +23,14 @@ public class RecipeService {
     private final RecipeRepository recipeRepository;
     private final BatchRepository batchRepository;
     private final MaterialRepository materialRepository;
+    private final RecipeTotalLimit totalLimit;
 
     public RecipeService(RecipeRepository recipeRepository, BatchRepository batchRepository,
-                          MaterialRepository materialRepository) {
+                          MaterialRepository materialRepository, RecipeTotalLimit totalLimit) {
         this.recipeRepository = recipeRepository;
         this.batchRepository = batchRepository;
         this.materialRepository = materialRepository;
+        this.totalLimit = totalLimit;
     }
 
     @Transactional(readOnly = true)
@@ -88,6 +92,25 @@ public class RecipeService {
 
         // Derived, never client-supplied - the whole point of the 2026-08-27 change.
         recipe.recalculateTotalBatchQuantity();
+
+        // A mix the plant cannot physically batch is not worth storing. Checked
+        // after the total is derived, since that is the number being limited.
+        if (totalLimit.isExceededBy(recipe.getTotalBatchQuantityKg())) {
+            throw new InvalidRequestException("These materials add up to "
+                    + forMessage(recipe.getTotalBatchQuantityKg()) + " kg, which is over the "
+                    + forMessage(totalLimit.maxTotalKg())
+                    + " kg limit for one batch. Reduce a quantity or remove a material.");
+        }
+    }
+
+    /**
+     * Quantities are shown to two decimals everywhere else, and the total is
+     * stored to four - without this the operator is told their mix is
+     * "1740.0000 kg". Line quantities carry at most two decimals, so the sum
+     * does too and nothing is lost here.
+     */
+    private String forMessage(BigDecimal quantity) {
+        return quantity.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
     private String blankToNull(String value) {

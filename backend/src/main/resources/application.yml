@@ -45,6 +45,16 @@ management:
       show-details: never
 
 smartbatch360:
+  recipe:
+    # The largest total, in kilograms, that one recipe may add up to - the
+    # plant's batch capacity. A recipe's total is the sum of its material lines,
+    # so without this a mix can be saved that the mixer cannot physically hold.
+    #
+    # Empty means no limit, which is how recipes behaved before this existed.
+    # The number belongs to the plant, so it is not guessed here: set it when
+    # the capacity is known.
+    max-total-kg: ${RECIPE_MAX_TOTAL_KG:}
+
   reporting:
     # The zone the plant's days are measured in. Cycle times are stored as true
     # UTC instants, but a date on a report means a day at the plant - so a batch
