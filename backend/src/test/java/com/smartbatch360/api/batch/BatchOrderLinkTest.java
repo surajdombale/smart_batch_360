@@ -17,6 +17,7 @@ import com.smartbatch360.api.site.SiteRepository;
 import com.smartbatch360.api.vehicle.Vehicle;
 import com.smartbatch360.api.vehicle.VehicleRepository;
 import org.junit.jupiter.api.BeforeEach;
+import com.smartbatch360.api.common.ReportingZone;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -25,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,8 +58,9 @@ class BatchOrderLinkTest {
     private Site site;
 
     private BatchService service() {
-        return new BatchService(batchRepository, recipeRepository, clientRepository, siteRepository,
-                vehicleRepository, driverRepository, salesOrderRepository);
+        return new BatchService(batchRepository,
+                recipeRepository, clientRepository, siteRepository, vehicleRepository, driverRepository, salesOrderRepository,
+                ReportingZone.of(ZoneOffset.UTC));
     }
 
     /** Ids aren't settable (generated), so stub identity through the repositories. */

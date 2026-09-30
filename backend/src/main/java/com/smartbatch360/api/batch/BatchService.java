@@ -10,6 +10,7 @@ import com.smartbatch360.api.client.ClientRepository;
 import com.smartbatch360.api.common.DuplicateResourceException;
 import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.NotFoundException;
+import com.smartbatch360.api.common.ReportingZone;
 import com.smartbatch360.api.order.SalesOrder;
 import com.smartbatch360.api.order.SalesOrderRepository;
 import com.smartbatch360.api.driver.Driver;
@@ -47,11 +48,12 @@ public class BatchService {
     private final VehicleRepository vehicleRepository;
     private final DriverRepository driverRepository;
     private final SalesOrderRepository salesOrderRepository;
+    private final ReportingZone reportingZone;
 
     public BatchService(BatchRepository batchRepository, RecipeRepository recipeRepository,
                          ClientRepository clientRepository, SiteRepository siteRepository,
                          VehicleRepository vehicleRepository, DriverRepository driverRepository,
-                         SalesOrderRepository salesOrderRepository) {
+                         SalesOrderRepository salesOrderRepository, ReportingZone reportingZone) {
         this.batchRepository = batchRepository;
         this.recipeRepository = recipeRepository;
         this.clientRepository = clientRepository;
@@ -59,6 +61,7 @@ public class BatchService {
         this.vehicleRepository = vehicleRepository;
         this.driverRepository = driverRepository;
         this.salesOrderRepository = salesOrderRepository;
+        this.reportingZone = reportingZone;
     }
 
     @Transactional(readOnly = true)
@@ -76,7 +79,7 @@ public class BatchService {
     /** Batch Reports: filtered, paginated, sortable history search (docs/02_UI_REFERENCE.md). */
     @Transactional(readOnly = true)
     public BatchPageResponse search(BatchSearchCriteria criteria, Pageable pageable) {
-        Page<Batch> page = batchRepository.findAll(BatchSpecifications.matching(criteria), pageable);
+        Page<Batch> page = batchRepository.findAll(BatchSpecifications.matching(criteria, reportingZone), pageable);
         return BatchPageResponse.from(page);
     }
 

@@ -4,6 +4,7 @@ import com.smartbatch360.api.batch.MaterialConsumptionRow;
 import com.smartbatch360.api.batch.BatchMaterialRepository;
 import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.NotFoundException;
+import com.smartbatch360.api.common.ReportingZone;
 import com.smartbatch360.api.order.SalesOrder;
 import com.smartbatch360.api.order.SalesOrderRepository;
 import com.smartbatch360.api.recipe.RecipeMaterial;
@@ -14,7 +15,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.temporal.IsoFields;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -52,11 +52,14 @@ public class MaterialConsumptionService {
 
     private final BatchMaterialRepository batchMaterialRepository;
     private final SalesOrderRepository salesOrderRepository;
+    private final ReportingZone reportingZone;
 
     public MaterialConsumptionService(BatchMaterialRepository batchMaterialRepository,
-                                       SalesOrderRepository salesOrderRepository) {
+                                       SalesOrderRepository salesOrderRepository,
+                                       ReportingZone reportingZone) {
         this.batchMaterialRepository = batchMaterialRepository;
         this.salesOrderRepository = salesOrderRepository;
+        this.reportingZone = reportingZone;
     }
 
     /**
@@ -99,10 +102,8 @@ public class MaterialConsumptionService {
     }
 
     public List<MaterialConsumptionResponse> search(MaterialConsumptionSearchCriteria criteria) {
-        Instant from = criteria.dateFrom() != null
-                ? criteria.dateFrom().atStartOfDay(ZoneOffset.UTC).toInstant() : null;
-        Instant to = criteria.dateTo() != null
-                ? criteria.dateTo().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant() : null;
+        Instant from = criteria.dateFrom() != null ? reportingZone.startOfDay(criteria.dateFrom()) : null;
+        Instant to = criteria.dateTo() != null ? reportingZone.startOfNextDay(criteria.dateTo()) : null;
         String materialName = criteria.materialName() != null && !criteria.materialName().isBlank()
                 ? criteria.materialName().trim() : null;
         MaterialConsumptionGroupBy groupBy = criteria.groupBy() != null
@@ -127,7 +128,7 @@ public class MaterialConsumptionService {
     }
 
     private String periodLabel(Instant cycleDateTime, MaterialConsumptionGroupBy groupBy) {
-        LocalDate date = cycleDateTime.atZone(ZoneOffset.UTC).toLocalDate();
+        LocalDate date = reportingZone.dayOf(cycleDateTime);
         return switch (groupBy) {
             case DAY -> date.toString();
             case WEEK -> String.format("%d-W%02d",

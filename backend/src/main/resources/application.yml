@@ -44,6 +44,15 @@ management:
     health:
       show-details: never
 
+smartbatch360:
+  reporting:
+    # The zone the plant's days are measured in. Cycle times are stored as true
+    # UTC instants, but a date on a report means a day at the plant - so a batch
+    # made at 01:30 on a night shift belongs to that day, not the previous one.
+    # Empty means the zone the server runs in, which for a single-plant install
+    # is the plant's own. Set it when the server is somewhere else.
+    zone: ${REPORTING_ZONE:}
+
 logging:
   level:
     com.smartbatch360: INFO

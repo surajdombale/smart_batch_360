@@ -11,6 +11,7 @@ import com.smartbatch360.api.site.Site;
 import com.smartbatch360.api.site.SiteStatus;
 import com.smartbatch360.api.vehicle.Vehicle;
 import com.smartbatch360.api.vehicle.VehicleStatus;
+import com.smartbatch360.api.common.ReportingZone;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -19,6 +20,8 @@ import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.Instant;
 import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,6 +34,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @DataJpaTest
 class BatchSpecificationsTest {
+
+    /** These tests seed instants directly, so they read days in UTC. */
+    private static final ReportingZone UTC = ReportingZone.of(ZoneOffset.UTC);
+
 
     @Autowired
     private BatchRepository batchRepository;
@@ -69,7 +76,7 @@ class BatchSpecificationsTest {
         seed();
         BatchSearchCriteria criteria = new BatchSearchCriteria("250150", "250250", null, null, null, null, null, null, null);
 
-        Page<Batch> result = batchRepository.findAll(BatchSpecifications.matching(criteria), Pageable.unpaged());
+        Page<Batch> result = batchRepository.findAll(BatchSpecifications.matching(criteria, UTC), Pageable.unpaged());
 
         assertThat(result.getContent()).extracting(Batch::getBatchNumber).containsExactly("250200");
     }
@@ -80,7 +87,7 @@ class BatchSpecificationsTest {
         BatchSearchCriteria criteria = new BatchSearchCriteria(null, null,
                 LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 16), null, null, null, null, null);
 
-        Page<Batch> result = batchRepository.findAll(BatchSpecifications.matching(criteria), Pageable.unpaged());
+        Page<Batch> result = batchRepository.findAll(BatchSpecifications.matching(criteria, UTC), Pageable.unpaged());
 
         assertThat(result.getContent()).extracting(Batch::getBatchNumber).containsExactly("250200");
     }
@@ -90,7 +97,7 @@ class BatchSpecificationsTest {
         seed();
         BatchSearchCriteria criteria = new BatchSearchCriteria(null, null, null, null, clientBId, null, null, null, null);
 
-        Page<Batch> result = batchRepository.findAll(BatchSpecifications.matching(criteria), Pageable.unpaged());
+        Page<Batch> result = batchRepository.findAll(BatchSpecifications.matching(criteria, UTC), Pageable.unpaged());
 
         assertThat(result.getContent()).extracting(Batch::getBatchNumber).containsExactly("250300");
     }
@@ -100,9 +107,68 @@ class BatchSpecificationsTest {
         seed();
         BatchSearchCriteria criteria = new BatchSearchCriteria(null, null, null, null, null, null, null, null, null);
 
-        Page<Batch> result = batchRepository.findAll(BatchSpecifications.matching(criteria), Pageable.unpaged());
+        Page<Batch> result = batchRepository.findAll(BatchSpecifications.matching(criteria, UTC), Pageable.unpaged());
 
         assertThat(result.getContent()).hasSize(3);
+    }
+
+    /**
+     * A filter on a date means that day at the plant. A batch made at 01:30 on a
+     * night shift used to fall outside a filter on the day it was made, because
+     * the bounds were computed in UTC and the plant is five and a half hours
+     * ahead of it.
+     */
+    @Test
+    void aDateFilterCoversThePlantsDayNotTheUtcDay() {
+        Client client = client("Client A");
+        entityManager.persist(client);
+        Site site = site("Kharadi", client);
+        entityManager.persist(site);
+        Driver driver = driver("Ganesh More", "MH12 2019 000001");
+        entityManager.persist(driver);
+        Vehicle vehicle = vehicle("MH12PQ0001", driver);
+        entityManager.persist(vehicle);
+        Recipe recipe = recipe("M25");
+        entityManager.persist(recipe);
+        persistBatchAt("NIGHT", client, site, vehicle, driver, recipe,
+                Instant.parse("2026-09-25T20:00:00Z"));   // 01:30 on the 26th at the plant
+        persistBatchAt("DAY", client, site, vehicle, driver, recipe,
+                Instant.parse("2026-09-25T10:00:00Z"));   // 15:30 on the 25th
+        entityManager.flush();
+
+        ReportingZone plant = ReportingZone.of(ZoneId.of("Asia/Kolkata"));
+        BatchSearchCriteria theSixth = new BatchSearchCriteria(null, null,
+                LocalDate.of(2026, 9, 26), LocalDate.of(2026, 9, 26), null, null, null, null, null);
+
+        Page<Batch> result = batchRepository.findAll(BatchSpecifications.matching(theSixth, plant),
+                Pageable.unpaged());
+
+        assertThat(result.getContent()).extracting(Batch::getBatchNumber).containsExactly("NIGHT");
+    }
+
+    /** As persistBatch, but at an exact instant rather than a date. */
+    private void persistBatchAt(String number, Client client, Site site, Vehicle vehicle, Driver driver,
+                                 Recipe recipe, Instant cycleDateTime) {
+        Batch batch = new Batch();
+        batch.setBatchNumber(number);
+        batch.setClient(client);
+        batch.setSite(site);
+        batch.setVehicle(vehicle);
+        batch.setDriver(driver);
+        batch.setRecipe(recipe);
+        batch.setTargetQuantity(new BigDecimal("3.00"));
+        batch.setProducedQuantity(BigDecimal.ZERO);
+        batch.setStatus(BatchStatus.PENDING);
+        batch.setCycleDateTime(cycleDateTime);
+        BatchMaterial material = new BatchMaterial();
+        material.setBatch(batch);
+        material.setMaterialName("Cement");
+        material.setTarget(BigDecimal.TEN);
+        material.setSetpoint(BigDecimal.TEN);
+        material.setAchieved(BigDecimal.ZERO);
+        material.setUnit("kg");
+        batch.getMaterials().add(material);
+        entityManager.persist(batch);
     }
 
     private void persistBatch(String number, Client client, Site site, Vehicle vehicle, Driver driver,

@@ -1,12 +1,13 @@
 package com.smartbatch360.api.batch;
 
+import com.smartbatch360.api.common.ReportingZone;
+
 import com.smartbatch360.api.batch.dto.BatchSearchCriteria;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +17,7 @@ final class BatchSpecifications {
     private BatchSpecifications() {
     }
 
-    static Specification<Batch> matching(BatchSearchCriteria criteria) {
+    static Specification<Batch> matching(BatchSearchCriteria criteria, ReportingZone zone) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -27,10 +28,12 @@ final class BatchSpecifications {
                 predicates.add(cb.lessThanOrEqualTo(root.get("batchNumber"), criteria.batchNumberTo().trim()));
             }
             if (criteria.dateFrom() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("cycleDateTime"), startOfDay(criteria.dateFrom())));
+                predicates.add(cb.greaterThanOrEqualTo(root.get("cycleDateTime"),
+                        zone.startOfDay(criteria.dateFrom())));
             }
             if (criteria.dateTo() != null) {
-                predicates.add(cb.lessThan(root.get("cycleDateTime"), startOfDay(criteria.dateTo().plusDays(1))));
+                predicates.add(cb.lessThan(root.get("cycleDateTime"),
+                        zone.startOfNextDay(criteria.dateTo())));
             }
             if (criteria.clientId() != null) {
                 predicates.add(cb.equal(root.get("client").get("id"), criteria.clientId()));
@@ -56,7 +59,4 @@ final class BatchSpecifications {
         return value != null && !value.isBlank();
     }
 
-    private static Instant startOfDay(LocalDate date) {
-        return date.atStartOfDay(ZoneOffset.UTC).toInstant();
-    }
 }

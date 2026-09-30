@@ -14,6 +14,7 @@ import com.smartbatch360.api.vehicle.VehicleStatus;
 import jakarta.persistence.EntityManager;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
+import com.smartbatch360.api.common.ReportingZone;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.time.ZoneOffset;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,6 +40,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @DataJpaTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 class BatchSearchQueryCountTest {
+
+    /** These tests seed instants directly, so they read days in UTC. */
+    private static final ReportingZone UTC = ReportingZone.of(ZoneOffset.UTC);
+
 
     @Autowired private BatchRepository batchRepository;
     @Autowired private EntityManager entityManager;
@@ -75,7 +81,7 @@ class BatchSearchQueryCountTest {
                 .unwrap(SessionFactory.class).getStatistics();
         entityManager.clear();
         long before = statistics.getPrepareStatementCount();
-        batchRepository.findAll(BatchSpecifications.matching(noFilters()), pageable)
+        batchRepository.findAll(BatchSpecifications.matching(noFilters(), UTC), pageable)
                 .getContent()
                 .forEach(batch -> {
                     batch.getRecipe().getName();

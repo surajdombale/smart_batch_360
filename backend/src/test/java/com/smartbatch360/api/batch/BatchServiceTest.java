@@ -15,12 +15,14 @@ import com.smartbatch360.api.site.Site;
 import com.smartbatch360.api.site.SiteRepository;
 import com.smartbatch360.api.vehicle.Vehicle;
 import com.smartbatch360.api.vehicle.VehicleRepository;
+import com.smartbatch360.api.common.ReportingZone;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,8 +51,9 @@ class BatchServiceTest {
     private com.smartbatch360.api.order.SalesOrderRepository salesOrderRepository;
 
     private BatchService service() {
-        return new BatchService(batchRepository, recipeRepository, clientRepository, siteRepository,
-                vehicleRepository, driverRepository, salesOrderRepository);
+        return new BatchService(batchRepository,
+                recipeRepository, clientRepository, siteRepository, vehicleRepository, driverRepository, salesOrderRepository,
+                ReportingZone.of(ZoneOffset.UTC));
     }
 
     private BatchRequest sampleRequest() {

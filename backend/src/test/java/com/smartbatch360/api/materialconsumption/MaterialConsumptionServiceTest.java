@@ -18,11 +18,17 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import com.smartbatch360.api.common.ReportingZone;
+import com.smartbatch360.api.order.SalesOrderRepository;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,8 +40,21 @@ import static org.assertj.core.api.Assertions.assertThat;
  * BatchSpecificationsTest.
  */
 @DataJpaTest
-@Import(MaterialConsumptionService.class)
+@Import({MaterialConsumptionService.class, MaterialConsumptionServiceTest.UtcZone.class})
 class MaterialConsumptionServiceTest {
+
+    /**
+     * These tests seed instants directly and expect days to line up with them,
+     * so they read days in UTC rather than in whatever zone the machine is set
+     * to. The plant-local behaviour has tests of its own below.
+     */
+    @TestConfiguration
+    static class UtcZone {
+        @Bean
+        ReportingZone reportingZone() {
+            return ReportingZone.of(ZoneOffset.UTC);
+        }
+    }
 
     @Autowired
     private BatchMaterialRepository batchMaterialRepository;
@@ -44,7 +63,84 @@ class MaterialConsumptionServiceTest {
     private MaterialConsumptionService service;
 
     @Autowired
+    private SalesOrderRepository salesOrderRepository;
+
+    @Autowired
     private EntityManager entityManager;
+
+    /**
+     * End to end in the zone a plant actually runs in: a batch made at 01:30 on
+     * a night shift must be reported under that day, not the previous one. With
+     * UTC bucketing it landed in the day before, and a filter on the day it was
+     * made returned nothing.
+     */
+    @Test
+    void bucketsANightShiftBatchUnderThePlantsDay() {
+        Client client = client("Client A");
+        entityManager.persist(client);
+        Site site = site("Kharadi", client);
+        entityManager.persist(site);
+        Driver driver = driver("Ganesh More");
+        entityManager.persist(driver);
+        Vehicle vehicle = vehicle("MH12PQ0001", driver);
+        entityManager.persist(vehicle);
+        Recipe recipe = recipe("M25");
+        entityManager.persist(recipe);
+
+        // 2026-09-25T20:00Z is 01:30 on the 26th at the plant.
+        persistBatchAt("NS1", client, site, vehicle, driver, recipe,
+                Instant.parse("2026-09-25T20:00:00Z"), "Cement", "50.00", "50.00");
+        // 2026-09-25T10:00Z is 15:30 on the 25th - the same day either way.
+        persistBatchAt("NS2", client, site, vehicle, driver, recipe,
+                Instant.parse("2026-09-25T10:00:00Z"), "Cement", "50.00", "50.00");
+        entityManager.flush();
+
+        MaterialConsumptionService plantService = new MaterialConsumptionService(
+                batchMaterialRepository, salesOrderRepository, ReportingZone.of(ZoneId.of("Asia/Kolkata")));
+
+        List<MaterialConsumptionResponse> byDay = plantService.search(
+                new MaterialConsumptionSearchCriteria(null, null, null, MaterialConsumptionGroupBy.DAY));
+
+        assertThat(byDay).extracting(MaterialConsumptionResponse::period)
+                .containsExactly("2026-09-25", "2026-09-26");
+
+        // And asking for just the 26th finds the night-shift batch on its own.
+        List<MaterialConsumptionResponse> justTheSixth = plantService.search(
+                new MaterialConsumptionSearchCriteria(null, LocalDate.of(2026, 9, 26),
+                        LocalDate.of(2026, 9, 26), MaterialConsumptionGroupBy.DAY));
+
+        assertThat(justTheSixth).singleElement()
+                .satisfies(row -> {
+                    assertThat(row.period()).isEqualTo("2026-09-26");
+                    assertThat(row.totalAchieved()).isEqualByComparingTo("50.00");
+                });
+    }
+
+    /** As persistBatch, but at an exact instant rather than a date. */
+    private void persistBatchAt(String number, Client client, Site site, Vehicle vehicle, Driver driver,
+                                 Recipe recipe, Instant cycleDateTime, String materialName,
+                                 String target, String achieved) {
+        Batch batch = new Batch();
+        batch.setBatchNumber(number);
+        batch.setClient(client);
+        batch.setSite(site);
+        batch.setVehicle(vehicle);
+        batch.setDriver(driver);
+        batch.setRecipe(recipe);
+        batch.setTargetQuantity(new BigDecimal("3.00"));
+        batch.setProducedQuantity(BigDecimal.ZERO);
+        batch.setStatus(BatchStatus.PENDING);
+        batch.setCycleDateTime(cycleDateTime);
+        BatchMaterial material = new BatchMaterial();
+        material.setBatch(batch);
+        material.setMaterialName(materialName);
+        material.setTarget(new BigDecimal(target));
+        material.setSetpoint(new BigDecimal(target));
+        material.setAchieved(new BigDecimal(achieved));
+        material.setUnit("kg");
+        batch.getMaterials().add(material);
+        entityManager.persist(batch);
+    }
 
     private void seed() {
         Client client = client("Client A");
