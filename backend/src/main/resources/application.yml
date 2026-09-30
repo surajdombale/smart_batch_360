@@ -45,6 +45,15 @@ management:
       show-details: never
 
 smartbatch360:
+  plant:
+    # How much the mixer holds, in cubic metres (the plant's range is 0.1 to 10).
+    # Production is planned in m3 so an operator can see the size of a load and
+    # match it to a vehicle, whose capacity is already recorded in m3. A load
+    # larger than the mixer runs as repeated cycles of this size.
+    #
+    # Empty means production planning has nothing to divide by and will say so.
+    mixer-capacity-m3: ${MIXER_CAPACITY_M3:}
+
   recipe:
     # The largest total, in kilograms, that one recipe may add up to - the
     # plant's batch capacity. A recipe's total is the sum of its material lines,
