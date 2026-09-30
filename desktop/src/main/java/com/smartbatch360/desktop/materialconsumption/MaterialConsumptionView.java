@@ -17,6 +17,7 @@ import javafx.scene.layout.*;
 import javafx.util.Duration;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -57,6 +58,14 @@ public class MaterialConsumptionView {
     private final Label chartEmpty = new Label("No batches match these filters.");
     private VBox chartCard;
 
+    /**
+     * How much history the screen opens on. Without a default it asked for
+     * everything, which is fine on a young plant and grows without limit -
+     * every batch ever made, aggregated on each open. The filters are right
+     * there and can be cleared, so asking for all of it is still one click.
+     */
+    static final int DEFAULT_DAYS = 30;
+
     private final TextField materialNameField = new TextField();
     private final DatePicker dateFromField = new DatePicker();
     private final DatePicker dateToField = new DatePicker();
@@ -75,6 +84,7 @@ public class MaterialConsumptionView {
         setupTable();
         setupChart();
         chartCard = buildChartCard();
+        applyDefaultDateRange();
         search();
     }
 
@@ -313,10 +323,20 @@ public class MaterialConsumptionView {
 
     private void resetFilters() {
         materialNameField.clear();
-        dateFromField.setValue(null);
-        dateToField.setValue(null);
+        applyDefaultDateRange();
         groupByField.getSelectionModel().select(MaterialConsumptionGroupBy.DAY);
         search();
+    }
+
+    /** The last DEFAULT_DAYS days, today included, in the plant's own dates. */
+    private void applyDefaultDateRange() {
+        LocalDate today = LocalDate.now();
+        dateFromField.setValue(defaultDateFrom(today));
+        dateToField.setValue(today);
+    }
+
+    static LocalDate defaultDateFrom(LocalDate today) {
+        return today.minusDays(DEFAULT_DAYS - 1L);
     }
 
     private void search() {
