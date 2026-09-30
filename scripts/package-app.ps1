@@ -2,11 +2,13 @@
 # Spring Boot backend embedded in one process (bundles its own Java runtime;
 # the target machine only needs MySQL, not Java or Maven).
 #
-# Named/versioned as "SmartBatch360 V5" (app version 5.0.0) so it installs
-# into its own folder alongside existing V1-V4 installs without colliding.
-# V5 (2026-09-18) adds Batch Reports export to PDF and Excel plus printing,
-# the Material Consumption chart, and the Production column fix. Bump
-# $AppName/$AppVersion here for future releases.
+# Named/versioned as "SmartBatch360 V6" (app version 6.0.0) so it installs
+# into its own folder alongside existing V1-V5 installs without colliding.
+# V6 (2026-09-30) is a correctness and performance release: timestamps are
+# stored as true UTC instants and report dates mean days at the plant, list
+# screens no longer cost a query per row, the batch cycle time is indexed, and
+# Material Consumption opens on the last 30 days. Bump $AppName/$AppVersion
+# here for future releases.
 #
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\package-app.ps1
 
@@ -14,8 +16,8 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $backend = Join-Path $root "backend"
 $desktop = Join-Path $root "desktop"
-$AppName = "SmartBatch360 V5"
-$AppVersion = "5.0.0"
+$AppName = "SmartBatch360 V6"
+$AppVersion = "6.0.0"
 $IconPath = Join-Path $root "desktop\src\main\resources\images\app-icon.ico"
 
 Push-Location $backend
@@ -63,12 +65,12 @@ try {
         --app-version $AppVersion `
         --vendor "SmartBatch360" `
         --icon $IconPath `
-        --description "SmartBatch360 - Industrial Batching Plant Management System (V5: Materials, Recipes, Orders with lifecycle and fulfilment, Production, Batch Reports with PDF/Excel export and printing, Material Consumption with chart - all quantities in kg)"
+        --description "SmartBatch360 - Industrial Batching Plant Management System (V6: Materials, Recipes, Orders with lifecycle and fulfilment, Production, Batch Reports with PDF/Excel export and printing, Material Consumption with chart - all quantities in kg)"
     if ($LASTEXITCODE -ne 0) { throw "jpackage failed" }
 
     Copy-Item (Join-Path $root "scripts\SETUP_ON_NEW_PC.md") "target/dist/$AppName/" -Force
 
-    $zipPath = Join-Path $desktop "target\SmartBatch360-V5.zip"
+    $zipPath = Join-Path $desktop "target\SmartBatch360-V6.zip"
     Remove-Item $zipPath -ErrorAction SilentlyContinue
     Compress-Archive -Path "target/dist/$AppName" -DestinationPath $zipPath
     Write-Host "Done: $zipPath"
