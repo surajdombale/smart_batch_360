@@ -94,6 +94,12 @@ The current phase is intentionally small:
   - Rows written before the fix are now read as true UTC, so their displayed time moves 5:30 earlier. That affects the one real batch and its two material lines in the user's database. Correcting them means assuming which zone they were written in, which is the user's call - the same bucket as the legacy "L" unit and the pre-kg quantities on orders #1 and #9.
   - Nothing else regressed: 14/14 checks passed after the fix, the write paths (create, update, start/pause/resume, delete) all work, both fulfilment paths agree with SQL, and the user's own row came back byte-identical to the pre-pass backup.
 
+- Report dates mean days at the plant — 2026-09-30, following through on the timestamp fix. Making the stored instants true UTC was right, but it changed what the four date conversions meant. They were written with UTC, and that had been accidentally correct: the app's instants were local wall-clock labelled Z, so reading a day in UTC gave the local day. Once storage was fixed, UTC conversion started slicing on UTC boundaries.
+  - For a plant five and a half hours ahead of UTC that broke the night shift. A batch made at 01:30 was filed under the previous day, and filtering Batch Reports to the day it was actually made returned nothing. Checked against the running app: two batches that both landed in the 25th now land in the 25th and the 26th, and the filter that returned 0 rows returns the batch.
+  - All four conversions now live in ReportingZone - the only place a date becomes an instant or an instant becomes a day. Configurable with smartbatch360.reporting.zone, defaulting to the zone the server runs in, which for a single-plant install is the plant's own.
+  - The zone is injected rather than read from config inside the conversion, which is what makes it testable: the tests pin behaviour for a real plant zone (Asia/Kolkata) instead of whatever the build machine is set to. The existing tests pass UTC explicitly and keep their meaning. All seven new tests fail against the UTC version - checked, not assumed.
+  - Worth recording as a pattern: fixing the storage layer moved a bug rather than removing it, because two wrongs had been cancelling. The first fix was verified in isolation and looked complete; only asking what else depended on the old behaviour found this. 132 tests now.
+
 ### Do not build now
 - Analytics
 - PLC Monitoring

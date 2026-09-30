@@ -141,6 +141,7 @@ Within each backend feature:
 - Do not expose MySQL directly to the desktop client.
 - Do not hard-code secrets.
 - Use Flyway for schema changes.
+- Timestamps are stored as true UTC instants, and a date on a report means a day at the plant. Every conversion between the two goes through ReportingZone (smartbatch360.reporting.zone); no service converts with ZoneOffset.UTC or ZoneId.systemDefault of its own. Getting this wrong hides night-shift batches rather than failing loudly.
 - A list endpoint must not cost a query per row. Lazy associations are batch-fetched (@BatchSize on the mapping, not a setting in application.yml - the test profile replaces that file, so a value there cannot be tested). Where a per-row aggregate is needed, group it into one query, as the order list does for fulfilment. Measure before reaching for a fetch join: on the batch search one cut the query count and tripled the wall time.
 
 ## Current development status from source
