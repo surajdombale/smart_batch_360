@@ -30,9 +30,15 @@ authentication and backup/restore. Do not start any of those without asking.
 
 These came from the user directly and still hold:
 
-- **Kilograms only.** Materials and recipes are in kg (migration V8). Never
-  introduce a density or a volume conversion, and never assume one to correct
-  old data - ask.
+- **Quantities are kilograms; m3 is a planning unit.** Materials, recipes,
+  orders and batch quantities are kg (migration V8). Since 30-Sep-2026 a
+  production load is also sized in m3 - batch size and mixer capacity - because
+  an operator has to match a load to a vehicle, and vehicle capacity is recorded
+  in m3.
+  **These two never meet through a density.** The recipe is the conversion: a
+  mix design already says how much of each material a given amount of concrete
+  takes. Never introduce a density, a per-material volume, or an assumed
+  conversion factor, and never assume one to correct old data - ask.
 - **Dates mean days at the plant.** Timestamps are stored as true UTC instants;
   every conversion between an instant and a calendar day goes through
   ReportingZone. See the rule in docs/03_ARCHITECTURE.md.
