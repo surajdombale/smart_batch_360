@@ -36,6 +36,11 @@ public class SalesOrderController {
         return ResponseEntity.created(URI.create("/api/v1/orders/" + created.id())).body(created);
     }
 
+    @PutMapping("/{id}")
+    public SalesOrderResponse update(@PathVariable Long id, @Valid @RequestBody SalesOrderRequest request) {
+        return salesOrderService.update(id, request);
+    }
+
     @PostMapping("/{id}/start")
     public SalesOrderResponse start(@PathVariable Long id) {
         return salesOrderService.start(id);

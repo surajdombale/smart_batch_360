@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -90,6 +91,60 @@ public class SalesOrderService {
         order.setQuantityKg(request.quantityKg());
         order.setStatus(OrderStatus.UNFULFILLED);
         return SalesOrderResponse.from(salesOrderRepository.save(order));
+    }
+
+    /**
+     * Changes an order that has already been placed. Added 2026-10-03 at the
+     * user's request ("add edit button" on the Orders screen).
+     *
+     * An order with batches recorded against it may only have its quantity
+     * changed. The batch-to-order link requires the batch's recipe, customer and
+     * site to match the order's, so moving a fulfilled order to a different
+     * recipe or customer would silently invalidate every batch already produced
+     * against it - and the produced figures with them.
+     */
+    public SalesOrderResponse update(Long id, SalesOrderRequest request) {
+        SalesOrder order = getOrThrow(id);
+
+        Client client = clientRepository.findById(request.clientId())
+                .orElseThrow(() -> NotFoundException.forId("Client", request.clientId()));
+        Site site = siteRepository.findById(request.siteId())
+                .orElseThrow(() -> NotFoundException.forId("Site", request.siteId()));
+        Recipe recipe = recipeRepository.findById(request.recipeId())
+                .orElseThrow(() -> NotFoundException.forId("Recipe", request.recipeId()));
+
+        if (!Objects.equals(site.getClient().getId(), client.getId())) {
+            throw new InvalidRequestException("Site '" + site.getName() + "' does not belong to customer '"
+                    + client.getName() + "'.");
+        }
+
+        if (batchRepository.existsByOrderId(id)) {
+            String changed = whatChanged(order, client, site, recipe);
+            if (changed != null) {
+                throw new InvalidRequestException("Order #" + id + " has production batches recorded against it, so "
+                        + "its " + changed + " cannot be changed. Only the quantity can.");
+            }
+        }
+
+        order.setClient(client);
+        order.setSite(site);
+        order.setRecipe(recipe);
+        order.setQuantityKg(request.quantityKg());
+        return withFulfilment(salesOrderRepository.save(order));
+    }
+
+    /** Names the first of customer/site/recipe that this request would change, or null. */
+    private String whatChanged(SalesOrder order, Client client, Site site, Recipe recipe) {
+        if (!Objects.equals(order.getClient().getId(), client.getId())) {
+            return "customer";
+        }
+        if (!Objects.equals(order.getSite().getId(), site.getId())) {
+            return "site";
+        }
+        if (!Objects.equals(order.getRecipe().getId(), recipe.getId())) {
+            return "recipe";
+        }
+        return null;
     }
 
     /** UNFULFILLED -> IN_PROGRESS: production has started against the order. */
