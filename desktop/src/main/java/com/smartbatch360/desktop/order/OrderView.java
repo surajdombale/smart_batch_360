@@ -3,7 +3,6 @@ package com.smartbatch360.desktop.order;
 import com.smartbatch360.desktop.api.ApiException;
 import com.smartbatch360.desktop.common.ConfirmDialogs;
 import com.smartbatch360.desktop.common.CrudListView;
-import com.smartbatch360.desktop.materialconsumption.OrderConsumptionDialog;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.scene.control.Button;
@@ -16,18 +15,15 @@ import javafx.scene.layout.Region;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 /**
  * Orders list screen: create, move through the lifecycle
  * (start / fulfil / cancel), inspect projected material consumption, delete.
  *
- * Like Production, the Actions column shows only the steps that are legal
- * from the row's current status rather than a wall of disabled buttons - the
- * backend enforces the same rules, so this is presentation, not the guard.
- * There is no Edit: an order's terms are fixed once placed; cancel and
- * re-create instead.
+ * The Actions column carries Edit and Delete. The lifecycle buttons and the
+ * Status column were removed on 2026-10-03 at the user's request: fulfilment is
+ * what the screen is for, and the Produced column measures that from the
+ * order's batches. The lifecycle endpoints still exist on the API.
  */
 public class OrderView {
 
@@ -71,15 +67,12 @@ public class OrderView {
         producedCol.setCellValueFactory(cd -> new SimpleStringProperty(
                 trim(cd.getValue().producedQuantityKg()) + " of " + trim(cd.getValue().quantityKg()) + " kg"));
 
-        TableColumn<OrderDto, String> statusCol = new TableColumn<>("Status");
-        statusCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().status().name()));
-
         // This one table opts out of the shared CONSTRAINED policy. That
         // policy divides the width by column count and honours neither
         // prefWidth nor, in the end, the Actions minimum, so with seven
         // columns and a four-button Actions cell something was always
         // clipped: pin one column and the ellipsis simply moved to the next,
-        // and Actions ended up too narrow to reach Consumption and Delete.
+        // and Actions ended up too narrow to reach the last buttons.
         // Sizing the columns explicitly fits them all, and if the window is
         // ever too narrow the overflow becomes a scrollbar you can use rather
         // than buttons off the edge.
@@ -89,10 +82,9 @@ public class OrderView {
         sizeColumn(siteCol, 60);
         sizeColumn(recipeCol, 90);
         sizeColumn(producedCol, 78);
-        sizeColumn(statusCol, 92);
 
         table.getColumns().setAll(List.of(idCol, clientCol, siteCol, recipeCol,
-                producedCol, statusCol, buildActionsColumn()));
+                producedCol, buildActionsColumn()));
     }
 
     /**
@@ -108,12 +100,12 @@ public class OrderView {
     private TableColumn<OrderDto, Void> buildActionsColumn() {
         TableColumn<OrderDto, Void> column = new TableColumn<>("Actions");
         column.setSortable(false);
-        // Wide enough for the busiest row: Start/Cancel/Consumption/Delete.
-        // These are layout units, not screen pixels - on a 150% display each
-        // one paints as 1.5px, which is what made an earlier set of widths
-        // measured off a screenshot half again too large for the table.
-        column.setMinWidth(340);
-        column.setPrefWidth(340);
+        // Wide enough for Edit and Delete. These are layout units, not screen
+        // pixels - on a 150% display each one paints as 1.5px, which is what
+        // made an earlier set of widths measured off a screenshot half again
+        // too large for the table.
+        column.setMinWidth(160);
+        column.setPrefWidth(160);
         column.setCellFactory(col -> new TableCell<>() {
             private final HBox box = new HBox(6);
 
@@ -132,27 +124,20 @@ public class OrderView {
         return column;
     }
 
-    /** Only the transitions that are legal from this order's current status. */
+    /**
+     * Edit and Delete. The lifecycle buttons (Start, Fulfil, Cancel) and the
+     * Consumption button were removed on 2026-10-03 at the user's request; the
+     * Status column went with them. What an order has actually had produced
+     * against it is in the Produced column, measured from its batches, which is
+     * the figure the screen is for.
+     */
     private List<Button> actionsFor(OrderDto order) {
         List<Button> buttons = new ArrayList<>();
-        switch (order.status()) {
-            case UNFULFILLED -> {
-                buttons.add(lifecycleButton("Start", "button-primary", apiClient::start, order));
-                buttons.add(lifecycleButton("Cancel", "button-secondary", apiClient::cancel, order));
-            }
-            case IN_PROGRESS -> {
-                buttons.add(lifecycleButton("Fulfil", "button-primary", apiClient::fulfil, order));
-                buttons.add(lifecycleButton("Cancel", "button-secondary", apiClient::cancel, order));
-            }
-            case FULFILLED, CANCELLED -> {
-                // Terminal - nothing left to do but look at it.
-            }
-        }
 
-        Button consumption = new Button("Consumption");
-        consumption.getStyleClass().add("button-secondary");
-        consumption.setOnAction(e -> OrderConsumptionDialog.show(order.id()));
-        buttons.add(consumption);
+        Button edit = new Button("Edit");
+        edit.getStyleClass().add("button-secondary");
+        edit.setOnAction(e -> openEditDialog(order));
+        buttons.add(edit);
 
         // An in-progress order is history; the backend refuses to delete it.
         if (order.status() != OrderStatus.IN_PROGRESS) {
@@ -162,28 +147,17 @@ public class OrderView {
             buttons.add(delete);
         }
         // Let the buttons keep their own width. An HBox will otherwise shrink
-        // them to fit the column and ellipsise the labels - "Can...",
-        // "Consumpt..." - which is worse than the table scrolling to reach
-        // them, since a clipped label still has to be guessed at.
+        // them to fit the column and ellipsise the labels, which is worse than
+        // the table scrolling to reach them.
         buttons.forEach(button -> button.setMinWidth(Region.USE_PREF_SIZE));
         return buttons;
     }
 
-    private Button lifecycleButton(String label, String styleClass,
-                                    Function<Long, CompletableFuture<OrderDto>> action, OrderDto order) {
-        Button button = new Button(label);
-        button.getStyleClass().add(styleClass);
-        button.setOnAction(e -> action.apply(order.id()).whenComplete((result, throwable) ->
-                Platform.runLater(() -> {
-                    if (throwable != null) {
-                        listView.getBanner().showError(errorMessage(throwable));
-                    } else {
-                        listView.getBanner().showSuccess(
-                                "Order #" + result.id() + " is now " + result.status() + ".");
-                    }
-                    load();
-                })));
-        return button;
+    private void openEditDialog(OrderDto order) {
+        new OrderFormDialog(order).showAndWait().ifPresent(saved -> {
+            listView.getBanner().showSuccess("Order #" + saved.id() + " updated.");
+            load();
+        });
     }
 
     private void load() {

@@ -19,6 +19,10 @@ public class OrderApiClient {
         return apiClient.post(BASE_PATH, request, OrderDto.class);
     }
 
+    public CompletableFuture<OrderDto> update(Long id, OrderRequestDto request) {
+        return apiClient.put(BASE_PATH + "/" + id, request, OrderDto.class);
+    }
+
     public CompletableFuture<OrderDto> start(Long id) {
         return apiClient.postAction(BASE_PATH + "/" + id + "/start", OrderDto.class);
     }

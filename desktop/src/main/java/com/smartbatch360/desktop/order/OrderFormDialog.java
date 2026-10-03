@@ -32,7 +32,8 @@ public class OrderFormDialog {
     private final SiteApiClient siteApiClient = new SiteApiClient();
     private final RecipeApiClient recipeApiClient = new RecipeApiClient();
 
-    private final FormDialog formDialog = new FormDialog("Create Order");
+    private final FormDialog formDialog;
+    private final OrderDto existing;
     private final ComboBox<ClientDto> clientField = new ComboBox<>();
     private final ComboBox<SiteDto> siteField = new ComboBox<>();
     private final ComboBox<RecipeDto> recipeField = new ComboBox<>();
@@ -42,6 +43,13 @@ public class OrderFormDialog {
     private OrderDto saved;
 
     public OrderFormDialog() {
+        this(null);
+    }
+
+    /** Edits an order when given one, creates a new one when given null. */
+    public OrderFormDialog(OrderDto existing) {
+        this.existing = existing;
+        this.formDialog = new FormDialog(existing == null ? "Create Order" : "Edit Order");
         formDialog.addField("Customer", "clientId", clientField);
         formDialog.addField("Site", "siteId", siteField);
         formDialog.addField("Recipe", "recipeId", recipeField);
@@ -51,7 +59,33 @@ public class OrderFormDialog {
         clientField.valueProperty().addListener((obs, old, client) -> narrowSitesTo(client));
 
         loadReferenceLists();
+        if (existing != null) {
+            quantityField.setText(existing.quantityKg().toPlainString());
+        }
         formDialog.interceptSaveClose(event -> save());
+    }
+
+    /**
+     * Selects the order's own customer, site and recipe once each list has
+     * arrived. The lists load asynchronously, so this runs per list rather than
+     * once up front.
+     */
+    private void preselectExisting() {
+        if (existing == null) {
+            return;
+        }
+        clientField.getItems().stream()
+                .filter(c -> c.id().equals(existing.clientId()))
+                .findFirst()
+                .ifPresent(clientField.getSelectionModel()::select);
+        siteField.getItems().stream()
+                .filter(site -> site.id().equals(existing.siteId()))
+                .findFirst()
+                .ifPresent(siteField.getSelectionModel()::select);
+        recipeField.getItems().stream()
+                .filter(r -> r.id().equals(existing.recipeId()))
+                .findFirst()
+                .ifPresent(recipeField.getSelectionModel()::select);
     }
 
     private void narrowSitesTo(ClientDto client) {
@@ -71,6 +105,7 @@ public class OrderFormDialog {
             List<ClientDto> items = throwable == null ? clients : List.of();
             clientField.setItems(FXCollections.observableArrayList(items));
             clientField.setDisable(false);
+            preselectExisting();
             if (items.isEmpty()) {
                 formDialog.setFormError("No customers exist yet. Add one before creating an order.");
             }
@@ -79,6 +114,7 @@ public class OrderFormDialog {
         siteApiClient.list().whenComplete((sites, throwable) -> Platform.runLater(() -> {
             allSites = throwable == null ? sites : List.of();
             narrowSitesTo(clientField.getValue());
+            preselectExisting();
         }));
 
         recipeField.setDisable(true);
@@ -86,6 +122,7 @@ public class OrderFormDialog {
             List<RecipeDto> items = throwable == null ? recipes : List.of();
             recipeField.setItems(FXCollections.observableArrayList(items));
             recipeField.setDisable(false);
+            preselectExisting();
             if (items.isEmpty()) {
                 formDialog.setFormError("No recipes exist yet. Add one before creating an order.");
             }
@@ -110,7 +147,8 @@ public class OrderFormDialog {
         }
 
         formDialog.setSaving(true);
-        apiClient.create(new OrderRequestDto(client.id(), site.id(), recipe.id(), quantity))
+        OrderRequestDto request = new OrderRequestDto(client.id(), site.id(), recipe.id(), quantity);
+        (existing == null ? apiClient.create(request) : apiClient.update(existing.id(), request))
                 .whenComplete((result, throwable) -> Platform.runLater(() -> {
                     formDialog.setSaving(false);
                     if (throwable != null) {
