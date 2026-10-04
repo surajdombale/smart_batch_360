@@ -54,6 +54,14 @@ smartbatch360:
     # Empty means production planning has nothing to divide by and will say so.
     mixer-capacity-m3: ${MIXER_CAPACITY_M3:}
 
+    # What a cubic metre of concrete weighs. This is the one number joining the
+    # m3 a load is planned in to the kilograms its materials are weighed in.
+    #
+    # Not a guess: given by the user on 04-Oct-2026 as "2400kg = 1 m3 for
+    # Concrete". Empty uses that figure; set it if the plant works to a
+    # different mix density.
+    concrete-density-kg-per-m3: ${CONCRETE_DENSITY_KG_PER_M3:}
+
   recipe:
     # The largest total, in kilograms, that one recipe may add up to - the
     # plant's batch capacity. A recipe's total is the sum of its material lines,
