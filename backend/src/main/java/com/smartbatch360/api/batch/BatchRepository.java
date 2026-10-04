@@ -8,10 +8,14 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface BatchRepository extends JpaRepository<Batch, Long>, JpaSpecificationExecutor<Batch> {
 
     boolean existsByBatchNumberIgnoreCase(String batchNumber);
+
+    /** The PLC knows a batch by its number, not by our id. */
+    Optional<Batch> findByBatchNumberIgnoreCase(String batchNumber);
 
     boolean existsByBatchNumberIgnoreCaseAndIdNot(String batchNumber, Long id);
 
