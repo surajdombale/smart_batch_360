@@ -109,8 +109,7 @@ class BatchOrderLinkTest {
     private BatchRequest request(Long orderId) {
         return new BatchRequest("250900", 1L, orderId, 2L, 3L, 4L, 5L,
                 new BigDecimal("3.00"), BigDecimal.ZERO, null, 1, "Day",
-                BatchStatus.PENDING, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
-                EquipmentStatus.STOPPED, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
+                BatchStatus.PENDING,
                 List.of(new BatchMaterialRequest("Cement", BigDecimal.TEN, BigDecimal.TEN, BigDecimal.ZERO, "kg")));
     }
 

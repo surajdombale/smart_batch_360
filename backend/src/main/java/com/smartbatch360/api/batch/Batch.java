@@ -81,26 +81,6 @@ public class Batch {
     @Column(name = "status", nullable = false, length = 20)
     private BatchStatus status;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "mixer_status", nullable = false, length = 20)
-    private EquipmentStatus mixerStatus = EquipmentStatus.STOPPED;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "conveyor_status", nullable = false, length = 20)
-    private EquipmentStatus conveyorStatus = EquipmentStatus.STOPPED;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "water_valve_status", nullable = false, length = 20)
-    private EquipmentStatus waterValveStatus = EquipmentStatus.STOPPED;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "cement_screw_status", nullable = false, length = 20)
-    private EquipmentStatus cementScrewStatus = EquipmentStatus.STOPPED;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "compressor_status", nullable = false, length = 20)
-    private EquipmentStatus compressorStatus = EquipmentStatus.STOPPED;
-
     @OneToMany(mappedBy = "batch", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
     // Loaded 100 batches at a time rather than one. Reading a list of batches
@@ -238,45 +218,15 @@ public class Batch {
         this.status = status;
     }
 
-    public EquipmentStatus getMixerStatus() {
-        return mixerStatus;
-    }
 
-    public void setMixerStatus(EquipmentStatus mixerStatus) {
-        this.mixerStatus = mixerStatus;
-    }
 
-    public EquipmentStatus getConveyorStatus() {
-        return conveyorStatus;
-    }
 
-    public void setConveyorStatus(EquipmentStatus conveyorStatus) {
-        this.conveyorStatus = conveyorStatus;
-    }
 
-    public EquipmentStatus getWaterValveStatus() {
-        return waterValveStatus;
-    }
 
-    public void setWaterValveStatus(EquipmentStatus waterValveStatus) {
-        this.waterValveStatus = waterValveStatus;
-    }
 
-    public EquipmentStatus getCementScrewStatus() {
-        return cementScrewStatus;
-    }
 
-    public void setCementScrewStatus(EquipmentStatus cementScrewStatus) {
-        this.cementScrewStatus = cementScrewStatus;
-    }
 
-    public EquipmentStatus getCompressorStatus() {
-        return compressorStatus;
-    }
 
-    public void setCompressorStatus(EquipmentStatus compressorStatus) {
-        this.compressorStatus = compressorStatus;
-    }
 
     public List<BatchMaterial> getMaterials() {
         return materials;

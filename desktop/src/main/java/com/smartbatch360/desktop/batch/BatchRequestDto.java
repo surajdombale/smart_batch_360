@@ -18,11 +18,6 @@ public record BatchRequestDto(
         Integer cycleNumber,
         String shift,
         BatchStatus status,
-        EquipmentStatus mixerStatus,
-        EquipmentStatus conveyorStatus,
-        EquipmentStatus waterValveStatus,
-        EquipmentStatus cementScrewStatus,
-        EquipmentStatus compressorStatus,
         List<BatchMaterialRequestDto> materials
 ) {
 }

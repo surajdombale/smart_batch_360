@@ -59,11 +59,6 @@ public class BatchFormDialog {
     private final TextField cycleNumberField = new TextField();
     private final TextField shiftField = new TextField();
     private final ComboBox<BatchStatus> statusField = new ComboBox<>(FXCollections.observableArrayList(BatchStatus.values()));
-    private final ComboBox<EquipmentStatus> mixerField = equipmentCombo();
-    private final ComboBox<EquipmentStatus> conveyorField = equipmentCombo();
-    private final ComboBox<EquipmentStatus> waterValveField = equipmentCombo();
-    private final ComboBox<EquipmentStatus> cementScrewField = equipmentCombo();
-    private final ComboBox<EquipmentStatus> compressorField = equipmentCombo();
 
     private final ObservableList<BatchMaterialRow> materialRows = FXCollections.observableArrayList();
     private final TableView<BatchMaterialRow> materialsTable = new TableView<>(materialRows);
@@ -102,19 +97,9 @@ public class BatchFormDialog {
         formDialog.addField("Cycle Number", "cycleNumber", cycleNumberField);
         formDialog.addField("Shift", "shift", shiftField);
         formDialog.addField("Status", "status", statusField);
-        formDialog.addField("Mixer", "mixerStatus", mixerField);
-        formDialog.addField("Conveyor", "conveyorStatus", conveyorField);
-        formDialog.addField("Water Valve", "waterValveStatus", waterValveField);
-        formDialog.addField("Cement Screw", "cementScrewStatus", cementScrewField);
-        formDialog.addField("Compressor", "compressorStatus", compressorField);
         formDialog.addField("Material Consumption", "materials", buildMaterialsEditor());
 
         statusField.getSelectionModel().select(BatchStatus.PENDING);
-        mixerField.getSelectionModel().select(EquipmentStatus.STOPPED);
-        conveyorField.getSelectionModel().select(EquipmentStatus.STOPPED);
-        waterValveField.getSelectionModel().select(EquipmentStatus.STOPPED);
-        cementScrewField.getSelectionModel().select(EquipmentStatus.STOPPED);
-        compressorField.getSelectionModel().select(EquipmentStatus.STOPPED);
         producedQuantityField.setText("0");
 
         if (existing != null) {
@@ -124,11 +109,6 @@ public class BatchFormDialog {
             cycleNumberField.setText(existing.cycleNumber() != null ? String.valueOf(existing.cycleNumber()) : "");
             shiftField.setText(existing.shift());
             statusField.getSelectionModel().select(existing.status());
-            mixerField.getSelectionModel().select(existing.mixerStatus());
-            conveyorField.getSelectionModel().select(existing.conveyorStatus());
-            waterValveField.getSelectionModel().select(existing.waterValveStatus());
-            cementScrewField.getSelectionModel().select(existing.cementScrewStatus());
-            compressorField.getSelectionModel().select(existing.compressorStatus());
             existing.materials().forEach(m -> materialRows.add(new BatchMaterialRow(
                     m.materialName(),
                     m.target() != null ? m.target().toPlainString() : "",
@@ -200,9 +180,6 @@ public class BatchFormDialog {
         }
     }
 
-    private static ComboBox<EquipmentStatus> equipmentCombo() {
-        return new ComboBox<>(FXCollections.observableArrayList(EquipmentStatus.values()));
-    }
 
     private void loadReferenceLists() {
         recipeField.setDisable(true);
@@ -365,8 +342,7 @@ public class BatchFormDialog {
                 batchNumberField.getText(), recipe.id(), order != null ? order.id() : null,
                 client.id(), site.id(), vehicle.id(), driver.id(),
                 targetQuantity, producedQuantity, null, cycleNumber, shiftField.getText(),
-                statusField.getValue(), mixerField.getValue(), conveyorField.getValue(),
-                waterValveField.getValue(), cementScrewField.getValue(), compressorField.getValue(), materials);
+                statusField.getValue(), materials);
 
         formDialog.setSaving(true);
         CompletableFuture<BatchDto> future = isEdit ? apiClient.update(id, request) : apiClient.create(request);

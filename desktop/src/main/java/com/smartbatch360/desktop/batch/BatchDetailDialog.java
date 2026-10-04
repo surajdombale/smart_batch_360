@@ -41,9 +41,6 @@ public final class BatchDetailDialog {
         row = addRow(grid, row, "Cycle Number / Shift",
                 (batch.cycleNumber() != null ? batch.cycleNumber().toString() : "-") + " / " + (batch.shift() != null ? batch.shift() : "-"));
         row = addRow(grid, row, "Status", batch.status().name());
-        row = addRow(grid, row, "Equipment (Mixer/Conveyor/Water/Cement Screw/Compressor)",
-                String.join(" / ", batch.mixerStatus().name(), batch.conveyorStatus().name(), batch.waterValveStatus().name(),
-                        batch.cementScrewStatus().name(), batch.compressorStatus().name()));
 
         TableView<BatchMaterialDto> materialsTable = new TableView<>();
         materialsTable.setItems(javafx.collections.FXCollections.observableArrayList(batch.materials()));

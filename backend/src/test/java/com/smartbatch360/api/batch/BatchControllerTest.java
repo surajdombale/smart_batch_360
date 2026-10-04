@@ -39,8 +39,6 @@ class BatchControllerTest {
                 4L, "MH12PQ3457", 5L, "Ganesh More",
                 new BigDecimal("3.00"), new BigDecimal("2.40"), new BigDecimal("0.60"),
                 Instant.now(), 1, "Day", BatchStatus.IN_PROGRESS,
-                EquipmentStatus.RUNNING, EquipmentStatus.RUNNING, EquipmentStatus.RUNNING,
-                EquipmentStatus.RUNNING, EquipmentStatus.RUNNING,
                 List.of(new BatchMaterialResponse(1L, "OPC S3 Cement", new BigDecimal("960.00"),
                         new BigDecimal("960.00"), new BigDecimal("958.00"), "kg")),
                 Instant.now(), Instant.now());
@@ -49,8 +47,7 @@ class BatchControllerTest {
     private BatchRequest sampleRequest() {
         return new BatchRequest("250201", 1L, null, 2L, 3L, 4L, 5L,
                 new BigDecimal("3.00"), BigDecimal.ZERO, null, 1, "Day",
-                BatchStatus.PENDING, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
-                EquipmentStatus.STOPPED, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
+                BatchStatus.PENDING,
                 List.of(new BatchMaterialRequest("OPC S3 Cement", new BigDecimal("960.00"),
                         new BigDecimal("960.00"), BigDecimal.ZERO, "kg")));
     }
@@ -80,8 +77,7 @@ class BatchControllerTest {
     void createRejectsBlankBatchNumber() throws Exception {
         BatchRequest request = new BatchRequest("", 1L, null, 2L, 3L, 4L, 5L,
                 new BigDecimal("3.00"), BigDecimal.ZERO, null, 1, "Day",
-                BatchStatus.PENDING, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
-                EquipmentStatus.STOPPED, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
+                BatchStatus.PENDING,
                 List.of(new BatchMaterialRequest("Cement", BigDecimal.TEN, BigDecimal.TEN, BigDecimal.ZERO, "kg")));
 
         mockMvc.perform(post("/api/v1/batches")

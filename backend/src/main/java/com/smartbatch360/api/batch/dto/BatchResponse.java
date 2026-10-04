@@ -2,7 +2,6 @@ package com.smartbatch360.api.batch.dto;
 
 import com.smartbatch360.api.batch.Batch;
 import com.smartbatch360.api.batch.BatchStatus;
-import com.smartbatch360.api.batch.EquipmentStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -29,11 +28,6 @@ public record BatchResponse(
         Integer cycleNumber,
         String shift,
         BatchStatus status,
-        EquipmentStatus mixerStatus,
-        EquipmentStatus conveyorStatus,
-        EquipmentStatus waterValveStatus,
-        EquipmentStatus cementScrewStatus,
-        EquipmentStatus compressorStatus,
         List<BatchMaterialResponse> materials,
         Instant createdAt,
         Instant updatedAt
@@ -61,11 +55,6 @@ public record BatchResponse(
                 b.getCycleNumber(),
                 b.getShift(),
                 b.getStatus(),
-                b.getMixerStatus(),
-                b.getConveyorStatus(),
-                b.getWaterValveStatus(),
-                b.getCementScrewStatus(),
-                b.getCompressorStatus(),
                 b.getMaterials().stream().map(BatchMaterialResponse::from).toList(),
                 b.getCreatedAt(),
                 b.getUpdatedAt());

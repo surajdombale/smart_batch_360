@@ -59,8 +59,7 @@ class BatchServiceTest {
     private BatchRequest sampleRequest() {
         return new BatchRequest("250201", 1L, null, 2L, 3L, 4L, 5L,
                 new BigDecimal("3.00"), BigDecimal.ZERO, null, 1, "Day",
-                BatchStatus.PENDING, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
-                EquipmentStatus.STOPPED, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
+                BatchStatus.PENDING,
                 List.of(new BatchMaterialRequest("OPC S3 Cement", new BigDecimal("960.00"),
                         new BigDecimal("960.00"), BigDecimal.ZERO, "kg")));
     }
@@ -153,24 +152,20 @@ class BatchServiceTest {
     }
 
     @Test
-    void emergencyStopStopsAllEquipment() {
+    /**
+     * Emergency stop used to drop the five equipment statuses as well, which was
+     * its whole reason for existing. Those columns went in V11, so it now does
+     * what stop() does - this pins that it still stops the batch rather than
+     * quietly doing nothing.
+     */
+    void emergencyStopStopsTheBatch() {
         Batch batch = batchWithRelations(BatchStatus.IN_PROGRESS);
-        batch.setMixerStatus(EquipmentStatus.RUNNING);
-        batch.setConveyorStatus(EquipmentStatus.RUNNING);
-        batch.setWaterValveStatus(EquipmentStatus.RUNNING);
-        batch.setCementScrewStatus(EquipmentStatus.RUNNING);
-        batch.setCompressorStatus(EquipmentStatus.RUNNING);
         when(batchRepository.findById(1L)).thenReturn(Optional.of(batch));
         when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> inv.getArgument(0));
 
         BatchResponse response = service().emergencyStop(1L);
 
         assertThat(response.status()).isEqualTo(BatchStatus.STOPPED);
-        assertThat(response.mixerStatus()).isEqualTo(EquipmentStatus.STOPPED);
-        assertThat(response.conveyorStatus()).isEqualTo(EquipmentStatus.STOPPED);
-        assertThat(response.waterValveStatus()).isEqualTo(EquipmentStatus.STOPPED);
-        assertThat(response.cementScrewStatus()).isEqualTo(EquipmentStatus.STOPPED);
-        assertThat(response.compressorStatus()).isEqualTo(EquipmentStatus.STOPPED);
     }
 
     @Test
@@ -181,8 +176,7 @@ class BatchServiceTest {
 
         BatchRequest overProduced = new BatchRequest("250201", 1L, null, 2L, 3L, 4L, 5L,
                 new BigDecimal("3.00"), new BigDecimal("3.50"), null, 1, "Day",
-                BatchStatus.IN_PROGRESS, EquipmentStatus.RUNNING, EquipmentStatus.RUNNING,
-                EquipmentStatus.RUNNING, EquipmentStatus.RUNNING, EquipmentStatus.RUNNING,
+                BatchStatus.IN_PROGRESS,
                 List.of(new BatchMaterialRequest("Cement", BigDecimal.TEN, BigDecimal.TEN, BigDecimal.TEN, "kg")));
 
         BatchResponse response = service().create(overProduced);

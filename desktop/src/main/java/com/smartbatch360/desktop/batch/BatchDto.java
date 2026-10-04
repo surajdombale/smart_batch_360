@@ -28,11 +28,6 @@ public record BatchDto(
         Integer cycleNumber,
         String shift,
         BatchStatus status,
-        EquipmentStatus mixerStatus,
-        EquipmentStatus conveyorStatus,
-        EquipmentStatus waterValveStatus,
-        EquipmentStatus cementScrewStatus,
-        EquipmentStatus compressorStatus,
         List<BatchMaterialDto> materials,
         Instant createdAt,
         Instant updatedAt

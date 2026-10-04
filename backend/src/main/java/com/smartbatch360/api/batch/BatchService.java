@@ -124,16 +124,14 @@ public class BatchService {
         return applyStatus(id, BatchStatus.STOPPED);
     }
 
-    /** Also drops every equipment status to STOPPED, unlike a plain stop() - this is the "kill everything now" control. */
+    /**
+     * Kept so the endpoint does not disappear from under any caller, but it now
+     * does exactly what stop() does. Its reason for existing was dropping the
+     * five equipment statuses, and those columns were removed in V11 - see the
+     * note on the Production controls in docs/06_SCOPE_AND_ROADMAP.md.
+     */
     public BatchResponse emergencyStop(Long id) {
-        Batch batch = getOrThrow(id);
-        batch.setStatus(BatchStatus.STOPPED);
-        batch.setMixerStatus(EquipmentStatus.STOPPED);
-        batch.setConveyorStatus(EquipmentStatus.STOPPED);
-        batch.setWaterValveStatus(EquipmentStatus.STOPPED);
-        batch.setCementScrewStatus(EquipmentStatus.STOPPED);
-        batch.setCompressorStatus(EquipmentStatus.STOPPED);
-        return BatchResponse.from(batchRepository.save(batch));
+        return applyStatus(id, BatchStatus.STOPPED);
     }
 
     public BatchResponse complete(Long id) {
@@ -205,11 +203,6 @@ public class BatchService {
         batch.setCycleNumber(request.cycleNumber());
         batch.setShift(request.shift() != null && !request.shift().isBlank() ? request.shift().trim() : null);
         batch.setStatus(request.status());
-        batch.setMixerStatus(request.mixerStatus());
-        batch.setConveyorStatus(request.conveyorStatus());
-        batch.setWaterValveStatus(request.waterValveStatus());
-        batch.setCementScrewStatus(request.cementScrewStatus());
-        batch.setCompressorStatus(request.compressorStatus());
 
         batch.getMaterials().clear();
         int order = 0;

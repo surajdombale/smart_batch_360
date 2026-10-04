@@ -1,7 +1,6 @@
 package com.smartbatch360.api.batch.dto;
 
 import com.smartbatch360.api.batch.BatchStatus;
-import com.smartbatch360.api.batch.EquipmentStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
@@ -55,19 +54,14 @@ public record BatchRequest(
         BatchStatus status,
 
         @NotNull(message = "Mixer status is required.")
-        EquipmentStatus mixerStatus,
 
         @NotNull(message = "Conveyor status is required.")
-        EquipmentStatus conveyorStatus,
 
         @NotNull(message = "Water valve status is required.")
-        EquipmentStatus waterValveStatus,
 
         @NotNull(message = "Cement screw status is required.")
-        EquipmentStatus cementScrewStatus,
 
         @NotNull(message = "Compressor status is required.")
-        EquipmentStatus compressorStatus,
 
         @NotEmpty(message = "At least one material is required.")
         @Valid

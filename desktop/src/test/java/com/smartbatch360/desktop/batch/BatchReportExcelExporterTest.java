@@ -42,8 +42,6 @@ class BatchReportExcelExporterTest {
                 Instant.parse("2026-09-12T06:30:00Z"),
                 index, "Day",
                 BatchStatus.COMPLETED,
-                EquipmentStatus.STOPPED, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
-                EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
                 materials,
                 Instant.parse("2026-09-12T06:30:00Z"), Instant.parse("2026-09-12T06:30:00Z"));
     }

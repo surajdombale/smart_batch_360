@@ -37,8 +37,6 @@ class BatchReportPrinterTest {
                     new BigDecimal("310.00"), new BigDecimal("308.50"), new BigDecimal("1.50"),
                     Instant.parse("2026-09-14T06:30:00Z"), i, "Day",
                     BatchStatus.COMPLETED,
-                    EquipmentStatus.STOPPED, EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
-                    EquipmentStatus.STOPPED, EquipmentStatus.STOPPED,
                     List.of(),
                     Instant.parse("2026-09-14T06:30:00Z"), Instant.parse("2026-09-14T06:30:00Z")));
         }
