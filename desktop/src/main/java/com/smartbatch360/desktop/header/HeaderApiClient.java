@@ -23,6 +23,19 @@ public class HeaderApiClient {
         return apiClient.put(BASE_PATH + "/" + id, request, HeaderDto.class);
     }
 
+    /** Uploads the letterhead image. Returns nothing - the form reloads the row. */
+    public CompletableFuture<Void> saveLogo(Long id, HeaderLogoDto logo) {
+        return apiClient.put(BASE_PATH + "/" + id + "/logo", logo, Void.class);
+    }
+
+    public CompletableFuture<HeaderLogoDto> logo(Long id) {
+        return apiClient.get(BASE_PATH + "/" + id + "/logo", HeaderLogoDto.class);
+    }
+
+    public CompletableFuture<Void> deleteLogo(Long id) {
+        return apiClient.delete(BASE_PATH + "/" + id + "/logo");
+    }
+
     public CompletableFuture<Void> delete(Long id) {
         return apiClient.delete(BASE_PATH + "/" + id);
     }

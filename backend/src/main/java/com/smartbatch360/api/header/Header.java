@@ -28,6 +28,12 @@ public class Header {
     @Column(name = "address", length = 255)
     private String address;
 
+    @Column(name = "city", length = 100)
+    private String city;
+
+    @Column(name = "pin_code", length = 10)
+    private String pinCode;
+
     @Column(name = "phone", length = 20)
     private String phone;
 
@@ -36,6 +42,35 @@ public class Header {
 
     @Column(name = "gstin", length = 20)
     private String gstin;
+
+    /** Named on every batch report; held here rather than per batch. */
+    @Column(name = "supervisor_name", length = 150)
+    private String supervisorName;
+
+    /** How long the mixer runs, in seconds - a duration, not a clock time. */
+    @Column(name = "mix_time_seconds")
+    private Integer mixTimeSeconds;
+
+    /** How long discharging takes, in seconds. */
+    @Column(name = "discharge_time_seconds")
+    private Integer dischargeTimeSeconds;
+
+    /**
+     * The letterhead image itself, not a path to one: this app ships as a
+     * self-contained install and a path would point at a file the next PC does
+     * not have. Lazy because the list screen shows every company and none of
+     * them need the bytes.
+     */
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    // The length is what makes this a MEDIUMBLOB rather than Hibernate's default
+    // TINYBLOB, which holds 255 bytes and would reject any real image. Startup
+    // validation catches the mismatch, so this has to agree with V13.
+    @Column(name = "logo", length = 16_777_215)
+    private byte[] logo;
+
+    @Column(name = "logo_content_type", length = 100)
+    private String logoContentType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -125,5 +160,61 @@ public class Header {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getPinCode() {
+        return pinCode;
+    }
+
+    public void setPinCode(String pinCode) {
+        this.pinCode = pinCode;
+    }
+
+    public String getSupervisorName() {
+        return supervisorName;
+    }
+
+    public void setSupervisorName(String supervisorName) {
+        this.supervisorName = supervisorName;
+    }
+
+    public Integer getMixTimeSeconds() {
+        return mixTimeSeconds;
+    }
+
+    public void setMixTimeSeconds(Integer mixTimeSeconds) {
+        this.mixTimeSeconds = mixTimeSeconds;
+    }
+
+    public Integer getDischargeTimeSeconds() {
+        return dischargeTimeSeconds;
+    }
+
+    public void setDischargeTimeSeconds(Integer dischargeTimeSeconds) {
+        this.dischargeTimeSeconds = dischargeTimeSeconds;
+    }
+
+    public byte[] getLogo() {
+        return logo;
+    }
+
+    public void setLogo(byte[] logo) {
+        this.logo = logo;
+    }
+
+    public String getLogoContentType() {
+        return logoContentType;
+    }
+
+    public void setLogoContentType(String logoContentType) {
+        this.logoContentType = logoContentType;
     }
 }

@@ -1,5 +1,7 @@
 package com.smartbatch360.api.header;
 
+import com.smartbatch360.api.header.dto.HeaderLogoRequest;
+import com.smartbatch360.api.header.dto.HeaderLogoResponse;
 import com.smartbatch360.api.header.dto.HeaderRequest;
 import com.smartbatch360.api.header.dto.HeaderResponse;
 import jakarta.validation.Valid;
@@ -39,6 +41,23 @@ public class HeaderController {
     @PutMapping("/{id}")
     public HeaderResponse update(@PathVariable Long id, @Valid @RequestBody HeaderRequest request) {
         return headerService.update(id, request);
+    }
+
+    @PutMapping("/{id}/logo")
+    public ResponseEntity<Void> saveLogo(@PathVariable Long id, @Valid @RequestBody HeaderLogoRequest request) {
+        headerService.saveLogo(id, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/logo")
+    public HeaderLogoResponse logo(@PathVariable Long id) {
+        return headerService.findLogo(id);
+    }
+
+    @DeleteMapping("/{id}/logo")
+    public ResponseEntity<Void> deleteLogo(@PathVariable Long id) {
+        headerService.deleteLogo(id);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")

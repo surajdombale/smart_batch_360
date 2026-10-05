@@ -31,7 +31,8 @@ class HeaderControllerTest {
 
     private HeaderResponse sample() {
         return new HeaderResponse(1L, "SmartBatch Solutions", "Kharadi Plant", "Kharadi, Pune",
-                "9876543210", "info@smartbatch.example", "27ABCDE1234F1Z5", HeaderStatus.ACTIVE,
+                "Pune", "411014", "9876543210", "info@smartbatch.example", "27ABCDE1234F1Z5",
+                "R. Patil", 30, 20, false, HeaderStatus.ACTIVE,
                 Instant.now(), Instant.now());
     }
 
@@ -49,7 +50,8 @@ class HeaderControllerTest {
         when(headerService.create(any())).thenReturn(sample());
 
         HeaderRequest request = new HeaderRequest("SmartBatch Solutions", "Kharadi Plant",
-                "Kharadi, Pune", "9876543210", "info@smartbatch.example", "27ABCDE1234F1Z5", HeaderStatus.ACTIVE);
+                "Kharadi, Pune", "Pune", "411014", "9876543210", "info@smartbatch.example",
+                "27ABCDE1234F1Z5", "R. Patil", 30, 20, HeaderStatus.ACTIVE);
 
         mockMvc.perform(post("/api/v1/headers")
                         .contentType("application/json")
@@ -61,7 +63,7 @@ class HeaderControllerTest {
     @Test
     void createRejectsBlankCompanyName() throws Exception {
         HeaderRequest request = new HeaderRequest("", "Kharadi Plant",
-                null, null, null, null, HeaderStatus.ACTIVE);
+                null, null, null, null, null, null, null, null, null, HeaderStatus.ACTIVE);
 
         mockMvc.perform(post("/api/v1/headers")
                         .contentType("application/json")
@@ -73,7 +75,7 @@ class HeaderControllerTest {
     @Test
     void createRejectsInvalidEmail() throws Exception {
         HeaderRequest request = new HeaderRequest("SmartBatch Solutions", "Kharadi Plant",
-                null, null, "not-an-email", null, HeaderStatus.ACTIVE);
+                null, null, null, null, "not-an-email", null, null, null, null, HeaderStatus.ACTIVE);
 
         mockMvc.perform(post("/api/v1/headers")
                         .contentType("application/json")
@@ -86,7 +88,7 @@ class HeaderControllerTest {
         when(headerService.create(any())).thenReturn(sample());
 
         HeaderRequest request = new HeaderRequest("SmartBatch Solutions", "Kharadi Plant",
-                null, null, null, null, HeaderStatus.ACTIVE);
+                null, null, null, null, null, null, null, null, null, HeaderStatus.ACTIVE);
 
         mockMvc.perform(post("/api/v1/headers")
                         .contentType("application/json")

@@ -4,14 +4,23 @@ import com.smartbatch360.api.header.HeaderStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
  * Fields as clarified directly by the user (no source-document mockup exists
- * for Header): Company Name, Plant/Branch Name, Address, Phone, Email,
- * GSTIN/Tax ID, Status. Company Name and Plant Name are required so each
- * header has an identifying label in the list; the rest are optional since a
- * letterhead is often filled in incrementally.
+ * for Header): Company Name, Plant/Branch Name, Address, City, Pin code,
+ * Phone, Email, GSTIN/Tax ID, Supervisor, Mix time, Discharge time, Status.
+ * Company Name and Plant Name are required so each header has an identifying
+ * label in the list; the rest are optional since a letterhead is often filled
+ * in incrementally.
+ *
+ * The last four arrived on 04-Oct-2026 with the batch report templates, which
+ * print them on every report. Mix and discharge times are DURATIONS in seconds,
+ * not clock times. The logo is not here - it is uploaded separately, since a
+ * letterhead image has no business in a JSON form submission.
  */
 public record HeaderRequest(
 
@@ -26,6 +35,12 @@ public record HeaderRequest(
         @Size(max = 255, message = "Address must be at most 255 characters.")
         String address,
 
+        @Size(max = 100, message = "City must be at most 100 characters.")
+        String city,
+
+        @Pattern(regexp = "^$|^[0-9]{6}$", message = "Pin code must be 6 digits.")
+        String pinCode,
+
         @Size(max = 20, message = "Phone must be at most 20 characters.")
         String phone,
 
@@ -35,6 +50,17 @@ public record HeaderRequest(
 
         @Size(max = 20, message = "GSTIN/Tax ID must be at most 20 characters.")
         String gstin,
+
+        @Size(max = 150, message = "Supervisor name must be at most 150 characters.")
+        String supervisorName,
+
+        @Min(value = 0, message = "Mix time cannot be negative.")
+        @Max(value = 3600, message = "Mix time must be at most 3600 seconds.")
+        Integer mixTimeSeconds,
+
+        @Min(value = 0, message = "Discharge time cannot be negative.")
+        @Max(value = 3600, message = "Discharge time must be at most 3600 seconds.")
+        Integer dischargeTimeSeconds,
 
         @NotNull(message = "Status is required.")
         HeaderStatus status
