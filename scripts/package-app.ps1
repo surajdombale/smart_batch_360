@@ -8,7 +8,9 @@
 # log: Company Details (renamed, with the batch report's letterhead fields and
 # a logo), a recipe total limit, Orders with Edit instead of lifecycle buttons,
 # the five simulated equipment statuses dropped, production planned in cubic
-# metres, and the per-cycle endpoint the PLC reports into. Bump
+# metres with a new Production screen (pick order and vehicle, enter the batch
+# size, cycles and setpoints calculated), and the per-cycle endpoint the PLC
+# reports into. Bump
 # $AppName/$AppVersion here for future releases.
 #
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\package-app.ps1
