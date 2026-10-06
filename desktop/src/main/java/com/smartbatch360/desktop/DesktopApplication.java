@@ -13,6 +13,7 @@ import com.smartbatch360.desktop.navigation.NavEntry;
 import com.smartbatch360.desktop.navigation.NavGroup;
 import com.smartbatch360.desktop.navigation.NavItem;
 import com.smartbatch360.desktop.order.OrderView;
+import com.smartbatch360.desktop.production.ProductionView;
 import com.smartbatch360.desktop.recipe.RecipeView;
 import com.smartbatch360.desktop.server.EmbeddedServer;
 import com.smartbatch360.desktop.settings.SettingsView;
@@ -63,7 +64,8 @@ public class DesktopApplication extends Application {
     public void start(Stage primaryStage) {
         List<NavEntry> navEntries = List.of(
                 new NavItem("dashboard", "Dashboard", DashboardView::new),
-                new NavItem("production", "Production", () -> new BatchView().getView()),
+                new NavItem("production", "Production", () -> new ProductionView().getView()),
+                new NavItem("batches", "Batch List", () -> new BatchView().getView()),
                 new NavItem("orders", "Orders", () -> new OrderView().getView()),
                 new NavItem("batch-reports", "Batch Reports", () -> new BatchReportView().getView()),
                 new NavItem("material-consumption", "Consumption", () -> new MaterialConsumptionView().getView()),
