@@ -4,10 +4,15 @@ import com.smartbatch360.api.header.HeaderStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+
+import java.math.BigDecimal;
 
 /**
  * Fields as clarified directly by the user (no source-document mockup exists
@@ -61,6 +66,11 @@ public record HeaderRequest(
         @Min(value = 0, message = "Discharge time cannot be negative.")
         @Max(value = 3600, message = "Discharge time must be at most 3600 seconds.")
         Integer dischargeTimeSeconds,
+
+        @DecimalMin(value = "0.1", message = "Mixer capacity must be at least 0.1 m3.")
+        @DecimalMax(value = "10.0", message = "Mixer capacity must be at most 10 m3.")
+        @Digits(integer = 2, fraction = 2, message = "Mixer capacity may have at most 2 decimal places.")
+        BigDecimal mixerCapacityM3,
 
         @NotNull(message = "Status is required.")
         HeaderStatus status

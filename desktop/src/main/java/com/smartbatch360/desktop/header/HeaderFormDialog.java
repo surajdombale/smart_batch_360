@@ -42,6 +42,7 @@ public class HeaderFormDialog {
     private final TextField supervisorField = new TextField();
     private final TextField mixTimeField = new TextField();
     private final TextField dischargeTimeField = new TextField();
+    private final TextField mixerCapacityField = new TextField();
     private final Label logoLabel = new Label();
     private byte[] pendingLogo;
     private String pendingLogoContentType;
@@ -67,12 +68,14 @@ public class HeaderFormDialog {
         formDialog.addField("Supervisor Name", "supervisorName", supervisorField);
         formDialog.addField("Mix Time (seconds)", "mixTimeSeconds", mixTimeField);
         formDialog.addField("Discharge Time (seconds)", "dischargeTimeSeconds", dischargeTimeField);
+        formDialog.addField("Mixer Capacity (m3)", "mixerCapacityM3", mixerCapacityField);
         formDialog.addField("Company Logo", "logo", buildLogoPicker());
         formDialog.addField("Status", "status", statusField);
 
         mixTimeField.setPromptText("e.g. 30");
         dischargeTimeField.setPromptText("e.g. 20");
         pinCodeField.setPromptText("6 digits");
+        mixerCapacityField.setPromptText("0.1 to 10, e.g. 1");
 
         statusField.getSelectionModel().select(HeaderStatus.ACTIVE);
         if (existing != null) {
@@ -88,6 +91,8 @@ public class HeaderFormDialog {
             mixTimeField.setText(existing.mixTimeSeconds() != null ? String.valueOf(existing.mixTimeSeconds()) : "");
             dischargeTimeField.setText(existing.dischargeTimeSeconds() != null
                     ? String.valueOf(existing.dischargeTimeSeconds()) : "");
+            mixerCapacityField.setText(existing.mixerCapacityM3() != null
+                    ? existing.mixerCapacityM3().stripTrailingZeros().toPlainString() : "");
             logoLabel.setText(existing.hasLogo() ? "A logo is set." : "No logo chosen.");
             statusField.getSelectionModel().select(existing.status());
         }
@@ -108,11 +113,17 @@ public class HeaderFormDialog {
             return;
         }
 
+        java.math.BigDecimal mixerCapacity = parseDecimalOrNull(mixerCapacityField.getText());
+        if (mixerCapacity == null && !mixerCapacityField.getText().isBlank()) {
+            formDialog.setFormError("Mixer capacity must be a number, for example 1 or 1.5.");
+            return;
+        }
+
         HeaderRequestDto request = new HeaderRequestDto(
                 companyNameField.getText(), plantNameField.getText(), addressField.getText(),
                 cityField.getText(), pinCodeField.getText(),
                 phoneField.getText(), emailField.getText(), gstinField.getText(),
-                supervisorField.getText(), mixTime, dischargeTime, statusField.getValue());
+                supervisorField.getText(), mixTime, dischargeTime, mixerCapacity, statusField.getValue());
 
         formDialog.setSaving(true);
         CompletableFuture<HeaderDto> future = isEdit ? apiClient.update(id, request) : apiClient.create(request);
@@ -181,6 +192,17 @@ public class HeaderFormDialog {
             logoLabel.setText(file.getName() + " (" + (bytes.length / 1024) + " KB)");
         } catch (IOException ex) {
             formDialog.setFormError("That image could not be read: " + ex.getMessage());
+        }
+    }
+
+    private java.math.BigDecimal parseDecimalOrNull(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            return new java.math.BigDecimal(text.trim());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

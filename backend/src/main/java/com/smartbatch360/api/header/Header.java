@@ -2,6 +2,7 @@ package com.smartbatch360.api.header;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
@@ -54,6 +55,13 @@ public class Header {
     /** How long discharging takes, in seconds. */
     @Column(name = "discharge_time_seconds")
     private Integer dischargeTimeSeconds;
+
+    /**
+     * How much the mixer holds, in cubic metres. Production divides a load into
+     * cycles of this size. Null falls back to the configured property.
+     */
+    @Column(name = "mixer_capacity_m3", precision = 4, scale = 2)
+    private BigDecimal mixerCapacityM3;
 
     /**
      * The letterhead image itself, not a path to one: this app ships as a
@@ -216,5 +224,13 @@ public class Header {
 
     public void setLogoContentType(String logoContentType) {
         this.logoContentType = logoContentType;
+    }
+
+    public BigDecimal getMixerCapacityM3() {
+        return mixerCapacityM3;
+    }
+
+    public void setMixerCapacityM3(BigDecimal mixerCapacityM3) {
+        this.mixerCapacityM3 = mixerCapacityM3;
     }
 }

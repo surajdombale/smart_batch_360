@@ -31,7 +31,7 @@ class HeaderServiceTest {
     void createsHeaderFromRequest() {
         HeaderRequest request = new HeaderRequest("SmartBatch Solutions", "Kharadi Plant",
                 "Kharadi, Pune", "Pune", "411014", "9876543210", "info@smartbatch.example",
-                "27ABCDE1234F1Z5", "R. Patil", 30, 20, HeaderStatus.ACTIVE);
+                "27ABCDE1234F1Z5", "R. Patil", 30, 20, new java.math.BigDecimal("1.50"), HeaderStatus.ACTIVE);
         when(headerRepository.save(any(Header.class))).thenAnswer(inv -> inv.getArgument(0));
 
         HeaderResponse response = service().create(request);
@@ -45,7 +45,7 @@ class HeaderServiceTest {
     @Test
     void blankOptionalFieldsAreStoredAsNull() {
         HeaderRequest request = new HeaderRequest("SmartBatch Solutions", "Kharadi Plant",
-                "  ", "", null, "", null, "   ", "  ", null, null, HeaderStatus.ACTIVE);
+                "  ", "", null, "", null, "   ", "  ", null, null, null, HeaderStatus.ACTIVE);
         when(headerRepository.save(any(Header.class))).thenAnswer(inv -> inv.getArgument(0));
 
         HeaderResponse response = service().create(request);
@@ -137,7 +137,7 @@ class HeaderServiceTest {
     void theNewReportFieldsAreStored() {
         HeaderRequest request = new HeaderRequest("SmartBatch Solutions", "Kharadi Plant",
                 "Kharadi, Pune", "Pune", "411014", "9876543210", "info@smartbatch.example",
-                "27ABCDE1234F1Z5", "R. Patil", 30, 20, HeaderStatus.ACTIVE);
+                "27ABCDE1234F1Z5", "R. Patil", 30, 20, new java.math.BigDecimal("1.50"), HeaderStatus.ACTIVE);
         when(headerRepository.save(any(Header.class))).thenAnswer(inv -> inv.getArgument(0));
 
         HeaderResponse response = service().create(request);

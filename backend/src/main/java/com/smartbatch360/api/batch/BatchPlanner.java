@@ -27,15 +27,18 @@ public class BatchPlanner {
     /** Wide enough that scaling a recipe does not lose precision before rounding. */
     private static final int RATIO_SCALE = 10;
 
-    private final MixerCapacity mixerCapacity;
     private final ConcreteDensity concreteDensity;
 
-    public BatchPlanner(MixerCapacity mixerCapacity, ConcreteDensity concreteDensity) {
-        this.mixerCapacity = mixerCapacity;
+    public BatchPlanner(ConcreteDensity concreteDensity) {
         this.concreteDensity = concreteDensity;
     }
 
-    public BatchPlan plan(Recipe recipe, BigDecimal batchSizeM3) {
+    /**
+     * The capacity is passed in rather than held: it is editable on Company
+     * Details, so holding one at startup would plan against a mixer the plant
+     * no longer has.
+     */
+    public BatchPlan plan(Recipe recipe, BigDecimal batchSizeM3, MixerCapacity mixerCapacity) {
         BigDecimal recipeTotal = recipe.getTotalBatchQuantityKg();
         if (recipeTotal == null || recipeTotal.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidRequestException("Recipe '" + recipe.getName() + "' has no materials, so a batch of it "

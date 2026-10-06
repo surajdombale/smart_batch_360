@@ -42,6 +42,7 @@ class ProductionServiceTest {
     @Autowired private SalesOrderRepository salesOrderRepository;
     @Autowired private VehicleRepository vehicleRepository;
     @Autowired private BatchRepository batchRepository;
+    @Autowired private com.smartbatch360.api.header.HeaderRepository headerRepository;
     @Autowired private EntityManager entityManager;
 
     private ProductionService service;
@@ -50,9 +51,11 @@ class ProductionServiceTest {
 
     @BeforeEach
     void seed() {
-        BatchPlanner planner = new BatchPlanner(MixerCapacity.of("1"), ConcreteDensity.standard());
+        BatchPlanner planner = new BatchPlanner(ConcreteDensity.standard());
+        // A 1 m3 mixer, as if Company Details said so.
+        PlantSettings plantSettings = new PlantSettings(headerRepository, "1");
         service = new ProductionService(salesOrderRepository, vehicleRepository, batchRepository, planner,
-                MixerCapacity.of("1"),
+                plantSettings,
                 new ProductionService.ReportingZoneBatchNumber(batchRepository,
                         ReportingZone.of(ZoneOffset.UTC)));
 

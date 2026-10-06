@@ -1,8 +1,6 @@
 package com.smartbatch360.api.batch;
 
 import com.smartbatch360.api.common.InvalidRequestException;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
@@ -14,11 +12,11 @@ import java.math.BigDecimal;
  * cannot hold a whole load at once, so a batch is run as repeated cycles - this
  * is the size of one of them.
  *
- * Configured with smartbatch360.plant.mixer-capacity-m3. It belongs to the
- * plant, so it is not guessed here; unset means production planning has nothing
- * to divide by and the caller is told to set it.
+ * Set on Company Details, falling back to smartbatch360.plant.mixer-capacity-m3
+ * - see PlantSettings, which decides which applies. It belongs to the plant, so
+ * it is not guessed here; unset means production planning has nothing to divide
+ * by and the caller is told where to set it.
  */
-@Component
 public class MixerCapacity {
 
     /** The range the plant's own specification gives for a mixer. */
@@ -27,7 +25,7 @@ public class MixerCapacity {
 
     private final BigDecimal capacityM3;
 
-    public MixerCapacity(@Value("${smartbatch360.plant.mixer-capacity-m3:}") String configured) {
+    public MixerCapacity(String configured) {
         if (configured == null || configured.isBlank()) {
             this.capacityM3 = null;
             return;
@@ -55,8 +53,8 @@ public class MixerCapacity {
 
     public BigDecimal capacityM3() {
         if (capacityM3 == null) {
-            throw new InvalidRequestException("The plant's mixer capacity has not been set, so a batch cannot be "
-                    + "split into cycles. Set smartbatch360.plant.mixer-capacity-m3.");
+            throw new InvalidRequestException("The plant's mixer capacity has not been set, so a batch cannot "
+                    + "be split into cycles. Set it on Company Details.");
         }
         return capacityM3;
     }

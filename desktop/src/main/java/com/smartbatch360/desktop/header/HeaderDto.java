@@ -18,6 +18,7 @@ public record HeaderDto(
         String supervisorName,
         Integer mixTimeSeconds,
         Integer dischargeTimeSeconds,
+        java.math.BigDecimal mixerCapacityM3,
         boolean hasLogo,
         HeaderStatus status,
         Instant createdAt,

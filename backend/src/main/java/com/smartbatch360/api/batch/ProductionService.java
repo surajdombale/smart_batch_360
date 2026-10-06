@@ -34,17 +34,17 @@ public class ProductionService {
     private final VehicleRepository vehicleRepository;
     private final BatchRepository batchRepository;
     private final BatchPlanner batchPlanner;
-    private final MixerCapacity mixerCapacity;
+    private final PlantSettings plantSettings;
     private final ReportingZoneBatchNumber batchNumbering;
 
     public ProductionService(SalesOrderRepository salesOrderRepository, VehicleRepository vehicleRepository,
                              BatchRepository batchRepository, BatchPlanner batchPlanner,
-                             MixerCapacity mixerCapacity, ReportingZoneBatchNumber batchNumbering) {
+                             PlantSettings plantSettings, ReportingZoneBatchNumber batchNumbering) {
         this.salesOrderRepository = salesOrderRepository;
         this.vehicleRepository = vehicleRepository;
         this.batchRepository = batchRepository;
         this.batchPlanner = batchPlanner;
-        this.mixerCapacity = mixerCapacity;
+        this.plantSettings = plantSettings;
         this.batchNumbering = batchNumbering;
     }
 
@@ -52,7 +52,8 @@ public class ProductionService {
     @Transactional(readOnly = true)
     public ProductionPlanResponse plan(ProductionPlanRequest request) {
         SalesOrder order = order(request.orderId());
-        BatchPlan plan = batchPlanner.plan(order.getRecipe(), request.batchSizeM3());
+        MixerCapacity mixerCapacity = plantSettings.mixerCapacity();
+        BatchPlan plan = batchPlanner.plan(order.getRecipe(), request.batchSizeM3(), mixerCapacity);
 
         return ProductionPlanResponse.of(
                 order.getId(),
@@ -77,7 +78,8 @@ public class ProductionService {
         Vehicle vehicle = vehicleRepository.findById(request.vehicleId())
                 .orElseThrow(() -> NotFoundException.forId("Vehicle", request.vehicleId()));
 
-        BatchPlan plan = batchPlanner.plan(order.getRecipe(), request.batchSizeM3());
+        BatchPlan plan = batchPlanner.plan(order.getRecipe(), request.batchSizeM3(),
+                plantSettings.mixerCapacity());
         String batchNumber = resolveBatchNumber(request.batchNumber());
 
         Batch batch = new Batch();

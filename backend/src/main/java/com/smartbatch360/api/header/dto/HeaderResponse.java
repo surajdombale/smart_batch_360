@@ -3,6 +3,7 @@ package com.smartbatch360.api.header.dto;
 import com.smartbatch360.api.header.Header;
 import com.smartbatch360.api.header.HeaderStatus;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
@@ -23,6 +24,7 @@ public record HeaderResponse(
         String supervisorName,
         Integer mixTimeSeconds,
         Integer dischargeTimeSeconds,
+        BigDecimal mixerCapacityM3,
         boolean hasLogo,
         HeaderStatus status,
         Instant createdAt,
@@ -32,6 +34,7 @@ public record HeaderResponse(
         return new HeaderResponse(h.getId(), h.getCompanyName(), h.getPlantName(), h.getAddress(),
                 h.getCity(), h.getPinCode(), h.getPhone(), h.getEmail(), h.getGstin(),
                 h.getSupervisorName(), h.getMixTimeSeconds(), h.getDischargeTimeSeconds(),
+                h.getMixerCapacityM3(),
                 h.getLogo() != null && h.getLogo().length > 0,
                 h.getStatus(), h.getCreatedAt(), h.getUpdatedAt());
     }

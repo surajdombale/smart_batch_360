@@ -12,6 +12,7 @@ public record HeaderRequestDto(
         String supervisorName,
         Integer mixTimeSeconds,
         Integer dischargeTimeSeconds,
+        java.math.BigDecimal mixerCapacityM3,
         HeaderStatus status
 ) {
 }
