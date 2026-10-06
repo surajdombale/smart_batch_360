@@ -34,6 +34,11 @@ class BatchControllerTest {
     @MockBean
     private BatchService batchService;
 
+    // The controller gained Production's two endpoints, so the slice needs this
+    // bean even though no test here exercises them.
+    @MockBean
+    private ProductionService productionService;
+
     private BatchResponse sample() {
         return new BatchResponse(1L, "250201", 1L, "M25", null, 2L, "SmartBatch Solutions", 3L, "Kharadi",
                 4L, "MH12PQ3457", 5L, "Ganesh More",
