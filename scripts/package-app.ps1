@@ -2,13 +2,14 @@
 # Spring Boot backend embedded in one process (bundles its own Java runtime;
 # the target machine only needs MySQL, not Java or Maven).
 #
-# Named/versioned as "SmartBatch360 V6" (app version 6.0.0) so it installs
-# into its own folder alongside existing V1-V5 installs without colliding.
-# V6 (2026-09-30) is a correctness and performance release: timestamps are
-# stored as true UTC instants and report dates mean days at the plant, list
-# screens no longer cost a query per row, the batch cycle time is indexed, and
-# Material Consumption opens on the last 30 days. Bump $AppName/$AppVersion
-# here for future releases.
+# Named/versioned as "SmartBatch360 V7" (app version 7.0.0) so it installs
+# into its own folder alongside existing V1-V6 installs without colliding.
+# V7 (2026-10-06) is the first release built from the test developer's change
+# log: Company Details (renamed, with the batch report's letterhead fields and
+# a logo), a recipe total limit, Orders with Edit instead of lifecycle buttons,
+# the five simulated equipment statuses dropped, production planned in cubic
+# metres, and the per-cycle endpoint the PLC reports into. Bump
+# $AppName/$AppVersion here for future releases.
 #
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\package-app.ps1
 
@@ -16,8 +17,8 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $backend = Join-Path $root "backend"
 $desktop = Join-Path $root "desktop"
-$AppName = "SmartBatch360 V6"
-$AppVersion = "6.0.0"
+$AppName = "SmartBatch360 V7"
+$AppVersion = "7.0.0"
 $IconPath = Join-Path $root "desktop\src\main\resources\images\app-icon.ico"
 
 Push-Location $backend
@@ -65,12 +66,12 @@ try {
         --app-version $AppVersion `
         --vendor "SmartBatch360" `
         --icon $IconPath `
-        --description "SmartBatch360 - Industrial Batching Plant Management System (V6: Materials, Recipes, Orders with lifecycle and fulfilment, Production, Batch Reports with PDF/Excel export and printing, Material Consumption with chart - all quantities in kg)"
+        --description "SmartBatch360 - Industrial Batching Plant Management System (V7: Materials, Recipes with a batch limit, Orders with fulfilment, Production, Batch Reports with PDF/Excel export and printing, Material Consumption with chart, Company Details - quantities in kg, loads planned in m3)"
     if ($LASTEXITCODE -ne 0) { throw "jpackage failed" }
 
     Copy-Item (Join-Path $root "scripts\SETUP_ON_NEW_PC.md") "target/dist/$AppName/" -Force
 
-    $zipPath = Join-Path $desktop "target\SmartBatch360-V6.zip"
+    $zipPath = Join-Path $desktop "target\SmartBatch360-V7.zip"
     Remove-Item $zipPath -ErrorAction SilentlyContinue
     Compress-Archive -Path "target/dist/$AppName" -DestinationPath $zipPath
     Write-Host "Done: $zipPath"

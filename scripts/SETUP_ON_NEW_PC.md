@@ -1,14 +1,14 @@
 # Setting up SmartBatch360 on a new PC
 
-You need one thing on the new PC besides MySQL: `SmartBatch360 V6.exe` (bundles
+You need one thing on the new PC besides MySQL: `SmartBatch360 V7.exe` (bundles
 its own Java runtime - Java doesn't need to be installed separately). MySQL
 must already be installed and running - that's the only other prerequisite.
 No manual SQL, no separate server process.
 
 ## 1. Install and launch
 
-Unzip `SmartBatch360-V6.zip` anywhere, then run `SmartBatch360 V6.exe` from
-the `SmartBatch360 V6` folder inside it. The app
+Unzip `SmartBatch360-V7.zip` anywhere, then run `SmartBatch360 V7.exe` from
+the `SmartBatch360 V7` folder inside it. The app
 opens straight away - the UI never waits on the database to start.
 
 ## 2. Connect the database (one-time)
