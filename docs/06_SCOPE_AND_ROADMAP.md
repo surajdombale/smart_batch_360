@@ -109,6 +109,33 @@ The current phase is intentionally small:
   - Packaged as V6 (6.0.0) for client review, replacing V5. Zip verified the same way V5 was: names, all ten migrations, report libraries present, test-only libraries absent, and the packaged exe launched and served every screen.
   - Deliberately not done: capping the Orders list. It was on the list, but at 2,002 orders it is 0.08s - the query count was the defect and that is fixed. A cap would cost searchability for no measured gain.
 
+- Working from the tester's change log — from 30-Sep-2026, the user put a developer on the app and a shared Google Sheet became the queue. Columns: Bug Version (which release it was found against), Status, Developer/Updated By, Resolved Version, Resolved At, Notes. Claude reads and writes it through the Sheets connector and marks what it resolves as "Suraj (Claude)".
+  - The rule the user set: only work items marked V4 or below. Everything filed so far is against V4, which is what the developer is testing.
+
+- Company Details — 2026-09-30 and 2026-10-05, the Header module renamed and then grown into the app's settings home. The nav item, screen title, dialogs and dashboard tile say Company; the REST path and table stay `header`, since renaming those means a migration and an API break for a wording change. On 05-Oct it gained City, Pin code, Supervisor name, Mix time, Discharge time and a logo - the letterhead and header block the batch report templates print. All optional: a company row already existed and would have become invalid otherwise.
+  - The logo is stored in the row, not as a path: this app ships as a self-contained install and a path points at a file the next PC does not have. PNG and JPEG only, because those are what PDFBox can draw, so a wrong file is refused at upload rather than when someone prints.
+  - The user chose Company Details over a Settings module for supervisor/mix/discharge times, so Settings stays deferred.
+
+- Recipe total limit — 2026-09-30. A recipe's total is the sum of its lines, so nothing stopped a mix the mixer cannot physically hold. Saving one is now refused with both figures in the message. The limit is unset by default and is the plant's own number, so it does nothing until someone sets RECIPE_MAX_TOTAL_KG.
+
+- Orders: Edit and Delete only — 2026-10-03. The Status column and the Start/Fulfil/Cancel/Consumption buttons are gone; Edit is new, and the backend gained the update endpoint it never had. An order with batches recorded against it may only have its quantity changed: a batch may only name an order whose recipe, customer and site match its own, so changing those would invalidate every batch already produced against it.
+  - Consequence left open: nothing sets an order's status any more. The lifecycle endpoints still exist and nothing calls them. Whether status should follow production automatically is the user's decision, noted in the sheet.
+
+- The five simulated equipment statuses are gone — 2026-10-04 (V11), at the user's request with the batch report templates. Mixer, conveyor, water valve, cement screw and compressor status were manual stand-ins for hardware that was never wired up. Destructive, unlike every migration before it: one batch existed and its five values are lost. A dump was taken first and the batch itself came through unchanged.
+  - Emergency stop kept its endpoint so no caller breaks, but dropping those statuses was its whole reason for existing, so it now does what stop() does. The E-Stop button on Production is a duplicate of Stop and should probably go - raised, not yet decided.
+
+- Production planned in cubic metres — 2026-09-30 to 2026-10-04. A load is sized in m3 because it has to be matched to a vehicle, and vehicle capacity is already in m3. The plant's formula: cycles is batch size over mixer capacity, per-cycle quantity is batch size over cycles.
+  - The formula does not say what happens when a load does not divide evenly. Decided and written down: 6.5 m3 through a 1 m3 mixer is 7 cycles of 0.9286 m3, not 6 full ones and a half-empty seventh - an even split keeps every cycle the same mix and none over capacity.
+  - m3 and kilograms meet at exactly one number, 2400 kg/m3, which the user supplied on 04-Oct in answer to a question that had been open since the m3 decision. It is NOT assumed and it is configurable. The recipe's own proportions split that weight between materials, so there is still no per-material density - see the standing rule in CLAUDE.md.
+
+- Per-cycle data, reported by the PLC — 2026-10-04 (V12). The batch report is a grid of cycles against materials, and a batch carried only a finished total per material. The PLC posts one message per cycle carrying every material, through the API rather than into the tables, so the rules live in one place.
+  - Stored normalised rather than as twenty columns: the report totals a material down the cycles, and a twenty-column row would be mostly empty for a six-material mix.
+  - A resend corrects the cycle rather than adding a second copy. A dropped acknowledgement is the normal reason a PLC resends, and counting it twice would overstate what the plant produced.
+  - Worth recording: the resend case PASSED against H2 and FAILED against MySQL with a 409, because Hibernate orders the new material inserts before the orphan deletes. Materials are now updated in place. This is the fifth bug this month that a test could not see and the real database could.
+
+- Packaged as V7 (7.0.0) — 2026-10-06, for the test developer. Carries everything above.
+  - Not in it, and still open in the sheet: the Production screen itself (rows 34-47 - the calculations behind it are built and tested, the screen is not), the batch report PDF from the handwritten templates, "Add Company id" (row 20, waiting on what an id means here), and "one Company under Admin Control" (row 21, needs authentication, still deferred).
+
 ### Do not build now
 - Analytics
 - PLC Monitoring
