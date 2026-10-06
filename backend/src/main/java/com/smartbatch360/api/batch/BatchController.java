@@ -2,6 +2,9 @@ package com.smartbatch360.api.batch;
 
 import com.smartbatch360.api.batch.dto.BatchPageResponse;
 import com.smartbatch360.api.batch.dto.BatchRequest;
+import com.smartbatch360.api.batch.dto.ProductionPlanRequest;
+import com.smartbatch360.api.batch.dto.ProductionPlanResponse;
+import com.smartbatch360.api.batch.dto.StartProductionRequest;
 import com.smartbatch360.api.batch.dto.BatchResponse;
 import com.smartbatch360.api.batch.dto.BatchSearchCriteria;
 import jakarta.validation.Valid;
@@ -21,9 +24,11 @@ import java.util.List;
 public class BatchController {
 
     private final BatchService batchService;
+    private final ProductionService productionService;
 
-    public BatchController(BatchService batchService) {
+    public BatchController(BatchService batchService, ProductionService productionService) {
         this.batchService = batchService;
+        this.productionService = productionService;
     }
 
     @GetMapping
@@ -53,6 +58,18 @@ public class BatchController {
         BatchSearchCriteria criteria = new BatchSearchCriteria(batchNumberFrom, batchNumberTo, dateFrom, dateTo,
                 clientId, siteId, vehicleId, driverId, recipeId);
         return batchService.search(criteria, pageable);
+    }
+
+    /** What the Production screen shows while a batch size is being typed. */
+    @PostMapping("/plan")
+    public ProductionPlanResponse plan(@Valid @RequestBody ProductionPlanRequest request) {
+        return productionService.plan(request);
+    }
+
+    /** The Production screen's "start production". */
+    @PostMapping("/start-production")
+    public ResponseEntity<BatchResponse> startProduction(@Valid @RequestBody StartProductionRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(productionService.start(request));
     }
 
     @PostMapping
