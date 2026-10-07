@@ -13,6 +13,10 @@ import com.smartbatch360.desktop.site.SiteApiClient;
 import com.smartbatch360.desktop.site.SiteDto;
 import com.smartbatch360.desktop.vehicle.VehicleApiClient;
 import com.smartbatch360.desktop.vehicle.VehicleDto;
+import com.smartbatch360.desktop.header.HeaderApiClient;
+import com.smartbatch360.desktop.header.HeaderDto;
+import com.smartbatch360.desktop.header.HeaderLogoDto;
+import com.smartbatch360.desktop.header.HeaderStatus;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -83,6 +87,9 @@ public class BatchReportView {
     private final BatchReportPdfExporter pdfExporter = new BatchReportPdfExporter();
     private final BatchReportExcelExporter excelExporter = new BatchReportExcelExporter();
     private final BatchReportPrinter printer = new BatchReportPrinter(pdfExporter);
+    private final BatchSheetPdfExporter sheetExporter = new BatchSheetPdfExporter();
+    private final BatchSheetExcelExporter sheetExcelExporter = new BatchSheetExcelExporter();
+    private final HeaderApiClient headerApiClient = new HeaderApiClient();
 
     /** What an export writes, independent of the format it writes it in. */
     @FunctionalInterface
@@ -218,19 +225,29 @@ public class BatchReportView {
 
         TableColumn<BatchDto, Void> viewCol = new TableColumn<>("");
         viewCol.setSortable(false);
-        viewCol.setMinWidth(70);
+        viewCol.setMinWidth(160);
         viewCol.setCellFactory(col -> new TableCell<>() {
             private final Button viewButton = new Button("View");
+            private final MenuItem reportPdfItem = new MenuItem("Export PDF");
+            private final MenuItem reportExcelItem = new MenuItem("Export Excel");
+            private final MenuButton reportButton =
+                    new MenuButton("Report", null, reportPdfItem, reportExcelItem);
+            private final HBox buttons = new HBox(6, viewButton, reportButton);
 
             {
                 viewButton.getStyleClass().add("button-secondary");
                 viewButton.setOnAction(e -> BatchDetailDialog.show(getTableView().getItems().get(getIndex())));
+                reportButton.getStyleClass().add("button-secondary");
+                reportPdfItem.setOnAction(e ->
+                        exportBatchSheet(getTableView().getItems().get(getIndex()), SheetFormat.PDF));
+                reportExcelItem.setOnAction(e ->
+                        exportBatchSheet(getTableView().getItems().get(getIndex()), SheetFormat.EXCEL));
             }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : viewButton);
+                setGraphic(empty ? null : buttons);
             }
         });
 
@@ -308,6 +325,100 @@ public class BatchReportView {
                     }
                     writeReport(format, file, result);
                 }));
+    }
+
+    /**
+     * The report for one batch: its cycles, under the company's letterhead.
+     * Everything is fetched before the save dialog opens, so a batch that
+     * cannot be read says so instead of leaving an empty file behind.
+     */
+    /** What one batch's report is written as. Both carry the same content. */
+    private enum SheetFormat {
+        PDF(".pdf", "PDF document"),
+        EXCEL(".xlsx", "Excel workbook");
+
+        private final String extension;
+        private final String description;
+
+        SheetFormat(String extension, String description) {
+            this.extension = extension;
+            this.description = description;
+        }
+    }
+
+    private void exportBatchSheet(BatchDto batch, SheetFormat format) {
+        banner.hide();
+
+        CompletableFuture<List<BatchCycleDto>> cycles = reportApiClient.cycles(batch.id());
+        CompletableFuture<HeaderDto> company = headerApiClient.list().thenApply(BatchReportView::letterheadFrom);
+        // A logo that will not load costs the report its picture, not itself.
+        CompletableFuture<HeaderLogoDto> logo = company.thenCompose(c -> c != null && c.hasLogo()
+                ? headerApiClient.logo(c.id()).exceptionally(t -> null)
+                : CompletableFuture.completedFuture(null));
+
+        cycles.thenCombine(logo, (c, l) -> c).whenComplete((ignored, throwable) -> Platform.runLater(() -> {
+            if (throwable != null) {
+                banner.showError(apiMessage(throwable));
+                return;
+            }
+            File file = chooseBatchSheetFile(batch, format);
+            if (file == null) {
+                return;   // cancelled at the save dialog
+            }
+            List<BatchCycleDto> batchCycles = cycles.join();
+            HeaderDto letterhead = company.join();
+            HeaderLogoDto letterheadLogo = logo.join();
+            CompletableFuture
+                    .runAsync(() -> {
+                        try {
+                            if (format == SheetFormat.PDF) {
+                                sheetExporter.write(file, batch, batchCycles, letterhead, letterheadLogo);
+                            } else {
+                                sheetExcelExporter.write(file, batch, batchCycles, letterhead);
+                            }
+                        } catch (IOException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    })
+                    .whenComplete((done, failure) -> Platform.runLater(() -> {
+                        if (failure != null) {
+                            banner.showError("Could not write the batch report: " + rootCauseMessage(failure));
+                        } else {
+                            banner.showSuccess("Batch " + batch.batchNumber() + " report saved to "
+                                    + file.getName() + " (" + batchCycles.size()
+                                    + (batchCycles.size() == 1 ? " cycle)." : " cycles)."));
+                        }
+                    }));
+        }));
+    }
+
+    /** The active company row, or failing that the first one; null when there is none. */
+    private static HeaderDto letterheadFrom(List<HeaderDto> companies) {
+        if (companies == null || companies.isEmpty()) {
+            return null;
+        }
+        for (HeaderDto company : companies) {
+            if (company.status() == HeaderStatus.ACTIVE) {
+                return company;
+            }
+        }
+        return companies.get(0);
+    }
+
+    private File chooseBatchSheetFile(BatchDto batch, SheetFormat format) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Save Batch Report");
+        // A batch number can be typed by hand, so it may hold characters a
+        // file name cannot.
+        chooser.setInitialFileName("batch-report-"
+                + String.valueOf(batch.batchNumber()).replaceAll("[^A-Za-z0-9._-]", "_")
+                + format.extension);
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter(format.description, "*" + format.extension));
+        File documents = new File(System.getProperty("user.home"), "Documents");
+        chooser.setInitialDirectory(documents.isDirectory()
+                ? documents : new File(System.getProperty("user.home")));
+        return chooser.showSaveDialog(root.getScene() == null ? null : root.getScene().getWindow());
     }
 
     /** Both buttons go quiet during an export, so two cannot race for the same data. */
