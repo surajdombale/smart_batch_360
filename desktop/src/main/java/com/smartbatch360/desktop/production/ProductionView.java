@@ -3,6 +3,8 @@ package com.smartbatch360.desktop.production;
 import com.smartbatch360.desktop.api.ApiException;
 import com.smartbatch360.desktop.batch.BatchDto;
 import com.smartbatch360.desktop.common.NotificationBanner;
+import com.smartbatch360.desktop.driver.DriverApiClient;
+import com.smartbatch360.desktop.driver.DriverDto;
 import com.smartbatch360.desktop.common.PageHeader;
 import com.smartbatch360.desktop.order.OrderApiClient;
 import com.smartbatch360.desktop.order.OrderDto;
@@ -32,7 +34,8 @@ import java.util.List;
  * Loading a batch, as the plant describes it: pick the order, pick the vehicle,
  * type how many cubic metres, and start.
  *
- * Only the batch size is typed. The number of cycles and the quantity per cycle
+ * The batch number is not entered here: the PLC generates it. Nor is the
+ * shift. Only the batch size is typed - the number of cycles and the quantity per cycle
  * follow from it and the plant's mixer capacity, and the material setpoints
  * follow from the order's recipe - all calculated by the backend as the size is
  * typed, so what the screen shows is what starting production will actually do.
@@ -46,15 +49,15 @@ public class ProductionView {
     private final ProductionApiClient apiClient = new ProductionApiClient();
     private final OrderApiClient orderApiClient = new OrderApiClient();
     private final VehicleApiClient vehicleApiClient = new VehicleApiClient();
+    private final DriverApiClient driverApiClient = new DriverApiClient();
 
     private final BorderPane root = new BorderPane();
     private final NotificationBanner banner = new NotificationBanner();
 
     private final ComboBox<OrderDto> orderField = new ComboBox<>();
     private final ComboBox<VehicleDto> vehicleField = new ComboBox<>();
+    private final ComboBox<DriverDto> driverField = new ComboBox<>();
     private final TextField batchSizeField = new TextField();
-    private final TextField batchNumberField = new TextField();
-    private final TextField shiftField = new TextField();
 
     private final Label customerValue = new Label("-");
     private final Label siteValue = new Label("-");
@@ -94,25 +97,26 @@ public class ProductionView {
     private VBox buildSelectionCard() {
         orderField.setPromptText("Select an order");
         vehicleField.setPromptText("Select a vehicle");
+        driverField.setPromptText("Select a driver");
         orderField.setMaxWidth(Double.MAX_VALUE);
         vehicleField.setMaxWidth(Double.MAX_VALUE);
+        driverField.setMaxWidth(Double.MAX_VALUE);
 
         GridPane grid = new GridPane();
         grid.setHgap(16);
         grid.setVgap(8);
-        grid.addRow(0, labelled("Order", orderField), labelled("Vehicle", vehicleField));
+        grid.addRow(0, labelled("Order", orderField), labelled("Vehicle", vehicleField),
+                labelled("Driver", driverField));
         grid.addRow(1, readOnly("Customer", customerValue), readOnly("Site", siteValue),
                 readOnly("Recipe", recipeValue), readOnly("Order remaining", remainingValue));
 
-        VBox card = new VBox(8, sectionTitle("1. Select the order and vehicle"), grid);
+        VBox card = new VBox(8, sectionTitle("1. Select the order, vehicle and driver"), grid);
         card.getStyleClass().add("card");
         return card;
     }
 
     private VBox buildSizeCard() {
         batchSizeField.setPromptText("e.g. 6 (minimum 0.1)");
-        batchNumberField.setPromptText("left blank, the plant numbers it");
-        shiftField.setPromptText("e.g. Day");
 
         GridPane grid = new GridPane();
         grid.setHgap(16);
@@ -120,8 +124,7 @@ public class ProductionView {
         grid.addRow(0, labelled("Batch Size (m3)", batchSizeField),
                 readOnly("Number of Cycles", cyclesValue),
                 readOnly("Per Cycle Quantity", perCycleValue));
-        grid.addRow(1, readOnly("Mixer capacity", mixerValue), readOnly("Load weight", totalValue),
-                labelled("Batch Number", batchNumberField), labelled("Shift", shiftField));
+        grid.addRow(1, readOnly("Mixer capacity", mixerValue), readOnly("Load weight", totalValue));
 
         VBox card = new VBox(8, sectionTitle("2. Enter the batch size - the rest is calculated"), grid);
         card.getStyleClass().add("card");
@@ -130,7 +133,8 @@ public class ProductionView {
 
     private VBox buildSetpointsCard() {
         setpointsTable.setPrefHeight(220);
-        VBox card = new VBox(8, sectionTitle("3. Material setpoints, adjusted to the per-cycle quantity"),
+        VBox card = new VBox(8,
+                sectionTitle("3. Targets from the recipe, and the setpoints this load works out to"),
                 setpointsTable);
         card.getStyleClass().add("card");
         VBox.setVgrow(card, Priority.ALWAYS);
@@ -149,6 +153,10 @@ public class ProductionView {
         TableColumn<ProductionPlanDto.MaterialSetpointDto, String> nameCol = new TableColumn<>("Material");
         nameCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().materialName()));
 
+        TableColumn<ProductionPlanDto.MaterialSetpointDto, String> targetCol =
+                new TableColumn<>("Target - from recipe (kg)");
+        targetCol.setCellValueFactory(cd -> new SimpleStringProperty(trim(cd.getValue().recipeQuantityKg())));
+
         TableColumn<ProductionPlanDto.MaterialSetpointDto, String> perCycleCol =
                 new TableColumn<>("Setpoint per Cycle (kg)");
         perCycleCol.setCellValueFactory(cd -> new SimpleStringProperty(trim(cd.getValue().perCycleKg())));
@@ -156,7 +164,7 @@ public class ProductionView {
         TableColumn<ProductionPlanDto.MaterialSetpointDto, String> totalCol = new TableColumn<>("Whole Load (kg)");
         totalCol.setCellValueFactory(cd -> new SimpleStringProperty(trim(cd.getValue().totalKg())));
 
-        setpointsTable.getColumns().setAll(List.of(nameCol, perCycleCol, totalCol));
+        setpointsTable.getColumns().setAll(List.of(nameCol, targetCol, perCycleCol, totalCol));
         setpointsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         setpointsTable.setPlaceholder(new Label("Choose an order and enter a batch size."));
     }
@@ -176,6 +184,12 @@ public class ProductionView {
         vehicleApiClient.list().whenComplete((vehicles, throwable) -> Platform.runLater(() -> {
             if (throwable == null) {
                 vehicleField.setItems(FXCollections.observableArrayList(vehicles));
+            }
+        }));
+
+        driverApiClient.list().whenComplete((drivers, throwable) -> Platform.runLater(() -> {
+            if (throwable == null) {
+                driverField.setItems(FXCollections.observableArrayList(drivers));
             }
         }));
     }
@@ -243,8 +257,9 @@ public class ProductionView {
         }
 
         startButton.setDisable(true);
-        apiClient.start(new StartProductionRequestDto(order.id(), vehicle.id(), size,
-                        batchNumberField.getText(), shiftField.getText()))
+        DriverDto driver = driverField.getValue();
+        apiClient.start(new StartProductionRequestDto(order.id(), vehicle.id(), size, null, null, null,
+                        driver == null ? null : driver.id()))
                 .whenComplete((batch, throwable) -> Platform.runLater(() -> {
                     startButton.setDisable(false);
                     if (throwable != null) {
@@ -258,7 +273,6 @@ public class ProductionView {
     private void onStarted(BatchDto batch) {
         banner.showSuccess("Batch " + batch.batchNumber() + " started: " + plan.cycles() + " cycles of "
                 + trim(plan.perCycleM3()) + " m3. The PLC reports each cycle as it runs.");
-        batchNumberField.clear();
         batchSizeField.clear();
         clearPlan();
         // The order's remaining quantity has moved on now there is a batch against it.

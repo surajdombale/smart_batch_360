@@ -34,6 +34,26 @@ public record StartProductionRequest(
         String batchNumber,
 
         @Size(max = 50, message = "Shift must be at most 50 characters.")
-        String shift
+        String shift,
+
+        /** Optional - left out, the load runs without moisture correction. */
+        Boolean moistureEnabled,
+
+        /**
+         * Optional - left out, the vehicle's own driver is used. Last in the
+         * list on purpose: it was added after the shapes below were in use, and
+         * putting it in the middle silently changed what those calls meant.
+         */
+        Long driverId
 ) {
+
+    public StartProductionRequest(Long orderId, Long vehicleId, BigDecimal batchSizeM3, String batchNumber,
+                                  String shift) {
+        this(orderId, vehicleId, batchSizeM3, batchNumber, shift, null, null);
+    }
+
+    public StartProductionRequest(Long orderId, Long vehicleId, BigDecimal batchSizeM3, String batchNumber,
+                                  String shift, Boolean moistureEnabled) {
+        this(orderId, vehicleId, batchSizeM3, batchNumber, shift, moistureEnabled, null);
+    }
 }

@@ -14,6 +14,13 @@ public interface BatchRepository extends JpaRepository<Batch, Long>, JpaSpecific
 
     boolean existsByBatchNumberIgnoreCase(String batchNumber);
 
+    /**
+     * The batch the plant is on, if any. The plant runs one batch from start to
+     * finish before loading the next, so this is what Production checks before
+     * letting another be started.
+     */
+    Optional<Batch> findFirstByStatusIn(List<BatchStatus> statuses);
+
     /** The PLC knows a batch by its number, not by our id. */
     Optional<Batch> findByBatchNumberIgnoreCase(String batchNumber);
 

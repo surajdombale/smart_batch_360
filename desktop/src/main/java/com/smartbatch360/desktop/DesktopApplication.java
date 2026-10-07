@@ -65,7 +65,6 @@ public class DesktopApplication extends Application {
         List<NavEntry> navEntries = List.of(
                 new NavItem("dashboard", "Dashboard", DashboardView::new),
                 new NavItem("production", "Production", () -> new ProductionView().getView()),
-                new NavItem("batches", "Batch List", () -> new BatchView().getView()),
                 new NavItem("orders", "Orders", () -> new OrderView().getView()),
                 new NavItem("batch-reports", "Batch Reports", () -> new BatchReportView().getView()),
                 new NavItem("material-consumption", "Consumption", () -> new MaterialConsumptionView().getView()),

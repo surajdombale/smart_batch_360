@@ -6,6 +6,7 @@ import com.smartbatch360.api.batch.dto.ProductionPlanResponse;
 import com.smartbatch360.api.batch.dto.StartProductionRequest;
 import com.smartbatch360.api.client.Client;
 import com.smartbatch360.api.client.ClientStatus;
+import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.ReportingZone;
 import com.smartbatch360.api.driver.Driver;
 import com.smartbatch360.api.driver.DriverStatus;
@@ -31,6 +32,7 @@ import java.math.BigDecimal;
 import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * The Production screen's two steps: show what a load works out to, then start
@@ -43,6 +45,7 @@ class ProductionServiceTest {
     @Autowired private VehicleRepository vehicleRepository;
     @Autowired private BatchRepository batchRepository;
     @Autowired private com.smartbatch360.api.header.HeaderRepository headerRepository;
+    @Autowired private com.smartbatch360.api.driver.DriverRepository driverRepository;
     @Autowired private EntityManager entityManager;
 
     private ProductionService service;
@@ -54,7 +57,8 @@ class ProductionServiceTest {
         BatchPlanner planner = new BatchPlanner(ConcreteDensity.standard());
         // A 1 m3 mixer, as if Company Details said so.
         PlantSettings plantSettings = new PlantSettings(headerRepository, "1");
-        service = new ProductionService(salesOrderRepository, vehicleRepository, batchRepository, planner,
+        service = new ProductionService(salesOrderRepository, vehicleRepository, driverRepository,
+                batchRepository, planner,
                 plantSettings,
                 new ProductionService.ReportingZoneBatchNumber(batchRepository,
                         ReportingZone.of(ZoneOffset.UTC)));
@@ -176,10 +180,36 @@ class ProductionServiceTest {
         assertThat(batch.materials().get(0).achieved()).isEqualByComparingTo("0");
     }
 
+    /**
+     * The report prints the load in cubic metres. It is kept as the operator
+     * sized it, because working it back from the kilograms would go through a
+     * density and a mixer capacity that can both be changed afterwards.
+     */
+    @Test
+    void theBatchKeepsTheSizeItWasPlannedAt() {
+        BatchResponse batch = service.start(new StartProductionRequest(
+                order.getId(), vehicle.getId(), new BigDecimal("2"), null, null));
+
+        assertThat(batch.batchSizeM3()).isEqualByComparingTo("2");
+        assertThat(batch.perCycleM3()).isEqualByComparingTo("1");
+        assertThat(batch.moistureEnabled()).isFalse();
+    }
+
+    @Test
+    void moistureCorrectionIsRecordedWhenTheLoadRunsWithIt() {
+        BatchResponse batch = service.start(new StartProductionRequest(
+                order.getId(), vehicle.getId(), new BigDecimal("1"), null, null, true));
+
+        assertThat(batch.moistureEnabled()).isTrue();
+    }
+
     @Test
     void aBatchNumberIsGeneratedWhenNoneIsGiven() {
         BatchResponse first = service.start(new StartProductionRequest(
                 order.getId(), vehicle.getId(), new BigDecimal("1"), null, null));
+        // One batch at a time, so the first has to finish before the next loads.
+        batchRepository.findById(first.id()).orElseThrow().setStatus(BatchStatus.COMPLETED);
+        entityManager.flush();
         BatchResponse second = service.start(new StartProductionRequest(
                 order.getId(), vehicle.getId(), new BigDecimal("1"), null, null));
 
@@ -193,5 +223,64 @@ class ProductionServiceTest {
                 order.getId(), vehicle.getId(), new BigDecimal("1"), "PLANT-7", null));
 
         assertThat(batch.batchNumber()).isEqualTo("PLANT-7");
+    }
+
+    /**
+     * The plant runs one batch from start to finish before loading the next
+     * (sheet, 07-Oct-2026), so a second start while one is still going is
+     * refused and the running batch is named.
+     */
+    @Test
+    void asecondBatchCannotBeStartedWhileOneIsRunning() {
+        service.start(new StartProductionRequest(order.getId(), vehicle.getId(), new BigDecimal("1"), null, null));
+
+        assertThatThrownBy(() -> service.start(new StartProductionRequest(
+                order.getId(), vehicle.getId(), new BigDecimal("1"), null, null)))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("is still IN_PROGRESS")
+                .hasMessageContaining("one batch at a time");
+    }
+
+    /** Finishing the running batch frees the plant for the next load. */
+    @Test
+    void anotherBatchCanBeStartedOnceTheRunningOneIsDone() {
+        BatchResponse first = service.start(new StartProductionRequest(
+                order.getId(), vehicle.getId(), new BigDecimal("1"), null, null));
+        Batch running = batchRepository.findById(first.id()).orElseThrow();
+        running.setStatus(BatchStatus.COMPLETED);
+        entityManager.flush();
+
+        BatchResponse second = service.start(new StartProductionRequest(
+                order.getId(), vehicle.getId(), new BigDecimal("1"), null, null));
+
+        assertThat(second.status()).isEqualTo(BatchStatus.IN_PROGRESS);
+    }
+
+    /** The driver is chosen on the screen now, rather than always the vehicle's own. */
+    @Test
+    void theChosenDriverIsUsedRatherThanTheVehiclesOwn() {
+        Driver reliefDriver = new Driver();
+        reliefDriver.setName("Relief Driver");
+        reliefDriver.setPhone("9000000002");
+        reliefDriver.setLicenseNo("MH12 2020 000002");
+        reliefDriver.setStatus(DriverStatus.ACTIVE);
+        entityManager.persist(reliefDriver);
+        entityManager.flush();
+
+        BatchResponse batch = service.start(new StartProductionRequest(
+                order.getId(), vehicle.getId(), new BigDecimal("1"), null, null, null, reliefDriver.getId()));
+
+        assertThat(batch.driverName()).isEqualTo("Relief Driver");
+    }
+
+    /** The recipe's own figure is shown next to the calculated setpoint. */
+    @Test
+    void thePlanCarriesTheRecipesTargetBesideTheSetpoint() {
+        ProductionPlanResponse plan = service.plan(new ProductionPlanRequest(order.getId(), new BigDecimal("2")));
+
+        ProductionPlanResponse.MaterialSetpointResponse cement = plan.materials().get(0);
+        assertThat(cement.materialName()).isEqualTo("Cement");
+        assertThat(cement.recipeQuantityKg()).isEqualByComparingTo("600");
+        assertThat(cement.perCycleKg()).isEqualByComparingTo("1200.00");
     }
 }

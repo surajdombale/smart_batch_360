@@ -22,6 +22,11 @@ public record BatchPlan(
      * out rather than the other way round - that is what the batch report's
      * "Set total" row adds up to.
      */
-    public record MaterialSetpoint(String materialName, BigDecimal perCycleKg, BigDecimal totalKg) {
+    public record MaterialSetpoint(
+            String materialName,
+            /** Straight from the recipe, for one recipe batch - what the mix asks for. */
+            BigDecimal recipeQuantityKg,
+            BigDecimal perCycleKg,
+            BigDecimal totalKg) {
     }
 }

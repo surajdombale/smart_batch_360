@@ -7,6 +7,8 @@ public record StartProductionRequestDto(
         Long vehicleId,
         BigDecimal batchSizeM3,
         String batchNumber,
-        String shift
+        String shift,
+        Boolean moistureEnabled,
+        Long driverId
 ) {
 }

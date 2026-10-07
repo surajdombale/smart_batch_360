@@ -6,6 +6,9 @@ import com.smartbatch360.api.batch.dto.ProductionPlanResponse;
 import com.smartbatch360.api.batch.dto.StartProductionRequest;
 import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.NotFoundException;
+import com.smartbatch360.api.driver.Driver;
+import com.smartbatch360.api.driver.DriverRepository;
+import java.util.List;
 import com.smartbatch360.api.order.SalesOrder;
 import com.smartbatch360.api.order.SalesOrderRepository;
 import com.smartbatch360.api.vehicle.Vehicle;
@@ -32,16 +35,19 @@ public class ProductionService {
 
     private final SalesOrderRepository salesOrderRepository;
     private final VehicleRepository vehicleRepository;
+    private final DriverRepository driverRepository;
     private final BatchRepository batchRepository;
     private final BatchPlanner batchPlanner;
     private final PlantSettings plantSettings;
     private final ReportingZoneBatchNumber batchNumbering;
 
     public ProductionService(SalesOrderRepository salesOrderRepository, VehicleRepository vehicleRepository,
+                             DriverRepository driverRepository,
                              BatchRepository batchRepository, BatchPlanner batchPlanner,
                              PlantSettings plantSettings, ReportingZoneBatchNumber batchNumbering) {
         this.salesOrderRepository = salesOrderRepository;
         this.vehicleRepository = vehicleRepository;
+        this.driverRepository = driverRepository;
         this.batchRepository = batchRepository;
         this.batchPlanner = batchPlanner;
         this.plantSettings = plantSettings;
@@ -77,6 +83,9 @@ public class ProductionService {
         SalesOrder order = order(request.orderId());
         Vehicle vehicle = vehicleRepository.findById(request.vehicleId())
                 .orElseThrow(() -> NotFoundException.forId("Vehicle", request.vehicleId()));
+        Driver driver = resolveDriver(request.driverId(), vehicle);
+
+        rejectIfAnotherBatchIsRunning();
 
         BatchPlan plan = batchPlanner.plan(order.getRecipe(), request.batchSizeM3(),
                 plantSettings.mixerCapacity());
@@ -89,7 +98,10 @@ public class ProductionService {
         batch.setSite(order.getSite());
         batch.setRecipe(order.getRecipe());
         batch.setVehicle(vehicle);
-        batch.setDriver(vehicle.getDriver());
+        batch.setDriver(driver);
+        batch.setBatchSizeM3(plan.batchSizeM3());
+        batch.setPerCycleM3(plan.perCycleM3());
+        batch.setMoistureEnabled(Boolean.TRUE.equals(request.moistureEnabled()));
         batch.setTargetQuantity(plan.totalKg());
         batch.setProducedQuantity(BigDecimal.ZERO);
         batch.setCycleDateTime(Instant.now());
@@ -113,6 +125,33 @@ public class ProductionService {
         }
 
         return BatchResponse.from(batchRepository.save(batch));
+    }
+
+    /**
+     * The plant runs one batch from start to finish before loading the next, so
+     * a second cannot be started while one is still going. Named in the message,
+     * because the operator's next move is to finish or stop that one.
+     */
+    private void rejectIfAnotherBatchIsRunning() {
+        batchRepository.findFirstByStatusIn(List.of(BatchStatus.PENDING, BatchStatus.IN_PROGRESS,
+                        BatchStatus.PAUSED))
+                .ifPresent(running -> {
+                    throw new InvalidRequestException("Batch " + running.getBatchNumber() + " is still "
+                            + running.getStatus() + ". The plant runs one batch at a time - finish or stop it "
+                            + "before loading another.");
+                });
+    }
+
+    /**
+     * The driver is chosen on the screen now. Left out, the vehicle's own driver
+     * stands in, which is who would have driven it before this was selectable.
+     */
+    private Driver resolveDriver(Long driverId, Vehicle vehicle) {
+        if (driverId == null) {
+            return vehicle.getDriver();
+        }
+        return driverRepository.findById(driverId)
+                .orElseThrow(() -> NotFoundException.forId("Driver", driverId));
     }
 
     private SalesOrder order(Long orderId) {

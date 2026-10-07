@@ -60,7 +60,8 @@ public class BatchPlanner {
             // multiplied out. Deriving it the other way would leave the report's
             // "Set total" row disagreeing with its own cycle rows.
             BigDecimal total = perCycle.multiply(BigDecimal.valueOf(cycles.cycles()));
-            setpoints.add(new BatchPlan.MaterialSetpoint(line.getMaterial().getName(), perCycle, total));
+            setpoints.add(new BatchPlan.MaterialSetpoint(line.getMaterial().getName(),
+                    line.getQuantity(), perCycle, total));
         }
 
         return new BatchPlan(

@@ -26,6 +26,7 @@ public record ProductionPlanDto(
 ) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record MaterialSetpointDto(String materialName, BigDecimal perCycleKg, BigDecimal totalKg) {
+    public record MaterialSetpointDto(String materialName, BigDecimal recipeQuantityKg,
+                                       BigDecimal perCycleKg, BigDecimal totalKg) {
     }
 }

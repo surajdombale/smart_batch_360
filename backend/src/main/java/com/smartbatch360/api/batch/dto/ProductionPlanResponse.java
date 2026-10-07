@@ -28,7 +28,12 @@ public record ProductionPlanResponse(
         List<MaterialSetpointResponse> materials
 ) {
 
-    public record MaterialSetpointResponse(String materialName, BigDecimal perCycleKg, BigDecimal totalKg) {
+    /**
+     * The screen shows both: the target is the recipe's own figure, the setpoint
+     * is what this load's cycles work out to.
+     */
+    public record MaterialSetpointResponse(String materialName, BigDecimal recipeQuantityKg,
+                                            BigDecimal perCycleKg, BigDecimal totalKg) {
     }
 
     public static ProductionPlanResponse of(Long orderId, String clientName, String siteName, Long siteId,
@@ -41,7 +46,8 @@ public record ProductionPlanResponse(
                 plan.batchSizeM3(), mixerCapacityM3, plan.cycles(), plan.perCycleM3(), plan.perCycleKg(),
                 plan.totalKg(),
                 plan.materials().stream()
-                        .map(m -> new MaterialSetpointResponse(m.materialName(), m.perCycleKg(), m.totalKg()))
+                        .map(m -> new MaterialSetpointResponse(m.materialName(), m.recipeQuantityKg(),
+                                m.perCycleKg(), m.totalKg()))
                         .toList());
     }
 }
