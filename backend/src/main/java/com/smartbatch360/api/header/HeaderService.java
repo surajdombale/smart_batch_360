@@ -109,10 +109,6 @@ public class HeaderService {
         header.setPhone(blankToNull(request.phone()));
         header.setEmail(blankToNull(request.email()));
         header.setGstin(blankToNull(request.gstin()));
-        header.setSupervisorName(blankToNull(request.supervisorName()));
-        header.setMixTimeSeconds(request.mixTimeSeconds());
-        header.setDischargeTimeSeconds(request.dischargeTimeSeconds());
-        header.setMixerCapacityM3(request.mixerCapacityM3());
         header.setStatus(request.status());
     }
 

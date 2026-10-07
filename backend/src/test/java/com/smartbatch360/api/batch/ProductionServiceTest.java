@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 
 import java.math.BigDecimal;
 import java.time.ZoneOffset;
@@ -39,12 +40,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * it. Real H2, because what matters is the batch that ends up stored.
  */
 @DataJpaTest
+@Import(com.smartbatch360.api.plant.PlantSettingsService.class)
 class ProductionServiceTest {
 
     @Autowired private SalesOrderRepository salesOrderRepository;
     @Autowired private VehicleRepository vehicleRepository;
     @Autowired private BatchRepository batchRepository;
-    @Autowired private com.smartbatch360.api.header.HeaderRepository headerRepository;
+    @Autowired private com.smartbatch360.api.plant.PlantSettingsService plantSettingsService;
     @Autowired private com.smartbatch360.api.driver.DriverRepository driverRepository;
     @Autowired private EntityManager entityManager;
 
@@ -55,8 +57,8 @@ class ProductionServiceTest {
     @BeforeEach
     void seed() {
         BatchPlanner planner = new BatchPlanner(ConcreteDensity.standard());
-        // A 1 m3 mixer, as if Company Details said so.
-        PlantSettings plantSettings = new PlantSettings(headerRepository, "1");
+        // A 1 m3 mixer, as if Plant Details said so.
+        PlantSettings plantSettings = new PlantSettings(plantSettingsService, "1");
         service = new ProductionService(salesOrderRepository, vehicleRepository, driverRepository,
                 batchRepository, planner,
                 plantSettings,

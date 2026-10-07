@@ -9,10 +9,6 @@ public record HeaderRequestDto(
         String phone,
         String email,
         String gstin,
-        String supervisorName,
-        Integer mixTimeSeconds,
-        Integer dischargeTimeSeconds,
-        java.math.BigDecimal mixerCapacityM3,
         HeaderStatus status
 ) {
 }

@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  * cannot hold a whole load at once, so a batch is run as repeated cycles - this
  * is the size of one of them.
  *
- * Set on Company Details, falling back to smartbatch360.plant.mixer-capacity-m3
+ * Set under Settings > Plant Details, falling back to smartbatch360.plant.mixer-capacity-m3
  * - see PlantSettings, which decides which applies. It belongs to the plant, so
  * it is not guessed here; unset means production planning has nothing to divide
  * by and the caller is told where to set it.
@@ -54,7 +54,7 @@ public class MixerCapacity {
     public BigDecimal capacityM3() {
         if (capacityM3 == null) {
             throw new InvalidRequestException("The plant's mixer capacity has not been set, so a batch cannot "
-                    + "be split into cycles. Set it on Company Details.");
+                    + "be split into cycles. Set it under Settings > Plant Details.");
         }
         return capacityM3;
     }

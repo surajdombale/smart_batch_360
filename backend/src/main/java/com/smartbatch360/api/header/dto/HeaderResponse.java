@@ -21,10 +21,6 @@ public record HeaderResponse(
         String phone,
         String email,
         String gstin,
-        String supervisorName,
-        Integer mixTimeSeconds,
-        Integer dischargeTimeSeconds,
-        BigDecimal mixerCapacityM3,
         boolean hasLogo,
         HeaderStatus status,
         Instant createdAt,
@@ -33,8 +29,6 @@ public record HeaderResponse(
     public static HeaderResponse from(Header h) {
         return new HeaderResponse(h.getId(), h.getCompanyName(), h.getPlantName(), h.getAddress(),
                 h.getCity(), h.getPinCode(), h.getPhone(), h.getEmail(), h.getGstin(),
-                h.getSupervisorName(), h.getMixTimeSeconds(), h.getDischargeTimeSeconds(),
-                h.getMixerCapacityM3(),
                 h.getLogo() != null && h.getLogo().length > 0,
                 h.getStatus(), h.getCreatedAt(), h.getUpdatedAt());
     }

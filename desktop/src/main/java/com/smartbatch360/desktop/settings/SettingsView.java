@@ -2,6 +2,8 @@ package com.smartbatch360.desktop.settings;
 
 import com.smartbatch360.api.config.DatabaseConfig;
 import com.smartbatch360.desktop.common.NotificationBanner;
+import com.smartbatch360.desktop.plant.PlantSettingsApiClient;
+import com.smartbatch360.desktop.plant.PlantSettingsRequestDto;
 import com.smartbatch360.desktop.common.PageHeader;
 import com.smartbatch360.desktop.server.EmbeddedServer;
 import javafx.application.Platform;
@@ -30,6 +32,13 @@ public class SettingsView {
     private final Button connectButton = new Button("Connect & Save");
     private final ProgressIndicator progress = new ProgressIndicator();
 
+    private final PlantSettingsApiClient plantApiClient = new PlantSettingsApiClient();
+    private final TextField supervisorField = new TextField();
+    private final TextField mixerCapacityField = new TextField();
+    private final TextField plantCapacityField = new TextField();
+    private final Button savePlantButton = new Button("Save Plant Details");
+    private final Label plantStatusLabel = new Label();
+
     public SettingsView() {
         root.getStyleClass().add("content-area");
         root.setTop(new PageHeader("Settings", "Configure SmartBatch360."));
@@ -37,11 +46,110 @@ public class SettingsView {
         Tab dbTab = new Tab("Database Connection", buildDatabaseConnectionTab());
         dbTab.setClosable(false);
 
-        TabPane tabPane = new TabPane(dbTab);
+        Tab plantTab = new Tab("Plant Details", buildPlantDetailsTab());
+        plantTab.setClosable(false);
+
+        TabPane tabPane = new TabPane(dbTab, plantTab);
         root.setCenter(tabPane);
 
         loadSavedConnection();
         refreshStatus();
+        loadPlantDetails();
+    }
+
+
+    /**
+     * Settings > Plant Details: the plant's own figures, moved here from Company
+     * Details on 07-Oct-2026. The mixer capacity is the one Production divides a
+     * load by, so a change here takes effect on the next load.
+     */
+    private VBox buildPlantDetailsTab() {
+        VBox card = new VBox(12);
+        card.getStyleClass().add("card");
+        card.setMaxWidth(460);
+
+        Label heading = new Label("Plant Details");
+        heading.getStyleClass().add("card-title");
+
+        supervisorField.setPromptText("e.g. R. Patil");
+        mixerCapacityField.setPromptText("0.1 to 10, e.g. 1");
+        plantCapacityField.setPromptText("hourly output, e.g. 30");
+
+        plantStatusLabel.getStyleClass().add("state-message");
+        plantStatusLabel.setWrapText(true);
+
+        savePlantButton.getStyleClass().add("button-primary");
+        savePlantButton.setOnAction(e -> savePlantDetails());
+
+        card.getChildren().addAll(heading,
+                field("Supervisor Name", supervisorField),
+                field("Mixer Capacity (m3)", mixerCapacityField),
+                field("Plant Capacity (m3 per hour)", plantCapacityField),
+                savePlantButton, plantStatusLabel);
+
+        VBox wrapper = new VBox(card);
+        wrapper.setPadding(new Insets(16));
+        return wrapper;
+    }
+
+    private VBox field(String label, TextField control) {
+        Label caption = new Label(label);
+        caption.getStyleClass().add("form-label");
+        return new VBox(4, caption, control);
+    }
+
+    private void loadPlantDetails() {
+        plantApiClient.get().whenComplete((settings, throwable) -> Platform.runLater(() -> {
+            if (throwable != null) {
+                plantStatusLabel.setText("Plant details could not be loaded.");
+                return;
+            }
+            supervisorField.setText(settings.supervisorName());
+            mixerCapacityField.setText(plain(settings.mixerCapacityM3()));
+            plantCapacityField.setText(plain(settings.plantCapacityM3PerHour()));
+        }));
+    }
+
+    private void savePlantDetails() {
+        java.math.BigDecimal mixer = parseDecimalOrNull(mixerCapacityField.getText());
+        java.math.BigDecimal plant = parseDecimalOrNull(plantCapacityField.getText());
+        if (mixer == null && !mixerCapacityField.getText().isBlank()) {
+            plantStatusLabel.setText("Mixer capacity must be a number, for example 1 or 1.5.");
+            return;
+        }
+        if (plant == null && !plantCapacityField.getText().isBlank()) {
+            plantStatusLabel.setText("Plant capacity must be a number, for example 30.");
+            return;
+        }
+
+        savePlantButton.setDisable(true);
+        plantStatusLabel.setText("Saving...");
+        plantApiClient.save(new PlantSettingsRequestDto(supervisorField.getText(), mixer, plant))
+                .whenComplete((saved, throwable) -> Platform.runLater(() -> {
+                    savePlantButton.setDisable(false);
+                    if (throwable != null) {
+                        Throwable cause = throwable.getCause() != null ? throwable.getCause() : throwable;
+                        plantStatusLabel.setText(cause.getMessage() != null
+                                ? cause.getMessage() : "Plant details could not be saved.");
+                    } else {
+                        plantStatusLabel.setText("Saved. Production uses these from the next load.");
+                    }
+                }));
+    }
+
+    private String plain(java.math.BigDecimal value) {
+        return value == null ? "" : value.stripTrailingZeros().toPlainString();
+    }
+
+    private java.math.BigDecimal parseDecimalOrNull(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            return new java.math.BigDecimal(text.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private VBox buildDatabaseConnectionTab() {

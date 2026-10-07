@@ -44,25 +44,6 @@ public class Header {
     @Column(name = "gstin", length = 20)
     private String gstin;
 
-    /** Named on every batch report; held here rather than per batch. */
-    @Column(name = "supervisor_name", length = 150)
-    private String supervisorName;
-
-    /** How long the mixer runs, in seconds - a duration, not a clock time. */
-    @Column(name = "mix_time_seconds")
-    private Integer mixTimeSeconds;
-
-    /** How long discharging takes, in seconds. */
-    @Column(name = "discharge_time_seconds")
-    private Integer dischargeTimeSeconds;
-
-    /**
-     * How much the mixer holds, in cubic metres. Production divides a load into
-     * cycles of this size. Null falls back to the configured property.
-     */
-    @Column(name = "mixer_capacity_m3", precision = 4, scale = 2)
-    private BigDecimal mixerCapacityM3;
-
     /**
      * The letterhead image itself, not a path to one: this app ships as a
      * self-contained install and a path would point at a file the next PC does
@@ -186,29 +167,11 @@ public class Header {
         this.pinCode = pinCode;
     }
 
-    public String getSupervisorName() {
-        return supervisorName;
-    }
 
-    public void setSupervisorName(String supervisorName) {
-        this.supervisorName = supervisorName;
-    }
 
-    public Integer getMixTimeSeconds() {
-        return mixTimeSeconds;
-    }
 
-    public void setMixTimeSeconds(Integer mixTimeSeconds) {
-        this.mixTimeSeconds = mixTimeSeconds;
-    }
 
-    public Integer getDischargeTimeSeconds() {
-        return dischargeTimeSeconds;
-    }
 
-    public void setDischargeTimeSeconds(Integer dischargeTimeSeconds) {
-        this.dischargeTimeSeconds = dischargeTimeSeconds;
-    }
 
     public byte[] getLogo() {
         return logo;
@@ -226,11 +189,5 @@ public class Header {
         this.logoContentType = logoContentType;
     }
 
-    public BigDecimal getMixerCapacityM3() {
-        return mixerCapacityM3;
-    }
 
-    public void setMixerCapacityM3(BigDecimal mixerCapacityM3) {
-        this.mixerCapacityM3 = mixerCapacityM3;
-    }
 }
