@@ -13,11 +13,16 @@ public record BatchCycleResponse(
         String batchNumber,
         Integer cycleNumber,
         Instant cycleTime,
+        BigDecimal moistureContent,
+        BigDecimal correctedWater,
+        BigDecimal correctedAggregate,
         List<MaterialAchievedResponse> materials,
         BigDecimal totalAchieved
 ) {
 
-    public record MaterialAchievedResponse(String materialName, BigDecimal achieved) {
+    public record MaterialAchievedResponse(String materialName, BigDecimal target, BigDecimal setpoint,
+                                           BigDecimal achieved, BigDecimal moistureContent,
+                                           BigDecimal absorption) {
     }
 
     public static BatchCycleResponse from(BatchCycle cycle) {
@@ -27,8 +32,12 @@ public record BatchCycleResponse(
                 cycle.getBatch().getBatchNumber(),
                 cycle.getCycleNumber(),
                 cycle.getCycleTime(),
+                cycle.getMoistureContent(),
+                cycle.getCorrectedWater(),
+                cycle.getCorrectedAggregate(),
                 cycle.getMaterials().stream()
-                        .map(m -> new MaterialAchievedResponse(m.getMaterialName(), m.getAchieved()))
+                        .map(m -> new MaterialAchievedResponse(m.getMaterialName(), m.getTarget(),
+                                m.getSetpoint(), m.getAchieved(), m.getMoistureContent(), m.getAbsorption()))
                         .toList(),
                 cycle.totalAchieved());
     }

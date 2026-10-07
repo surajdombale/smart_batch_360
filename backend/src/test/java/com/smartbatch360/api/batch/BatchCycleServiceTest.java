@@ -146,6 +146,53 @@ class BatchCycleServiceTest {
         assertThat(service.totalAchieved(batch.getId())).isEqualByComparingTo("753.00");
     }
 
+    /**
+     * The report prints what each cycle was aiming at beside what it weighed.
+     * A PLC that reports only weights still gets that figure, from the batch's
+     * own plan - and a material the batch never planned gets nothing invented.
+     */
+    @Test
+    void aCycleTakesItsTargetFromTheBatchPlanWhenThePlcSendsNone() {
+        BatchMaterial planned = new BatchMaterial();
+        planned.setBatch(batch);
+        planned.setMaterialName("Cement");
+        planned.setTarget(new BigDecimal("200.00"));
+        planned.setSetpoint(new BigDecimal("100.00"));
+        planned.setAchieved(BigDecimal.ZERO);
+        planned.setUnit("kg");
+        batch.getMaterials().add(planned);
+        entityManager.flush();
+
+        BatchCycleResponse response = service.record(cycle(1, "101.00", "151.00"));
+
+        assertThat(response.materials().get(0).target()).isEqualByComparingTo("100.00");
+        assertThat(response.materials().get(0).setpoint()).isEqualByComparingTo("100.00");
+        assertThat(response.materials().get(1).target()).isNull();
+        assertThat(response.materials().get(1).setpoint()).isNull();
+    }
+
+    @Test
+    void aCycleKeepsWhatThePlcReportsBeyondTheWeights() {
+        service.record(new BatchCycleRequest("250401", 1, Instant.parse("2026-10-04T12:31:00Z"),
+                new BigDecimal("4.50"), new BigDecimal("142.00"), new BigDecimal("1012.00"),
+                List.of(new BatchCycleRequest.MaterialAchieved("Sand", new BigDecimal("400.00"),
+                        new BigDecimal("412.00"), new BigDecimal("411.50"), new BigDecimal("3.00"),
+                        new BigDecimal("1.20")))));
+        entityManager.flush();
+        entityManager.clear();
+
+        BatchCycleResponse stored = service.findForBatch(batch.getId()).get(0);
+
+        assertThat(stored.moistureContent()).isEqualByComparingTo("4.50");
+        assertThat(stored.correctedWater()).isEqualByComparingTo("142.00");
+        assertThat(stored.correctedAggregate()).isEqualByComparingTo("1012.00");
+        assertThat(stored.materials().get(0).target()).isEqualByComparingTo("400.00");
+        assertThat(stored.materials().get(0).setpoint()).isEqualByComparingTo("412.00");
+        assertThat(stored.materials().get(0).achieved()).isEqualByComparingTo("411.50");
+        assertThat(stored.materials().get(0).moistureContent()).isEqualByComparingTo("3.00");
+        assertThat(stored.materials().get(0).absorption()).isEqualByComparingTo("1.20");
+    }
+
     @Test
     void aCycleForAnUnknownBatchIsRefused() {
         BatchCycleRequest unknown = new BatchCycleRequest("NOPE", 1, Instant.now(),

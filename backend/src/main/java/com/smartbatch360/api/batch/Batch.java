@@ -62,6 +62,19 @@ public class Batch {
     @JoinColumn(name = "driver_id", nullable = false)
     private Driver driver;
 
+    /**
+     * The load as the operator sized it, and what one mixer cycle of it takes.
+     * Kept as entered rather than worked back from the kilograms: the density
+     * and the mixer capacity behind that sum can both be changed later, and a
+     * printed report must not change with them. Null on a batch entered by hand
+     * or made before 06-Oct-2026.
+     */
+    @Column(name = "batch_size_m3", precision = 8, scale = 4)
+    private BigDecimal batchSizeM3;
+
+    @Column(name = "per_cycle_m3", precision = 8, scale = 4)
+    private BigDecimal perCycleM3;
+
     @Column(name = "target_quantity", nullable = false, precision = 8, scale = 2)
     private BigDecimal targetQuantity;
 
@@ -76,6 +89,10 @@ public class Batch {
 
     @Column(name = "shift", length = 50)
     private String shift;
+
+    /** Whether the plant ran this load with moisture correction switched on. */
+    @Column(name = "moisture_enabled", nullable = false)
+    private boolean moistureEnabled;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -170,6 +187,22 @@ public class Batch {
         this.driver = driver;
     }
 
+    public BigDecimal getBatchSizeM3() {
+        return batchSizeM3;
+    }
+
+    public void setBatchSizeM3(BigDecimal batchSizeM3) {
+        this.batchSizeM3 = batchSizeM3;
+    }
+
+    public BigDecimal getPerCycleM3() {
+        return perCycleM3;
+    }
+
+    public void setPerCycleM3(BigDecimal perCycleM3) {
+        this.perCycleM3 = perCycleM3;
+    }
+
     public BigDecimal getTargetQuantity() {
         return targetQuantity;
     }
@@ -208,6 +241,14 @@ public class Batch {
 
     public void setShift(String shift) {
         this.shift = shift;
+    }
+
+    public boolean isMoistureEnabled() {
+        return moistureEnabled;
+    }
+
+    public void setMoistureEnabled(boolean moistureEnabled) {
+        this.moistureEnabled = moistureEnabled;
     }
 
     public BatchStatus getStatus() {

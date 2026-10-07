@@ -34,3 +34,6 @@ backend/config/
 config/smartbatch360.properties
 
 # Maven wrapper cache (optional to keep, excluded to keep repo lean)
+
+# Database dumps taken before a schema change - real data, never commit.
+backups/

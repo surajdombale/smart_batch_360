@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -56,7 +57,10 @@ public class BatchCycleService {
                 });
 
         cycle.setCycleTime(request.cycleTime());
-        applyMaterials(cycle, request.materials());
+        cycle.setMoistureContent(request.moistureContent());
+        cycle.setCorrectedWater(request.correctedWater());
+        cycle.setCorrectedAggregate(request.correctedAggregate());
+        applyMaterials(cycle, request.materials(), plannedPerCycle(batch));
 
         return BatchCycleResponse.from(batchCycleRepository.save(cycle));
     }
@@ -71,7 +75,8 @@ public class BatchCycleService {
      * correction is rejected as a duplicate. Matching by name touches only what
      * changed and cannot collide with a row that is on its way out.
      */
-    private void applyMaterials(BatchCycle cycle, List<BatchCycleRequest.MaterialAchieved> reported) {
+    private void applyMaterials(BatchCycle cycle, List<BatchCycleRequest.MaterialAchieved> reported,
+                                Map<String, BigDecimal> plannedPerCycle) {
         Map<String, BatchCycleMaterial> existing = new LinkedHashMap<>();
         for (BatchCycleMaterial material : cycle.getMaterials()) {
             existing.put(material.getMaterialName().toLowerCase(), material);
@@ -93,12 +98,31 @@ public class BatchCycleService {
             } else {
                 material.setMaterialName(name);
             }
+            // The plan is the same for every cycle of a load, so a PLC that
+            // reports only weights still gets the figure it was aiming at.
+            BigDecimal planned = plannedPerCycle.get(key);
+            material.setTarget(line.target() != null ? line.target() : planned);
+            material.setSetpoint(line.setpoint() != null ? line.setpoint() : planned);
             material.setAchieved(line.achieved());
+            material.setMoistureContent(line.moistureContent());
+            material.setAbsorption(line.absorption());
             material.setDisplayOrder(order++);
         }
 
         // A correction may drop a material the first message carried.
         cycle.getMaterials().removeIf(material -> !stillReported.contains(material.getMaterialName().toLowerCase()));
+    }
+
+    /**
+     * What one cycle of this batch is set to, by material. Empty for a material
+     * the batch never planned - nothing is guessed for it.
+     */
+    private Map<String, BigDecimal> plannedPerCycle(Batch batch) {
+        Map<String, BigDecimal> planned = new HashMap<>();
+        for (BatchMaterial material : batch.getMaterials()) {
+            planned.put(material.getMaterialName().toLowerCase(), material.getSetpoint());
+        }
+        return planned;
     }
 
     @Transactional(readOnly = true)

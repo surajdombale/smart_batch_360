@@ -32,6 +32,19 @@ public class BatchCycle {
     @Column(name = "cycle_time", nullable = false)
     private Instant cycleTime;
 
+    /**
+     * What the PLC measured and corrected for this cycle, when moisture
+     * correction is on. Stored as reported - nothing here works a correction out.
+     */
+    @Column(name = "moisture_content", precision = 6, scale = 2)
+    private BigDecimal moistureContent;
+
+    @Column(name = "corrected_water", precision = 8, scale = 2)
+    private BigDecimal correctedWater;
+
+    @Column(name = "corrected_aggregate", precision = 8, scale = 2)
+    private BigDecimal correctedAggregate;
+
     @OneToMany(mappedBy = "cycle", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
     @BatchSize(size = 100)
@@ -93,6 +106,30 @@ public class BatchCycle {
 
     public void setCycleTime(Instant cycleTime) {
         this.cycleTime = cycleTime;
+    }
+
+    public BigDecimal getMoistureContent() {
+        return moistureContent;
+    }
+
+    public void setMoistureContent(BigDecimal moistureContent) {
+        this.moistureContent = moistureContent;
+    }
+
+    public BigDecimal getCorrectedWater() {
+        return correctedWater;
+    }
+
+    public void setCorrectedWater(BigDecimal correctedWater) {
+        this.correctedWater = correctedWater;
+    }
+
+    public BigDecimal getCorrectedAggregate() {
+        return correctedAggregate;
+    }
+
+    public void setCorrectedAggregate(BigDecimal correctedAggregate) {
+        this.correctedAggregate = correctedAggregate;
     }
 
     public List<BatchCycleMaterial> getMaterials() {

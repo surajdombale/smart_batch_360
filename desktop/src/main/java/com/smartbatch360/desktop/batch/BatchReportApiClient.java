@@ -16,6 +16,11 @@ public class BatchReportApiClient {
         return apiClient.get(buildPath(filter, page, size), BatchPageDto.class);
     }
 
+    /** Every cycle of one batch, in order - the grid of its batch report. */
+    public CompletableFuture<List<BatchCycleDto>> cycles(Long batchId) {
+        return apiClient.getList("/api/v1/batch-cycles/batch/" + batchId, BatchCycleDto.class);
+    }
+
     private String buildPath(BatchReportFilter f, int page, int size) {
         List<String> params = new ArrayList<>();
         addIfPresent(params, "batchNumberFrom", f.batchNumberFrom());

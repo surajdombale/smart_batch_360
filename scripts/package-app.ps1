@@ -10,7 +10,8 @@
 # the five simulated equipment statuses dropped, production planned in cubic
 # metres with a new Production screen (pick order and vehicle, enter the batch
 # size, cycles and setpoints calculated), and the per-cycle endpoint the PLC
-# reports into. Bump
+# reports into. Repackaged the same day with the single-batch report (the
+# "Report" button on Batch Reports) and the batch/cycle fields behind it. Bump
 # $AppName/$AppVersion here for future releases.
 #
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\package-app.ps1

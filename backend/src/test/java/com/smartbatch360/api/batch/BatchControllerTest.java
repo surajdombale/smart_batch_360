@@ -42,8 +42,9 @@ class BatchControllerTest {
     private BatchResponse sample() {
         return new BatchResponse(1L, "250201", 1L, "M25", null, 2L, "SmartBatch Solutions", 3L, "Kharadi",
                 4L, "MH12PQ3457", 5L, "Ganesh More",
+                null, null,
                 new BigDecimal("3.00"), new BigDecimal("2.40"), new BigDecimal("0.60"),
-                Instant.now(), 1, "Day", BatchStatus.IN_PROGRESS,
+                Instant.now(), 1, "Day", false, BatchStatus.IN_PROGRESS,
                 List.of(new BatchMaterialResponse(1L, "OPC S3 Cement", new BigDecimal("960.00"),
                         new BigDecimal("960.00"), new BigDecimal("958.00"), "kg")),
                 Instant.now(), Instant.now());
