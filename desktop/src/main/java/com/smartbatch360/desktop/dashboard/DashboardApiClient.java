@@ -11,4 +11,8 @@ public class DashboardApiClient {
     public CompletableFuture<DashboardSummaryDto> getSummary() {
         return apiClient.get("/api/v1/dashboard/summary", DashboardSummaryDto.class);
     }
+
+    public CompletableFuture<DashboardProductionDto> getProduction(DashboardPeriod period) {
+        return apiClient.get("/api/v1/dashboard/production?period=" + period.name(), DashboardProductionDto.class);
+    }
 }

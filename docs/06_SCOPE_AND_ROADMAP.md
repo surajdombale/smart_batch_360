@@ -136,6 +136,13 @@ The current phase is intentionally small:
 - Packaged as V7 (7.0.0) — 2026-10-06, for the test developer. Carries everything above.
   - Not in it, and still open in the sheet: the Production screen itself (rows 34-47 - the calculations behind it are built and tested, the screen is not), the batch report PDF from the handwritten templates, "Add Company id" (row 20, waiting on what an id means here), and "one Company under Admin Control" (row 21, needs authentication, still deferred).
 
+- Dashboard redesign — 27-Oct-2026, after a "SmartBatch360 v2.0" mockup the user supplied. A period picker (Today, Yesterday, Last 7 / 30 Days) and Refresh at the top; three coloured headline tiles - Total Batches, Total Quantity in m3, Active Vehicles - each with its change against the period before; Batch Summary (batches per hour, or per day) beside Recent Batches; Backend / Database / PLC status along the bottom. It refreshes every five seconds while on screen, the requirement the old dashboard never met, and updates in place.
+  - Backed by a new GET /api/v1/dashboard/production?period=. Four queries whatever the volume, guarded by a test. Day and hour buckets go through ReportingZone, so a 01:30 night-shift batch is today's.
+  - Quantity is produced kilograms through ConcreteDensity, so a running batch counts what it has made so far and the tile is the sum of the rows beneath it. Active Vehicles means vehicles that carried a batch in the period - vehicle status alone cannot be compared with yesterday.
+  - Today is compared with yesterday up to the same time, not all of yesterday; otherwise every morning reads as a collapse.
+  - Left out of the mockup, deliberately: Revenue (nothing records a price - needs the user's decision on where a rate lives), the user name and Logout (authentication is deferred), and a live PLC indicator (shown as "Not monitored" - there is no PLC link to watch). The app-wide shell in the mockup - light sidebar with icons, top bar - was not changed; that is every screen, not the dashboard.
+  - The old count tiles (clients, sites, vehicles, drivers, companies, recipes, all-time batches) are gone from the screen, as the mockup has none. /dashboard/summary still returns them.
+
 ### Do not build now
 - Analytics
 - PLC Monitoring

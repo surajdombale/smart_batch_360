@@ -5,7 +5,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 
 /**
  * The zone the plant's days are measured in, and the only place a date becomes
@@ -57,5 +59,19 @@ public class ReportingZone {
     /** The plant-local day an instant falls on. */
     public LocalDate dayOf(Instant instant) {
         return instant.atZone(zoneId).toLocalDate();
+    }
+
+    /** The plant-local hour an instant falls in, for an hourly trend. */
+    public LocalDateTime hourOf(Instant instant) {
+        return instant.atZone(zoneId).truncatedTo(ChronoUnit.HOURS).toLocalDateTime();
+    }
+
+    /**
+     * The same plant-local time of day, some days earlier - so a day still in
+     * progress can be set against the same stretch of the day before rather
+     * than the whole of it.
+     */
+    public Instant daysBefore(Instant instant, int days) {
+        return instant.atZone(zoneId).minusDays(days).toInstant();
     }
 }

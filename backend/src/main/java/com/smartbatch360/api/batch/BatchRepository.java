@@ -1,5 +1,6 @@
 package com.smartbatch360.api.batch;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -7,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,4 +57,26 @@ public interface BatchRepository extends JpaRepository<Batch, Long>, JpaSpecific
             + "b.order.id, COALESCE(SUM(b.producedQuantity), 0)) "
             + "FROM Batch b WHERE b.order IS NOT NULL GROUP BY b.order.id")
     List<OrderProducedQuantity> sumProducedQuantityByOrder();
+
+    /** The dashboard's headline figures for batches made in [from, to). */
+    @Query("SELECT new com.smartbatch360.api.batch.BatchTotals("
+            + "COUNT(b), COALESCE(SUM(b.producedQuantity), 0), COUNT(DISTINCT b.vehicle.id)) "
+            + "FROM Batch b WHERE b.cycleDateTime >= :from AND b.cycleDateTime < :to")
+    BatchTotals totalsBetween(@Param("from") Instant from, @Param("to") Instant to);
+
+    /**
+     * When each batch in [from, to) was made, for the dashboard's trend. The
+     * bucketing into plant hours or days happens in Java through ReportingZone:
+     * done in SQL it would follow the database session's zone instead.
+     */
+    @Query("SELECT b.cycleDateTime FROM Batch b WHERE b.cycleDateTime >= :from AND b.cycleDateTime < :to")
+    List<Instant> findCycleDateTimesBetween(@Param("from") Instant from, @Param("to") Instant to);
+
+    /** The newest batches made in [from, to), as many as the page asks for. */
+    @Query("SELECT new com.smartbatch360.api.batch.RecentBatchRow("
+            + "b.id, b.batchNumber, r.name, v.vehicleNumber, b.producedQuantity, b.cycleDateTime, b.status) "
+            + "FROM Batch b JOIN b.recipe r JOIN b.vehicle v "
+            + "WHERE b.cycleDateTime >= :from AND b.cycleDateTime < :to "
+            + "ORDER BY b.cycleDateTime DESC, b.id DESC")
+    List<RecentBatchRow> findRecentBetween(@Param("from") Instant from, @Param("to") Instant to, Pageable pageable);
 }

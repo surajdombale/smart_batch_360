@@ -436,3 +436,241 @@
 .consumption-chart .axis:left {
     -fx-border-color: transparent;
 }
+
+/* ---------- Dashboard ----------
+ * Laid out after the SmartBatch360 v2.0 reference the user supplied on
+ * 27-Oct-2026. The headline tiles use a darker step of each hue than the
+ * reference does, so their white text clears 4.5:1 at both ends of the
+ * gradient (blue 5.2 / 6.7, green 5.0 / 7.1, purple 5.7 / 7.1).
+ */
+
+.dashboard-header {
+    -fx-padding: 0 0 16 0;
+}
+
+.dashboard-title-icon {
+    -fx-fill: -sb-blue;
+}
+
+.period-field {
+    -fx-pref-width: 150;
+}
+
+.icon-button {
+    -fx-padding: 6 9 6 9;
+}
+
+.refresh-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -sb-text;
+    -fx-stroke-width: 2.5;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+.kpi-tile {
+    -fx-background-radius: 10;
+    -fx-padding: 16 18 16 18;
+    -fx-effect: dropshadow(gaussian, rgba(20,30,60,0.14), 10, 0, 0, 3);
+}
+
+.kpi-tile-blue {
+    -fx-background-color: linear-gradient(to bottom right, #2563eb, #1d4ed8);
+}
+
+.kpi-tile-green {
+    -fx-background-color: linear-gradient(to bottom right, #15803d, #166534);
+}
+
+.kpi-tile-purple {
+    -fx-background-color: linear-gradient(to bottom right, #7c3aed, #6d28d9);
+}
+
+.kpi-tile-title {
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+}
+
+.kpi-tile-value {
+    -fx-text-fill: white;
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+}
+
+.kpi-tile-unit {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.kpi-tile-change {
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+}
+
+.kpi-tile-icon {
+    -fx-fill: rgba(255,255,255,0.32);
+}
+
+.card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -sb-text;
+}
+
+.card-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: -sb-text-muted;
+}
+
+/* Batch Summary: one series, so one hue and no legend - the card title names
+   it. Same accent blue and recessive chrome as the consumption chart. */
+
+.trend-chart {
+    -fx-padding: 0;
+}
+
+.trend-chart .chart-plot-background {
+    -fx-background-color: transparent;
+}
+
+.trend-chart .default-color0.chart-series-area-line {
+    -fx-stroke: #2a78d6;
+    -fx-stroke-width: 2px;
+}
+
+.trend-chart .default-color0.chart-series-area-fill {
+    -fx-fill: rgba(42,120,214,0.10);
+    -fx-stroke: transparent;
+}
+
+/* 8px markers with a surface ring, so neighbouring points stay apart. */
+.trend-chart .default-color0.chart-area-symbol {
+    -fx-background-color: #2a78d6, white, #2a78d6;
+    -fx-background-insets: 0, 1.5, 3;
+    -fx-background-radius: 5px;
+    -fx-padding: 4px;
+}
+
+.trend-chart .axis,
+.trend-chart .axis-label {
+    -fx-tick-label-fill: -sb-text-muted;
+    -fx-font-size: 11px;
+}
+
+.trend-chart .chart-horizontal-grid-lines {
+    -fx-stroke: #e1e0d9;
+    -fx-stroke-width: 1;
+    -fx-stroke-dash-array: null;
+}
+
+.trend-chart .axis {
+    -fx-tick-mark-stroke: transparent;
+}
+
+.trend-chart .axis:bottom {
+    -fx-border-color: #c3c2b7 transparent transparent transparent;
+}
+
+.trend-chart .axis:left {
+    -fx-border-color: transparent;
+}
+
+/* Recent Batches. Headings are a step darker than -sb-text-muted, which
+   reaches only 4.3:1 on the header's tint. */
+
+.recent-header {
+    -fx-background-color: #f4f6fa;
+    -fx-background-radius: 4;
+    -fx-padding: 8 10 8 10;
+}
+
+.recent-heading {
+    -fx-text-fill: #5b6576;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.recent-row {
+    -fx-padding: 9 10 9 10;
+    -fx-border-color: transparent transparent -sb-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.recent-cell {
+    -fx-text-fill: -sb-text;
+    -fx-font-size: 12px;
+}
+
+/* A gutter on every column, so a long value ends in an ellipsis rather than
+   running into its neighbour. */
+.recent-cell,
+.recent-heading {
+    -fx-padding: 0 8 0 0;
+}
+
+.recent-number {
+    -fx-padding: 0 14 0 0;
+}
+
+/* Status pills: each text/fill pair clears 4.5:1. */
+
+.batch-status {
+    -fx-background-radius: 10;
+    -fx-padding: 2 8 2 8;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.batch-status-completed {
+    -fx-background-color: #e5f7ee;
+    -fx-text-fill: #157a4f;
+}
+
+.batch-status-in-progress {
+    -fx-background-color: #fff3e0;
+    -fx-text-fill: #b45309;
+}
+
+.batch-status-paused {
+    -fx-background-color: #fef6dc;
+    -fx-text-fill: #a16207;
+}
+
+.batch-status-stopped {
+    -fx-background-color: #fbeaea;
+    -fx-text-fill: #b42318;
+}
+
+.batch-status-pending {
+    -fx-background-color: #eef1f6;
+    -fx-text-fill: #5b6576;
+}
+
+.dashboard-status-bar {
+    -fx-padding: 12 2 0 2;
+    -fx-border-color: -sb-border transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.status-item {
+    -fx-font-size: 12px;
+    -fx-text-fill: -sb-text;
+}
+
+.status-updated {
+    -fx-font-size: 11px;
+    -fx-text-fill: -sb-text-muted;
+}
+
+.status-dot-up {
+    -fx-fill: -sb-success;
+}
+
+.status-dot-down {
+    -fx-fill: -sb-danger;
+}
+
+.status-dot-idle {
+    -fx-fill: #9aa3b2;
+}

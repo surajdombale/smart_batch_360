@@ -1,11 +1,9 @@
 package com.smartbatch360.api.dashboard;
 
 /**
- * Phase 1 dashboard data only. KPIs that depend on Production/Recipe/BatchData
- * (Total Batches, Today's Volume, Revenue, Production Trend, Recent Batches,
- * Active Recipe, Last Batch, Average Batch Time, PLC status) are intentionally
- * absent: those data sources do not exist in this phase
- * (docs/01_REQUIREMENTS.md, docs/02_UI_REFERENCE.md).
+ * Record counts and the backend/database status. What the plant produced -
+ * batches, volume, vehicles, the trend and the latest batches - comes from
+ * /dashboard/production, which takes a period; these figures do not.
  */
 public record DashboardSummaryResponse(
         long totalClients,
