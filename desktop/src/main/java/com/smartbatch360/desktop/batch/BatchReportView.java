@@ -236,7 +236,7 @@ public class BatchReportView {
 
             {
                 viewButton.getStyleClass().add("button-secondary");
-                viewButton.setOnAction(e -> BatchDetailDialog.show(getTableView().getItems().get(getIndex())));
+                viewButton.setOnAction(e -> viewBatch(getTableView().getItems().get(getIndex())));
                 reportButton.getStyleClass().add("button-secondary");
                 reportPdfItem.setOnAction(e ->
                         exportBatchSheet(getTableView().getItems().get(getIndex()), SheetFormat.PDF));
@@ -325,6 +325,21 @@ public class BatchReportView {
                     }
                     writeReport(format, file, result);
                 }));
+    }
+
+    /**
+     * One batch's details and its cycles. The cycles are fetched before the
+     * dialog opens, so it shows the whole grid rather than filling in after.
+     */
+    private void viewBatch(BatchDto batch) {
+        banner.hide();
+        reportApiClient.cycles(batch.id()).whenComplete((cycles, throwable) -> Platform.runLater(() -> {
+            if (throwable != null) {
+                banner.showError(apiMessage(throwable));
+                return;
+            }
+            BatchDetailDialog.show(batch, cycles);
+        }));
     }
 
     /**

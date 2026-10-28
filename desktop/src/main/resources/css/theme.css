@@ -674,3 +674,12 @@
 .status-dot-idle {
     -fx-fill: #9aa3b2;
 }
+
+/* ---------- Batch cycle grid (Batch Reports > View) ----------
+ * The same grid the printed batch report carries. Its headings and totals read
+ * as one band, as the grey rows do on the sheet. */
+
+.batch-sheet-band {
+    -fx-background-color: -sb-border;
+    -fx-font-weight: bold;
+}
