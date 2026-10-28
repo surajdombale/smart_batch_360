@@ -171,6 +171,72 @@ class BatchCycleServiceTest {
         assertThat(response.materials().get(1).setpoint()).isNull();
     }
 
+    /**
+     * Orders, the Dashboard and Material Consumption read the batch, not its
+     * cycles, so a batch whose cycles arrive has to say it produced something.
+     */
+    @Test
+    void theBatchProducesWhatItsCyclesWeighed() {
+        plan("Cement", "Water");
+
+        service.record(cycle(1, "101.00", "151.00"));
+        service.record(cycle(2, "99.00", "149.50"));
+        entityManager.flush();
+        entityManager.clear();
+
+        Batch stored = entityManager.find(Batch.class, batch.getId());
+        assertThat(stored.getProducedQuantity()).isEqualByComparingTo("500.50");
+        assertThat(stored.getMaterials()).extracting(BatchMaterial::getAchieved)
+                .containsExactly(new BigDecimal("200.00"), new BigDecimal("300.50"));
+    }
+
+    /** A resend corrects the cycle, so it has to correct the batch too - not add to it. */
+    @Test
+    void resendingACycleCorrectsTheBatchRatherThanAddingToIt() {
+        plan("Cement", "Water");
+
+        service.record(cycle(1, "101.00", "151.00"));
+        service.record(cycle(1, "102.00", "150.00"));
+        entityManager.flush();
+        entityManager.clear();
+
+        Batch stored = entityManager.find(Batch.class, batch.getId());
+        assertThat(stored.getProducedQuantity()).isEqualByComparingTo("252.00");
+        assertThat(stored.getMaterials()).extracting(BatchMaterial::getAchieved)
+                .containsExactly(new BigDecimal("102.00"), new BigDecimal("150.00"));
+    }
+
+    /** Weighed, so produced - but the batch has no line for it, and none is made up. */
+    @Test
+    void anUnplannedMaterialCountsAsProducedWithoutALineOfItsOwn() {
+        plan("Cement");
+
+        service.record(cycle(1, "101.00", "151.00"));
+        entityManager.flush();
+        entityManager.clear();
+
+        Batch stored = entityManager.find(Batch.class, batch.getId());
+        assertThat(stored.getProducedQuantity()).isEqualByComparingTo("252.00");
+        assertThat(stored.getMaterials()).extracting(BatchMaterial::getMaterialName).containsExactly("Cement");
+        assertThat(stored.getMaterials().get(0).getAchieved()).isEqualByComparingTo("101.00");
+    }
+
+    private void plan(String... materialNames) {
+        int order = 0;
+        for (String name : materialNames) {
+            BatchMaterial planned = new BatchMaterial();
+            planned.setBatch(batch);
+            planned.setMaterialName(name);
+            planned.setTarget(new BigDecimal("200.00"));
+            planned.setSetpoint(new BigDecimal("100.00"));
+            planned.setAchieved(BigDecimal.ZERO);
+            planned.setUnit("kg");
+            planned.setDisplayOrder(order++);
+            batch.getMaterials().add(planned);
+        }
+        entityManager.flush();
+    }
+
     @Test
     void aCycleKeepsWhatThePlcReportsBeyondTheWeights() {
         service.record(new BatchCycleRequest("250401", 1, Instant.parse("2026-10-04T12:31:00Z"),

@@ -62,7 +62,34 @@ public class BatchCycleService {
         cycle.setCorrectedAggregate(request.correctedAggregate());
         applyMaterials(cycle, request.materials(), plannedPerCycle(batch));
 
-        return BatchCycleResponse.from(batchCycleRepository.save(cycle));
+        BatchCycle saved = batchCycleRepository.save(cycle);
+        rollUpInto(batch);
+        return BatchCycleResponse.from(saved);
+    }
+
+    /**
+     * What a batch has produced is what its cycles weighed. Orders, the
+     * Dashboard and Material Consumption all read the batch's own figures, so
+     * left alone they stay at zero however many cycles arrive.
+     *
+     * Recomputed from every cycle rather than added to, so a resend that
+     * corrects a cycle corrects the batch with it. A material the batch never
+     * planned counts towards what was produced but has no line of its own to
+     * land on - none is invented for it.
+     */
+    private void rollUpInto(Batch batch) {
+        Map<String, BigDecimal> weighed = new HashMap<>();
+        BigDecimal produced = BigDecimal.ZERO;
+        for (BatchCycle cycle : batchCycleRepository.findForReport(batch.getId())) {
+            for (BatchCycleMaterial material : cycle.getMaterials()) {
+                weighed.merge(material.getMaterialName().toLowerCase(), material.getAchieved(), BigDecimal::add);
+            }
+            produced = produced.add(cycle.totalAchieved());
+        }
+        batch.setProducedQuantity(produced);
+        for (BatchMaterial material : batch.getMaterials()) {
+            material.setAchieved(weighed.getOrDefault(material.getMaterialName().toLowerCase(), BigDecimal.ZERO));
+        }
     }
 
     /**
