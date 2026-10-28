@@ -4,6 +4,7 @@ import com.smartbatch360.api.batch.dto.BatchCycleRequest;
 import com.smartbatch360.api.batch.dto.BatchCycleResponse;
 import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.NotFoundException;
+import com.smartbatch360.api.order.OrderProgress;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,10 +30,13 @@ public class BatchCycleService {
 
     private final BatchCycleRepository batchCycleRepository;
     private final BatchRepository batchRepository;
+    private final OrderProgress orderProgress;
 
-    public BatchCycleService(BatchCycleRepository batchCycleRepository, BatchRepository batchRepository) {
+    public BatchCycleService(BatchCycleRepository batchCycleRepository, BatchRepository batchRepository,
+                             OrderProgress orderProgress) {
         this.batchCycleRepository = batchCycleRepository;
         this.batchRepository = batchRepository;
+        this.orderProgress = orderProgress;
     }
 
     /**
@@ -63,8 +67,26 @@ public class BatchCycleService {
         applyMaterials(cycle, request.materials(), plannedPerCycle(batch));
 
         BatchCycle saved = batchCycleRepository.save(cycle);
-        rollUpInto(batch);
+        List<BatchCycle> cycles = batchCycleRepository.findForReport(batch.getId());
+        rollUpInto(batch, cycles);
+        completeOnLastPlannedCycle(batch, cycles.size());
         return BatchCycleResponse.from(saved);
+    }
+
+    /**
+     * A batch is planned as so many cycles, so the last of them finishes it -
+     * there is nothing left for the mixer to do. Counted rather than matched on
+     * the number, so cycles that arrive out of order finish it only once every
+     * one of them is in. A batch with no planned count is left to be finished
+     * by hand, and one already finished or stopped stays as it is.
+     */
+    private void completeOnLastPlannedCycle(Batch batch, int cyclesRecorded) {
+        if (batch.getCycleNumber() == null || cyclesRecorded < batch.getCycleNumber()
+                || !BatchStatus.RUNNING.contains(batch.getStatus())) {
+            return;
+        }
+        batch.setStatus(BatchStatus.COMPLETED);
+        orderProgress.batchCompleted(batch);
     }
 
     /**
@@ -77,10 +99,10 @@ public class BatchCycleService {
      * planned counts towards what was produced but has no line of its own to
      * land on - none is invented for it.
      */
-    private void rollUpInto(Batch batch) {
+    private void rollUpInto(Batch batch, List<BatchCycle> cycles) {
         Map<String, BigDecimal> weighed = new HashMap<>();
         BigDecimal produced = BigDecimal.ZERO;
-        for (BatchCycle cycle : batchCycleRepository.findForReport(batch.getId())) {
+        for (BatchCycle cycle : cycles) {
             for (BatchCycleMaterial material : cycle.getMaterials()) {
                 weighed.merge(material.getMaterialName().toLowerCase(), material.getAchieved(), BigDecimal::add);
             }

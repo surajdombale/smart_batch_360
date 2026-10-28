@@ -36,6 +36,12 @@ public class BatchController {
         return batchService.findAll();
     }
 
+    /** The batch the plant is running, if any - a list so "none" needs no special status. */
+    @GetMapping("/running")
+    public List<BatchResponse> running() {
+        return batchService.findRunning();
+    }
+
     @GetMapping("/{id}")
     public BatchResponse get(@PathVariable Long id) {
         return batchService.findById(id);

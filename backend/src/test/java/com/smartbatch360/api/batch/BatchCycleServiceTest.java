@@ -8,6 +8,9 @@ import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.NotFoundException;
 import com.smartbatch360.api.driver.Driver;
 import com.smartbatch360.api.driver.DriverStatus;
+import com.smartbatch360.api.order.OrderProgress;
+import com.smartbatch360.api.order.OrderStatus;
+import com.smartbatch360.api.order.SalesOrder;
 import com.smartbatch360.api.recipe.Recipe;
 import com.smartbatch360.api.recipe.RecipeStatus;
 import com.smartbatch360.api.site.Site;
@@ -35,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * neither.
  */
 @DataJpaTest
-@Import(BatchCycleService.class)
+@Import({BatchCycleService.class, OrderProgress.class})
 class BatchCycleServiceTest {
 
     @Autowired private BatchCycleService service;
@@ -219,6 +222,116 @@ class BatchCycleServiceTest {
         assertThat(stored.getProducedQuantity()).isEqualByComparingTo("252.00");
         assertThat(stored.getMaterials()).extracting(BatchMaterial::getMaterialName).containsExactly("Cement");
         assertThat(stored.getMaterials().get(0).getAchieved()).isEqualByComparingTo("101.00");
+    }
+
+    /** Planned as so many cycles, the last of them finishes the batch. */
+    @Test
+    void theLastPlannedCycleCompletesTheBatch() {
+        batch.setCycleNumber(2);
+
+        service.record(cycle(1, "101.00", "151.00"));
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.IN_PROGRESS);
+
+        service.record(cycle(2, "99.00", "149.00"));
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+    }
+
+    /** Counted, not matched on the number: cycle 3 arriving early does not finish a load still missing 2. */
+    @Test
+    void cyclesArrivingOutOfOrderFinishTheBatchOnlyOnceAllAreIn() {
+        batch.setCycleNumber(3);
+
+        service.record(cycle(1, "101.00", "151.00"));
+        service.record(cycle(3, "100.00", "150.00"));
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.IN_PROGRESS);
+
+        service.record(cycle(2, "99.00", "149.00"));
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+    }
+
+    @Test
+    void aBatchWithNoPlannedCycleCountIsLeftToBeFinishedByHand() {
+        batch.setCycleNumber(null);
+
+        service.record(cycle(1, "101.00", "151.00"));
+
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.IN_PROGRESS);
+    }
+
+    /** A stopped load stays stopped, even if the cycle it was missing turns up late. */
+    @Test
+    void aStoppedBatchIsNotCompletedByALateCycle() {
+        batch.setCycleNumber(1);
+        batch.setStatus(BatchStatus.STOPPED);
+
+        service.record(cycle(1, "101.00", "151.00"));
+
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.STOPPED);
+    }
+
+    /**
+     * The batch that covers the order fulfils it - judged by what the batch was
+     * planned to deliver, so weighing a little under the plan does not leave the
+     * order open for a shortfall nobody would send a truck for.
+     */
+    @Test
+    void completingTheBatchThatCoversTheOrderFulfilsIt() {
+        SalesOrder order = orderFor("100.00");
+        batch.setCycleNumber(1);
+
+        service.record(cycle(1, "40.00", "59.00"));   // 99 kg against a planned 100
+
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.FULFILLED);
+    }
+
+    @Test
+    void anOrderLargerThanTheBatchStaysInProgress() {
+        SalesOrder order = orderFor("300.00");
+        batch.setCycleNumber(1);
+
+        service.record(cycle(1, "40.00", "60.00"));
+
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.IN_PROGRESS);
+    }
+
+    /** A load stopped partway delivered what it weighed, and that counts towards the order. */
+    @Test
+    void aStoppedBatchCountsTowardsTheOrderAtWhatItWeighed() {
+        SalesOrder order = orderFor("300.00");
+        Batch stopped = new Batch();
+        stopped.setBatchNumber("250400");
+        stopped.setClient(batch.getClient());
+        stopped.setSite(batch.getSite());
+        stopped.setVehicle(batch.getVehicle());
+        stopped.setDriver(batch.getDriver());
+        stopped.setRecipe(batch.getRecipe());
+        stopped.setOrder(order);
+        stopped.setTargetQuantity(new BigDecimal("400.00"));
+        stopped.setProducedQuantity(new BigDecimal("200.00"));
+        stopped.setStatus(BatchStatus.STOPPED);
+        stopped.setCycleDateTime(Instant.parse("2026-10-04T11:30:00Z"));
+        entityManager.persist(stopped);
+        batch.setCycleNumber(1);
+
+        service.record(cycle(1, "40.00", "60.00"));   // 200 weighed before the stop, plus 100 planned
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.FULFILLED);
+    }
+
+    /** An order already in progress, against the seeded batch. */
+    private SalesOrder orderFor(String quantityKg) {
+        SalesOrder order = new SalesOrder();
+        order.setClient(batch.getClient());
+        order.setSite(batch.getSite());
+        order.setRecipe(batch.getRecipe());
+        order.setQuantityKg(new BigDecimal(quantityKg));
+        order.setStatus(OrderStatus.IN_PROGRESS);
+        entityManager.persist(order);
+        batch.setOrder(order);
+        entityManager.flush();
+        return order;
     }
 
     private void plan(String... materialNames) {

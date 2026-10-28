@@ -11,6 +11,7 @@ import com.smartbatch360.api.common.DuplicateResourceException;
 import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.NotFoundException;
 import com.smartbatch360.api.common.ReportingZone;
+import com.smartbatch360.api.order.OrderProgress;
 import com.smartbatch360.api.order.SalesOrder;
 import com.smartbatch360.api.order.SalesOrderRepository;
 import com.smartbatch360.api.driver.Driver;
@@ -49,11 +50,13 @@ public class BatchService {
     private final DriverRepository driverRepository;
     private final SalesOrderRepository salesOrderRepository;
     private final ReportingZone reportingZone;
+    private final OrderProgress orderProgress;
 
     public BatchService(BatchRepository batchRepository, RecipeRepository recipeRepository,
                          ClientRepository clientRepository, SiteRepository siteRepository,
                          VehicleRepository vehicleRepository, DriverRepository driverRepository,
-                         SalesOrderRepository salesOrderRepository, ReportingZone reportingZone) {
+                         SalesOrderRepository salesOrderRepository, ReportingZone reportingZone,
+                         OrderProgress orderProgress) {
         this.batchRepository = batchRepository;
         this.recipeRepository = recipeRepository;
         this.clientRepository = clientRepository;
@@ -62,11 +65,20 @@ public class BatchService {
         this.driverRepository = driverRepository;
         this.salesOrderRepository = salesOrderRepository;
         this.reportingZone = reportingZone;
+        this.orderProgress = orderProgress;
     }
 
     @Transactional(readOnly = true)
     public List<BatchResponse> findAll() {
         return batchRepository.findAll().stream()
+                .map(BatchResponse::from)
+                .toList();
+    }
+
+    /** What the plant is making now - one batch at most, as Production allows only one. */
+    @Transactional(readOnly = true)
+    public List<BatchResponse> findRunning() {
+        return batchRepository.findByStatusInOrderByCycleDateTimeAsc(BatchStatus.RUNNING).stream()
                 .map(BatchResponse::from)
                 .toList();
     }
@@ -134,8 +146,12 @@ public class BatchService {
         return applyStatus(id, BatchStatus.STOPPED);
     }
 
+    /** Finishing a batch can fulfil its order, so this is more than a status change. */
     public BatchResponse complete(Long id) {
-        return applyStatus(id, BatchStatus.COMPLETED);
+        Batch batch = getOrThrow(id);
+        batch.setStatus(BatchStatus.COMPLETED);
+        orderProgress.batchCompleted(batch);
+        return BatchResponse.from(batchRepository.save(batch));
     }
 
     private BatchResponse applyStatus(Long id, BatchStatus status) {

@@ -49,11 +49,13 @@ class BatchServiceTest {
 
     @Mock
     private com.smartbatch360.api.order.SalesOrderRepository salesOrderRepository;
+    @Mock
+    private com.smartbatch360.api.order.OrderProgress orderProgress;
 
     private BatchService service() {
         return new BatchService(batchRepository,
                 recipeRepository, clientRepository, siteRepository, vehicleRepository, driverRepository, salesOrderRepository,
-                ReportingZone.of(ZoneOffset.UTC));
+                ReportingZone.of(ZoneOffset.UTC), orderProgress);
     }
 
     private BatchRequest sampleRequest() {
@@ -166,6 +168,19 @@ class BatchServiceTest {
         BatchResponse response = service().emergencyStop(1L);
 
         assertThat(response.status()).isEqualTo(BatchStatus.STOPPED);
+    }
+
+    /** Completing a batch can fulfil its order, so the order has to hear about it. */
+    @Test
+    void completingABatchTellsItsOrder() {
+        Batch batch = batchWithRelations(BatchStatus.IN_PROGRESS);
+        when(batchRepository.findById(1L)).thenReturn(Optional.of(batch));
+        when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BatchResponse response = service().complete(1L);
+
+        assertThat(response.status()).isEqualTo(BatchStatus.COMPLETED);
+        verify(orderProgress).batchCompleted(batch);
     }
 
     @Test

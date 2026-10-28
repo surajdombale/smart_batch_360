@@ -11,6 +11,7 @@ import com.smartbatch360.api.common.ReportingZone;
 import com.smartbatch360.api.driver.Driver;
 import com.smartbatch360.api.driver.DriverStatus;
 import com.smartbatch360.api.material.Material;
+import com.smartbatch360.api.order.OrderProgress;
 import com.smartbatch360.api.order.OrderStatus;
 import com.smartbatch360.api.order.SalesOrder;
 import com.smartbatch360.api.order.SalesOrderRepository;
@@ -63,7 +64,8 @@ class ProductionServiceTest {
                 batchRepository, planner,
                 plantSettings,
                 new ProductionService.ReportingZoneBatchNumber(batchRepository,
-                        ReportingZone.of(ZoneOffset.UTC)));
+                        ReportingZone.of(ZoneOffset.UTC)),
+                new OrderProgress(batchRepository));
 
         Client client = new Client();
         client.setName("Shree Cement");
@@ -241,6 +243,35 @@ class ProductionServiceTest {
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("is still IN_PROGRESS")
                 .hasMessageContaining("one batch at a time");
+    }
+
+    /** Nothing on screen moves an order by hand any more, so starting production does. */
+    @Test
+    void startingProductionPutsTheOrderInProgress() {
+        service.start(new StartProductionRequest(order.getId(), vehicle.getId(), new BigDecimal("1"), null, null));
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(salesOrderRepository.findById(order.getId()).orElseThrow().getStatus())
+                .isEqualTo(OrderStatus.IN_PROGRESS);
+    }
+
+    /**
+     * A fulfilled order cannot go back into progress, so nothing more is made
+     * against it - refused while the size is still being typed, not only at Start.
+     */
+    @Test
+    void aFulfilledOrderCannotBeProducedAgainst() {
+        order.setStatus(OrderStatus.FULFILLED);
+        entityManager.flush();
+
+        assertThatThrownBy(() -> service.plan(new ProductionPlanRequest(order.getId(), new BigDecimal("1"))))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("is FULFILLED");
+        assertThatThrownBy(() -> service.start(new StartProductionRequest(
+                order.getId(), vehicle.getId(), new BigDecimal("1"), null, null)))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("nothing more can be produced");
     }
 
     /** Finishing the running batch frees the plant for the next load. */

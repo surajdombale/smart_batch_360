@@ -23,6 +23,9 @@ public interface BatchRepository extends JpaRepository<Batch, Long>, JpaSpecific
      */
     Optional<Batch> findFirstByStatusIn(List<BatchStatus> statuses);
 
+    /** Every batch in these states, oldest first - Production's running batch. */
+    List<Batch> findByStatusInOrderByCycleDateTimeAsc(List<BatchStatus> statuses);
+
     /** The PLC knows a batch by its number, not by our id. */
     Optional<Batch> findByBatchNumberIgnoreCase(String batchNumber);
 
@@ -46,6 +49,17 @@ public interface BatchRepository extends JpaRepository<Batch, Long>, JpaSpecific
      */
     @Query("SELECT COALESCE(SUM(b.producedQuantity), 0) FROM Batch b WHERE b.order.id = :orderId")
     BigDecimal sumProducedQuantityForOrder(@Param("orderId") Long orderId);
+
+    /**
+     * What an order's finished batches delivered: a completed batch at what it
+     * was planned to deliver, a stopped one at what it weighed before it was
+     * stopped. Running batches have delivered nothing yet.
+     */
+    @Query("SELECT COALESCE(SUM(CASE WHEN b.status = com.smartbatch360.api.batch.BatchStatus.COMPLETED "
+            + "THEN b.targetQuantity ELSE b.producedQuantity END), 0) FROM Batch b WHERE b.order.id = :orderId "
+            + "AND b.status IN (com.smartbatch360.api.batch.BatchStatus.COMPLETED, "
+            + "com.smartbatch360.api.batch.BatchStatus.STOPPED)")
+    BigDecimal sumDeliveredForOrder(@Param("orderId") Long orderId);
 
     /**
      * The same sum for every order at once. The order list needs one number per

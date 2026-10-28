@@ -52,6 +52,7 @@ class BatchOrderLinkTest {
     @Mock private VehicleRepository vehicleRepository;
     @Mock private DriverRepository driverRepository;
     @Mock private SalesOrderRepository salesOrderRepository;
+    @Mock private com.smartbatch360.api.order.OrderProgress orderProgress;
 
     private Recipe recipe;
     private Client client;
@@ -60,7 +61,7 @@ class BatchOrderLinkTest {
     private BatchService service() {
         return new BatchService(batchRepository,
                 recipeRepository, clientRepository, siteRepository, vehicleRepository, driverRepository, salesOrderRepository,
-                ReportingZone.of(ZoneOffset.UTC));
+                ReportingZone.of(ZoneOffset.UTC), orderProgress);
     }
 
     /** Ids aren't settable (generated), so stub identity through the repositories. */

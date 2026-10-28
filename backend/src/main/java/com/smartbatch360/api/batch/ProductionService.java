@@ -8,7 +8,7 @@ import com.smartbatch360.api.common.InvalidRequestException;
 import com.smartbatch360.api.common.NotFoundException;
 import com.smartbatch360.api.driver.Driver;
 import com.smartbatch360.api.driver.DriverRepository;
-import java.util.List;
+import com.smartbatch360.api.order.OrderProgress;
 import com.smartbatch360.api.order.SalesOrder;
 import com.smartbatch360.api.order.SalesOrderRepository;
 import com.smartbatch360.api.vehicle.Vehicle;
@@ -40,11 +40,13 @@ public class ProductionService {
     private final BatchPlanner batchPlanner;
     private final PlantSettings plantSettings;
     private final ReportingZoneBatchNumber batchNumbering;
+    private final OrderProgress orderProgress;
 
     public ProductionService(SalesOrderRepository salesOrderRepository, VehicleRepository vehicleRepository,
                              DriverRepository driverRepository,
                              BatchRepository batchRepository, BatchPlanner batchPlanner,
-                             PlantSettings plantSettings, ReportingZoneBatchNumber batchNumbering) {
+                             PlantSettings plantSettings, ReportingZoneBatchNumber batchNumbering,
+                             OrderProgress orderProgress) {
         this.salesOrderRepository = salesOrderRepository;
         this.vehicleRepository = vehicleRepository;
         this.driverRepository = driverRepository;
@@ -52,6 +54,7 @@ public class ProductionService {
         this.batchPlanner = batchPlanner;
         this.plantSettings = plantSettings;
         this.batchNumbering = batchNumbering;
+        this.orderProgress = orderProgress;
     }
 
     /** What the screen shows while the operator types a batch size. Changes nothing. */
@@ -124,7 +127,9 @@ public class ProductionService {
             batch.getMaterials().add(material);
         }
 
-        return BatchResponse.from(batchRepository.save(batch));
+        Batch saved = batchRepository.save(batch);
+        orderProgress.productionStarted(order);
+        return BatchResponse.from(saved);
     }
 
     /**
@@ -133,8 +138,7 @@ public class ProductionService {
      * because the operator's next move is to finish or stop that one.
      */
     private void rejectIfAnotherBatchIsRunning() {
-        batchRepository.findFirstByStatusIn(List.of(BatchStatus.PENDING, BatchStatus.IN_PROGRESS,
-                        BatchStatus.PAUSED))
+        batchRepository.findFirstByStatusIn(BatchStatus.RUNNING)
                 .ifPresent(running -> {
                     throw new InvalidRequestException("Batch " + running.getBatchNumber() + " is still "
                             + running.getStatus() + ". The plant runs one batch at a time - finish or stop it "
@@ -160,6 +164,12 @@ public class ProductionService {
         if (order.getRecipe() == null) {
             throw new InvalidRequestException("Order #" + orderId + " has no recipe, so nothing can be produced "
                     + "against it.");
+        }
+        // Its status follows production now, and a finished or cancelled order
+        // cannot be moved back into progress.
+        if (order.getStatus().isTerminal()) {
+            throw new InvalidRequestException("Order #" + orderId + " is " + order.getStatus()
+                    + ", so nothing more can be produced against it.");
         }
         return order;
     }
