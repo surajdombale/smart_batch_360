@@ -5,5 +5,10 @@ public enum OrderStatus {
     UNFULFILLED,
     IN_PROGRESS,
     FULFILLED,
-    CANCELLED
+    CANCELLED;
+
+    /** Can still be produced against. The backend refuses a fulfilled or cancelled order. */
+    public boolean isOpen() {
+        return this == UNFULFILLED || this == IN_PROGRESS;
+    }
 }

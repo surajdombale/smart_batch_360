@@ -1,7 +1,11 @@
 package com.smartbatch360.desktop.production;
 
 import com.smartbatch360.desktop.api.ApiException;
+import com.smartbatch360.desktop.batch.BatchCycleDto;
 import com.smartbatch360.desktop.batch.BatchDto;
+import com.smartbatch360.desktop.batch.BatchMaterialDto;
+import com.smartbatch360.desktop.batch.BatchStatus;
+import com.smartbatch360.desktop.common.ConfirmDialogs;
 import com.smartbatch360.desktop.common.NotificationBanner;
 import com.smartbatch360.desktop.driver.DriverApiClient;
 import com.smartbatch360.desktop.driver.DriverDto;
@@ -14,6 +18,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -28,7 +33,11 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Loading a batch, as the plant describes it: pick the order, pick the vehicle,
@@ -43,6 +52,12 @@ import java.util.List;
  * The customer, site and recipe are shown but never chosen here: they belong to
  * the order, and a batch that disagrees with the order it fulfils is what the
  * batch-to-order guards exist to prevent.
+ *
+ * While a batch is running the screen shows that batch instead, with its next
+ * cycle to type in - the plant runs one batch at a time, so there is nothing
+ * to load until it is done. That entry stands in for the PLC until it is
+ * connected: each cycle goes through the endpoint the PLC uses, and the last
+ * planned cycle completes the batch.
  */
 public class ProductionView {
 
@@ -73,25 +88,46 @@ public class ProductionView {
 
     private ProductionPlanDto plan;
 
+    private final VBox setupContent;
+    private final VBox runningContent;
+    private final Label runningSummary = new Label();
+    private final Label cycleProgress = new Label();
+    private final GridPane cycleEntry = new GridPane();
+    private final List<TextField> weighedFields = new ArrayList<>();
+    private final Button recordCycleButton = new Button();
+    private final Button stopBatchButton = new Button("Stop Batch");
+
+    /** The batch on screen while one is running, and the number its next cycle will carry. */
+    private BatchDto runningBatch;
+    private int nextCycle;
+
+    private record Running(BatchDto batch, List<BatchCycleDto> cycles) {
+    }
+
     public ProductionView() {
         PageHeader header = new PageHeader("Production",
                 "Load a batch against an order: the cycles and per-cycle quantity are worked out for you.");
 
-        VBox content = new VBox(12, buildSelectionCard(), buildSizeCard(), buildSetpointsCard(), buildActions());
-        content.setPadding(new Insets(0, 0, 12, 0));
+        setupContent = new VBox(12, buildSelectionCard(), buildSizeCard(), buildSetpointsCard(), buildActions());
+        setupContent.setPadding(new Insets(0, 0, 12, 0));
+        runningContent = new VBox(12, buildRunningCard());
+        runningContent.setPadding(new Insets(0, 0, 12, 0));
 
         VBox top = new VBox(10, header, banner);
         root.setTop(top);
-        root.setCenter(content);
+        root.setCenter(setupContent);
         root.getStyleClass().add("content-area");
 
         setupTable();
         loadReferenceLists();
+        loadRunningBatch();
 
         orderField.valueProperty().addListener((obs, old, order) -> onOrderChanged(order));
         batchSizeField.textProperty().addListener((obs, old, text) -> refreshPlan());
         startButton.setOnAction(e -> startProduction());
         startButton.setDisable(true);
+        recordCycleButton.setOnAction(e -> recordCycle());
+        stopBatchButton.setOnAction(e -> stopBatch());
     }
 
     private VBox buildSelectionCard() {
@@ -149,6 +185,29 @@ public class ProductionView {
         return actions;
     }
 
+    private VBox buildRunningCard() {
+        cycleEntry.setHgap(24);
+        cycleEntry.setVgap(6);
+        runningSummary.getStyleClass().add("line-total-value");
+        recordCycleButton.getStyleClass().add("button-primary");
+        recordCycleButton.setMinWidth(Region.USE_PREF_SIZE);
+        stopBatchButton.getStyleClass().add("button-danger");
+        stopBatchButton.setMinWidth(Region.USE_PREF_SIZE);
+
+        Label hint = new Label("Until the PLC is connected, type what each material weighed in this cycle - "
+                + "it starts at the setpoint. The last planned cycle completes the batch.");
+        hint.setWrapText(true);
+        hint.getStyleClass().add("page-header-subtitle");
+
+        HBox actions = new HBox(10, recordCycleButton, stopBatchButton);
+        actions.setPadding(new Insets(4, 0, 0, 0));
+
+        VBox card = new VBox(8, sectionTitle("Running batch - record each cycle as it is weighed"),
+                runningSummary, cycleProgress, hint, cycleEntry, actions);
+        card.getStyleClass().add("card");
+        return card;
+    }
+
     private void setupTable() {
         TableColumn<ProductionPlanDto.MaterialSetpointDto, String> nameCol = new TableColumn<>("Material");
         nameCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().materialName()));
@@ -175,9 +234,14 @@ public class ProductionView {
                 banner.showError("Orders could not be loaded: " + message(throwable));
                 return;
             }
-            orderField.setItems(FXCollections.observableArrayList(orders));
-            if (orders.isEmpty()) {
-                banner.showError("There are no orders yet. Add one before starting production.");
+            // Only orders that can still be produced against. A fulfilled or
+            // cancelled one would only be refused once picked.
+            List<OrderDto> open = orders.stream().filter(o -> o.status() != null && o.status().isOpen()).toList();
+            orderField.setItems(FXCollections.observableArrayList(open));
+            if (open.isEmpty()) {
+                banner.showError(orders.isEmpty()
+                        ? "There are no orders yet. Add one before starting production."
+                        : "Every order is fulfilled or cancelled. Add a new one before starting production.");
             }
         }));
 
@@ -272,12 +336,178 @@ public class ProductionView {
 
     private void onStarted(BatchDto batch) {
         banner.showSuccess("Batch " + batch.batchNumber() + " started: " + plan.cycles() + " cycles of "
-                + trim(plan.perCycleM3()) + " m3. The PLC reports each cycle as it runs.");
+                + trim(plan.perCycleM3()) + " m3. Record each cycle as it is weighed.");
         batchSizeField.clear();
         clearPlan();
-        // The order's remaining quantity has moved on now there is a batch against it.
+        // The order's remaining quantity and status have moved on now there is
+        // a batch against it.
         loadReferenceLists();
         orderField.getSelectionModel().clearSelection();
+        loadRunningBatch();
+    }
+
+    // ------------------------------------------------------------ running batch
+
+    /** Shows the running batch if there is one, and otherwise the screen for loading the next. */
+    private void loadRunningBatch() {
+        apiClient.running()
+                .thenCompose(batches -> batches.isEmpty()
+                        ? CompletableFuture.completedFuture((Running) null)
+                        : apiClient.cycles(batches.get(0).id()).thenApply(cycles -> new Running(batches.get(0), cycles)))
+                .whenComplete((running, throwable) -> Platform.runLater(() -> {
+                    if (throwable != null) {
+                        banner.showError("The running batch could not be loaded: " + message(throwable));
+                        showSetup();
+                    } else if (running == null) {
+                        showSetup();
+                    } else {
+                        showRunning(running.batch(), running.cycles());
+                    }
+                }));
+    }
+
+    private void showSetup() {
+        runningBatch = null;
+        root.setCenter(setupContent);
+    }
+
+    private void showRunning(BatchDto batch, List<BatchCycleDto> cycles) {
+        runningBatch = batch;
+        nextCycle = cycles.stream().map(BatchCycleDto::cycleNumber).filter(Objects::nonNull)
+                .max(Integer::compare).orElse(0) + 1;
+        Integer planned = batch.cycleNumber();
+
+        runningSummary.setText("Batch " + batch.batchNumber() + "  -  Order #" + batch.orderId() + ", "
+                + batch.recipeName() + ", " + trim(batch.batchSizeM3()) + " m3 on " + batch.vehicleNumber());
+        cycleProgress.setText(cycles.size() + (planned == null ? "" : " of " + planned) + " cycles recorded  -  "
+                + trim(batch.producedQuantity()) + " of " + trim(batch.targetQuantity()) + " kg produced so far");
+
+        cycleEntry.getChildren().clear();
+        weighedFields.clear();
+        cycleEntry.addRow(0, columnHeading("Material"), columnHeading("Setpoint per cycle (kg)"),
+                columnHeading("Weighed in cycle " + nextCycle + " (kg)"));
+        int row = 1;
+        for (BatchMaterialDto material : batch.materials()) {
+            TextField weighed = new TextField(material.setpoint() == null ? "" : material.setpoint().toPlainString());
+            weighed.setPrefColumnCount(9);
+            weighedFields.add(weighed);
+            cycleEntry.addRow(row++, new Label(material.materialName()), new Label(trim(material.setpoint())), weighed);
+        }
+
+        if (planned == null) {
+            recordCycleButton.setText("Record Cycle " + nextCycle);
+        } else if (nextCycle >= planned) {
+            recordCycleButton.setText("Record Last Cycle (" + nextCycle + " of " + planned + ")");
+        } else {
+            recordCycleButton.setText("Record Cycle " + nextCycle + " of " + planned);
+        }
+        setRunningControlsDisabled(false);
+        root.setCenter(runningContent);
+    }
+
+    private void recordCycle() {
+        BatchDto batch = runningBatch;
+        List<BatchCycleRequestDto.Material> materials = new ArrayList<>();
+        for (int i = 0; i < batch.materials().size(); i++) {
+            String name = batch.materials().get(i).materialName();
+            BigDecimal weighed = parseWeight(weighedFields.get(i).getText());
+            if (weighed == null) {
+                banner.showError("Enter what " + name + " weighed in kg: a number of at least 0, "
+                        + "with at most 2 decimal places.");
+                weighedFields.get(i).requestFocus();
+                return;
+            }
+            materials.add(new BatchCycleRequestDto.Material(name, weighed));
+        }
+
+        int cycleNumber = nextCycle;
+        setRunningControlsDisabled(true);
+        apiClient.recordCycle(new BatchCycleRequestDto(batch.batchNumber(), cycleNumber, Instant.now(), materials))
+                .thenCompose(recorded -> apiClient.batch(batch.id()))
+                .whenComplete((updated, throwable) -> Platform.runLater(() -> {
+                    if (throwable != null) {
+                        banner.showError(message(throwable));
+                        // Whatever happened, show the batch as it now stands.
+                        loadRunningBatch();
+                    } else if (updated.status() == BatchStatus.COMPLETED) {
+                        onCompleted(updated, cycleNumber);
+                    } else {
+                        banner.showSuccess("Cycle " + cycleNumber + " recorded for batch " + batch.batchNumber() + ".");
+                        loadRunningBatch();
+                    }
+                }));
+    }
+
+    /**
+     * The last planned cycle finished the batch. Said in a dialog rather than the
+     * banner, which clears itself after a few seconds - this is the moment the
+     * operator needs to know where the order stands.
+     */
+    private void onCompleted(BatchDto batch, int cycles) {
+        showSetup();
+        orderApiClient.list().whenComplete((orders, throwable) -> Platform.runLater(() -> {
+            String order = throwable != null ? "" : orders.stream()
+                    .filter(o -> o.id().equals(batch.orderId()))
+                    .findFirst()
+                    .map(o -> "\n\nOrder #" + o.id() + " is now " + o.status() + ": "
+                            + trim(o.producedQuantityKg()) + " of " + trim(o.quantityKg()) + " kg produced.")
+                    .orElse("");
+            Alert done = new Alert(Alert.AlertType.INFORMATION);
+            done.setTitle("Batch completed");
+            done.setHeaderText("Batch " + batch.batchNumber() + " is completed");
+            done.setContentText(cycles + " cycles, " + trim(batch.producedQuantity()) + " kg produced." + order
+                    + "\n\nIts report, with every cycle, is under Batch Reports.");
+            done.showAndWait();
+            loadReferenceLists();
+        }));
+    }
+
+    private void stopBatch() {
+        BatchDto batch = runningBatch;
+        int recorded = nextCycle - 1;
+        String ofPlanned = batch.cycleNumber() == null ? "" : " of " + batch.cycleNumber();
+        if (!ConfirmDialogs.confirm("Stop batch", "Stop batch " + batch.batchNumber() + "?",
+                recorded + ofPlanned + " cycles have been recorded. A stopped batch takes no more cycles "
+                        + "and cannot be completed afterwards.")) {
+            return;
+        }
+        setRunningControlsDisabled(true);
+        apiClient.stop(batch.id()).whenComplete((stopped, throwable) -> Platform.runLater(() -> {
+            if (throwable != null) {
+                banner.showError(message(throwable));
+                setRunningControlsDisabled(false);
+                return;
+            }
+            banner.showSuccess("Batch " + stopped.batchNumber() + " stopped after " + recorded + ofPlanned + " cycles.");
+            showSetup();
+            loadReferenceLists();
+        }));
+    }
+
+    private void setRunningControlsDisabled(boolean disabled) {
+        recordCycleButton.setDisable(disabled);
+        stopBatchButton.setDisable(disabled);
+    }
+
+    /** A weight as the API takes it: not negative, at most two decimal places. */
+    private BigDecimal parseWeight(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            BigDecimal value = new BigDecimal(text.trim());
+            boolean fits = value.signum() >= 0 && value.stripTrailingZeros().scale() <= 2
+                    && value.compareTo(new BigDecimal("999999.99")) <= 0;
+            return fits ? value : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private Label columnHeading(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("form-label");
+        return label;
     }
 
     private BigDecimal parseSize(String text) {

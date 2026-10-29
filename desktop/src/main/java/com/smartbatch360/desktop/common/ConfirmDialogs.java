@@ -17,4 +17,14 @@ public final class ConfirmDialogs {
         alert.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
         return alert.showAndWait().filter(result -> result == ButtonType.OK).isPresent();
     }
+
+    /** Any other action that cannot be taken back, such as stopping a running batch. */
+    public static boolean confirm(String title, String header, String content) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
+        return alert.showAndWait().filter(result -> result == ButtonType.OK).isPresent();
+    }
 }
