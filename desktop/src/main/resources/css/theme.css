@@ -683,3 +683,13 @@
     -fx-background-color: -sb-border;
     -fx-font-weight: bold;
 }
+
+/* A dialog whose content scrolls (Batch Reports > View): the scroll pane
+ * takes the dialog's own background rather than drawing a box of its own. */
+
+.dialog-scroll,
+.dialog-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
