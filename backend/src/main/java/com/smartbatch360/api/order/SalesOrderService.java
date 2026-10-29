@@ -102,9 +102,17 @@ public class SalesOrderService {
      * site to match the order's, so moving a fulfilled order to a different
      * recipe or customer would silently invalidate every batch already produced
      * against it - and the produced figures with them.
+     *
+     * A fulfilled order cannot be edited at all (28-Oct-2026, at the user's
+     * request). It is a finished record: what was delivered against it is
+     * settled, and raising its quantity could not reopen it - FULFILLED is
+     * final.
      */
     public SalesOrderResponse update(Long id, SalesOrderRequest request) {
         SalesOrder order = getOrThrow(id);
+        if (order.getStatus() == OrderStatus.FULFILLED) {
+            throw new InvalidRequestException("Order #" + id + " is FULFILLED, so it can no longer be edited.");
+        }
 
         Client client = clientRepository.findById(request.clientId())
                 .orElseThrow(() -> NotFoundException.forId("Client", request.clientId()));
@@ -188,6 +196,11 @@ public class SalesOrderService {
         // a mistake to be erased - cancel it instead.
         if (order.getStatus() == OrderStatus.IN_PROGRESS) {
             throw new ConflictException("Order #" + id + " is in progress and cannot be deleted. Cancel it instead.");
+        }
+        // A fulfilled order is a finished record (28-Oct-2026, at the user's
+        // request), whether or not batches were recorded against it.
+        if (order.getStatus() == OrderStatus.FULFILLED) {
+            throw new ConflictException("Order #" + id + " is FULFILLED, so it cannot be deleted.");
         }
         // Batches record what was actually produced; deleting the order they
         // point at would orphan that history.

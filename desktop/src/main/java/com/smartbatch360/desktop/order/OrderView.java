@@ -24,6 +24,9 @@ import java.util.List;
  * Status column were removed on 2026-10-03 at the user's request: fulfilment is
  * what the screen is for, and the Produced column measures that from the
  * order's batches. The lifecycle endpoints still exist on the API.
+ *
+ * Status came back on 28-Oct-2026, read-only, once it followed production by
+ * itself: the user wanted to see on this screen which orders are done.
  */
 public class OrderView {
 
@@ -67,6 +70,11 @@ public class OrderView {
         producedCol.setCellValueFactory(cd -> new SimpleStringProperty(
                 trim(cd.getValue().producedQuantityKg()) + " of " + trim(cd.getValue().quantityKg()) + " kg"));
 
+        // Read-only: production moves it - starting a batch, and finishing the
+        // one that covers the order. Nothing here sets it by hand.
+        TableColumn<OrderDto, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().status().name()));
+
         // This one table opts out of the shared CONSTRAINED policy. That
         // policy divides the width by column count and honours neither
         // prefWidth nor, in the end, the Actions minimum, so with seven
@@ -81,10 +89,14 @@ public class OrderView {
         sizeColumn(clientCol, 72);
         sizeColumn(siteCol, 60);
         sizeColumn(recipeCol, 90);
-        sizeColumn(producedCol, 78);
+        // Room for "10829.71 of 10800 kg" - at 78 a finished order read
+        // "10829.71 of...", which hid the very figure that says it is done.
+        sizeColumn(producedCol, 128);
+        // Wide enough for UNFULFILLED and IN_PROGRESS without an ellipsis.
+        sizeColumn(statusCol, 92);
 
         table.getColumns().setAll(List.of(idCol, clientCol, siteCol, recipeCol,
-                producedCol, buildActionsColumn()));
+                producedCol, statusCol, buildActionsColumn()));
     }
 
     /**
@@ -137,15 +149,18 @@ public class OrderView {
         Button edit = new Button("Edit");
         edit.getStyleClass().add("button-secondary");
         edit.setOnAction(e -> openEditDialog(order));
+        // A fulfilled order is finished; the backend refuses to edit it.
+        edit.setDisable(order.status() == OrderStatus.FULFILLED);
         buttons.add(edit);
 
-        // An in-progress order is history; the backend refuses to delete it.
-        if (order.status() != OrderStatus.IN_PROGRESS) {
-            Button delete = new Button("Delete");
-            delete.getStyleClass().add("button-danger");
-            delete.setOnAction(e -> confirmAndDelete(order));
-            buttons.add(delete);
-        }
+        // In progress or fulfilled, an order is history; the backend refuses to
+        // delete it. Shown disabled rather than left out, so every row carries
+        // the same two buttons.
+        Button delete = new Button("Delete");
+        delete.getStyleClass().add("button-danger");
+        delete.setOnAction(e -> confirmAndDelete(order));
+        delete.setDisable(order.status() == OrderStatus.IN_PROGRESS || order.status() == OrderStatus.FULFILLED);
+        buttons.add(delete);
         // Let the buttons keep their own width. An HBox will otherwise shrink
         // them to fit the column and ellipsise the labels, which is worse than
         // the table scrolling to reach them.

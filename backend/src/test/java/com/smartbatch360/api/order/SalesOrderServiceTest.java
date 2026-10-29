@@ -116,6 +116,21 @@ class SalesOrderServiceTest {
                 .hasMessageContaining("recipe");
     }
 
+    /** A fulfilled order is finished - not even its quantity changes. */
+    @Test
+    void updateRefusesAFulfilledOrder() {
+        SalesOrder order = orderWith(OrderStatus.FULFILLED);
+        when(clientRepository.findById(1L)).thenReturn(Optional.of(order.getClient()));
+        when(siteRepository.findById(2L)).thenReturn(Optional.of(order.getSite()));
+        when(recipeRepository.findById(3L)).thenReturn(Optional.of(order.getRecipe()));
+
+        assertThatThrownBy(() -> service().update(1L,
+                new SalesOrderRequest(1L, 2L, 3L, new BigDecimal("77.00"))))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("is FULFILLED");
+        assertThat(order.getQuantityKg()).isEqualByComparingTo("10");
+    }
+
     /** The quantity may still be corrected on an order already in production. */
     @Test
     void updateAllowsTheQuantityToChangeOnceBatchesExist() {
@@ -237,6 +252,17 @@ class SalesOrderServiceTest {
         assertThatThrownBy(() -> service().delete(1L))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Cancel it instead");
+        verify(salesOrderRepository, never()).delete(any());
+    }
+
+    /** Refused even with no batches against it - an order fulfilled by hand is still a finished record. */
+    @Test
+    void fulfilledOrderCannotBeDeleted() {
+        orderWith(OrderStatus.FULFILLED);
+        when(batchRepository.existsByOrderId(1L)).thenReturn(false);
+        assertThatThrownBy(() -> service().delete(1L))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("is FULFILLED");
         verify(salesOrderRepository, never()).delete(any());
     }
 
