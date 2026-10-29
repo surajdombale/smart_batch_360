@@ -37,3 +37,7 @@ config/smartbatch360.properties
 
 # Database dumps taken before a schema change - real data, never commit.
 backups/
+
+# Packaged releases (scripts/package-app.ps1) - each version kept in its own
+# folder and zip, outside target/ so a build never deletes an older one.
+releases/

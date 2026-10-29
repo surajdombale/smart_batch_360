@@ -2,17 +2,26 @@
 # Spring Boot backend embedded in one process (bundles its own Java runtime;
 # the target machine only needs MySQL, not Java or Maven).
 #
-# Named/versioned as "SmartBatch360 V7" (app version 7.0.0) so it installs
-# into its own folder alongside existing V1-V6 installs without colliding.
-# V7 (2026-10-06) is the first release built from the test developer's change
-# log: Company Details (renamed, with the batch report's letterhead fields and
-# a logo), a recipe total limit, Orders with Edit instead of lifecycle buttons,
-# the five simulated equipment statuses dropped, production planned in cubic
-# metres with a new Production screen (pick order and vehicle, enter the batch
-# size, cycles and setpoints calculated), and the per-cycle endpoint the PLC
-# reports into. Repackaged the same day with the single-batch report (the
-# "Report" button on Batch Reports) and the batch/cycle fields behind it. Bump
-# $AppName/$AppVersion here for future releases.
+# Named/versioned as "SmartBatch360 V8" (app version 8.0.0) so it installs
+# into its own folder alongside existing installs without colliding.
+# V8 (2026-10-28) carries everything since V7: Production as the plant runs it
+# (one batch at a time, driver chosen on screen), Settings > Plant Details, the
+# single-batch report as PDF or Excel, the redesigned Dashboard, the cycle grid
+# on Batch Reports > View, cycles typed in on Production for the running batch
+# (the last planned cycle completes it, Stop Batch beside it), order status
+# that follows production, a Status column on Orders, Production listing only
+# open orders, and fulfilled orders no longer editable. Rebuilt the same day,
+# at the user's request and still as V8, with the batch report PDF redesigned
+# after their sample (up to twenty materials, landscape past ten), the View
+# dialog fitted to the screen and scrolling both ways, and Delete disabled for
+# fulfilled orders. Bump $AppName, $AppVersion and $ZipName here for future
+# releases.
+#
+# Every release is kept. It is written to releases\<AppName> and
+# releases\<ZipName>, outside target\ - every build begins with `mvn clean`,
+# which wipes target\, and that is how earlier versions were lost when they
+# lived there. Rebuilding a version replaces that version only; no other
+# release is touched.
 #
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\package-app.ps1
 
@@ -20,8 +29,11 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $backend = Join-Path $root "backend"
 $desktop = Join-Path $root "desktop"
-$AppName = "SmartBatch360 V7"
-$AppVersion = "7.0.0"
+$AppName = "SmartBatch360 V8"
+$AppVersion = "8.0.0"
+$ZipName = "SmartBatch360-V8.zip"
+$releases = Join-Path $root "releases"
+$appImage = Join-Path $releases $AppName
 $IconPath = Join-Path $root "desktop\src\main\resources\images\app-icon.ico"
 
 Push-Location $backend
@@ -48,7 +60,10 @@ try {
     Copy-Item "target/smartbatch360-desktop.jar" "target/app-input/" -Force
     Copy-Item "target/libs/*.jar" "target/app-input/" -Force
 
-    Remove-Item -Recurse -Force "target/dist" -ErrorAction SilentlyContinue
+    # Only this version's own folder is cleared - jpackage will not write over
+    # an existing app image - so every other release stays as it is.
+    New-Item -ItemType Directory -Force -Path $releases | Out-Null
+    Remove-Item -Recurse -Force $appImage -ErrorAction SilentlyContinue
 
     Write-Host "Packaging with jpackage as '$AppName' (version $AppVersion)..."
     # Launcher (not DesktopApplication) is required as --main-class: the java
@@ -65,18 +80,18 @@ try {
         --main-jar smartbatch360-desktop.jar `
         --main-class com.smartbatch360.desktop.Launcher `
         --add-modules java.se,jdk.unsupported `
-        --dest target/dist `
+        --dest $releases `
         --app-version $AppVersion `
         --vendor "SmartBatch360" `
         --icon $IconPath `
-        --description "SmartBatch360 - Industrial Batching Plant Management System (V7: Materials, Recipes with a batch limit, Orders with fulfilment, Production, Batch Reports with PDF/Excel export and printing, Material Consumption with chart, Company Details - quantities in kg, loads planned in m3)"
+        --description "SmartBatch360 - Industrial Batching Plant Management System (V8: Materials, Recipes with a batch limit, Orders whose status follows production, Production with cycles recorded per batch, Batch Reports with every cycle on screen, in PDF and Excel, Material Consumption with chart, Dashboard, Company and Plant Details - quantities in kg, loads planned in m3)"
     if ($LASTEXITCODE -ne 0) { throw "jpackage failed" }
 
-    Copy-Item (Join-Path $root "scripts\SETUP_ON_NEW_PC.md") "target/dist/$AppName/" -Force
+    Copy-Item (Join-Path $root "scripts\SETUP_ON_NEW_PC.md") $appImage -Force
 
-    $zipPath = Join-Path $desktop "target\SmartBatch360-V7.zip"
+    $zipPath = Join-Path $releases $ZipName
     Remove-Item $zipPath -ErrorAction SilentlyContinue
-    Compress-Archive -Path "target/dist/$AppName" -DestinationPath $zipPath
+    Compress-Archive -Path $appImage -DestinationPath $zipPath
     Write-Host "Done: $zipPath"
 }
 finally {
