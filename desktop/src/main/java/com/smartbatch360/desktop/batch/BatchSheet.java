@@ -2,6 +2,7 @@ package com.smartbatch360.desktop.batch;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -27,12 +28,41 @@ public final class BatchSheet {
     public record Row(List<String> cells, boolean shaded) {
     }
 
+    /**
+     * One material's figures, as numbers, for a report that formats them itself.
+     *
+     * @param perCycleTarget   what one cycle aims at
+     * @param perCycleSetpoint what one cycle is set to
+     * @param targetTotal      what the whole load was planned to need; null for a material it never planned
+     * @param setpointTotal    what the machine was set to across the cycles recorded
+     * @param achievedTotal    what was weighed across them
+     */
+    public record MaterialFigures(String name, BigDecimal perCycleTarget, BigDecimal perCycleSetpoint,
+                                  BigDecimal targetTotal, BigDecimal setpointTotal, BigDecimal achievedTotal) {
+
+        /** Weighed beyond the load's target, or short of it when negative; null with no target to compare. */
+        public BigDecimal difference() {
+            return targetTotal == null ? null : achievedTotal.subtract(targetTotal);
+        }
+
+        /** The difference as a percentage of the target. */
+        public BigDecimal differencePercent() {
+            return percentOf(difference(), targetTotal);
+        }
+    }
+
+    /** One cycle, with what each material weighed in the order of materials(); null where it reported none. */
+    public record CycleFigures(Integer number, Instant time, List<BigDecimal> weighed, BigDecimal total) {
+    }
+
     /** What one material adds up to across the batch. */
     private static final class MaterialColumn {
         private final String name;
         private BigDecimal perCycleTarget;
         private BigDecimal perCycleSetpoint;
+        private BigDecimal plannedSetpoint;
         private BigDecimal setTotal;
+        private BigDecimal setpointTotal = BigDecimal.ZERO;
         private BigDecimal achievedTotal = BigDecimal.ZERO;
 
         private MaterialColumn(String name) {
@@ -137,6 +167,34 @@ public final class BatchSheet {
         return List.of(new Row(achieved, true), new Row(set, true), new Row(variance, true));
     }
 
+    public List<MaterialFigures> materials() {
+        return materials.values().stream()
+                .map(m -> new MaterialFigures(m.name, m.perCycleTarget, m.perCycleSetpoint, m.setTotal,
+                        m.setpointTotal, m.achievedTotal))
+                .toList();
+    }
+
+    public List<CycleFigures> cycles() {
+        List<CycleFigures> figures = new ArrayList<>();
+        for (BatchCycleDto cycle : cycles) {
+            Map<String, BigDecimal> weighed = new LinkedHashMap<>();
+            if (cycle.materials() != null) {
+                for (BatchCycleDto.Material material : cycle.materials()) {
+                    weighed.put(key(material.materialName()), material.achieved());
+                }
+            }
+            List<BigDecimal> values = new ArrayList<>();
+            BigDecimal total = BigDecimal.ZERO;
+            for (String materialKey : materials.keySet()) {
+                BigDecimal value = weighed.get(materialKey);
+                values.add(value);
+                total = value == null ? total : total.add(value);
+            }
+            figures.add(new CycleFigures(cycle.cycleNumber(), cycle.cycleTime(), values, total));
+        }
+        return figures;
+    }
+
     /** Everything the cycles weighed, in tonnes - the sheet's "Actual Produced Quantity". */
     public String producedTonnes() {
         BigDecimal kilograms = BigDecimal.ZERO;
@@ -159,6 +217,7 @@ public final class BatchSheet {
                         k -> new MaterialColumn(material.materialName()));
                 column.perCycleTarget = material.setpoint();
                 column.perCycleSetpoint = material.setpoint();
+                column.plannedSetpoint = material.setpoint();
                 column.setTotal = material.target();
             }
         }
@@ -171,6 +230,11 @@ public final class BatchSheet {
                         k -> new MaterialColumn(material.materialName()));
                 if (material.achieved() != null) {
                     column.achievedTotal = column.achievedTotal.add(material.achieved());
+                }
+                // A cycle that does not say what it was set to was set to the plan.
+                BigDecimal setTo = material.setpoint() != null ? material.setpoint() : column.plannedSetpoint;
+                if (setTo != null) {
+                    column.setpointTotal = column.setpointTotal.add(setTo);
                 }
                 // A cycle that carries its own target and setpoint says so
                 // better than the plan does; the first one stands for the row.
@@ -189,11 +253,15 @@ public final class BatchSheet {
 
     /** How far what was weighed is from what was set, as a percentage of what was set. */
     private static String variancePercent(BigDecimal achieved, BigDecimal set) {
-        if (set == null || set.signum() == 0) {
-            return "";
+        BigDecimal percent = percentOf(achieved == null || set == null ? null : achieved.subtract(set), set);
+        return percent == null ? "" : percent.toPlainString();
+    }
+
+    private static BigDecimal percentOf(BigDecimal part, BigDecimal whole) {
+        if (part == null || whole == null || whole.signum() == 0) {
+            return null;
         }
-        return achieved.subtract(set).multiply(BigDecimal.valueOf(100))
-                .divide(set, 2, RoundingMode.HALF_UP).toPlainString();
+        return part.multiply(BigDecimal.valueOf(100)).divide(whole, 2, RoundingMode.HALF_UP);
     }
 
     private static String key(String materialName) {

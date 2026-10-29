@@ -4,6 +4,7 @@ import com.smartbatch360.desktop.header.HeaderDto;
 import com.smartbatch360.desktop.header.HeaderLogoDto;
 import com.smartbatch360.desktop.header.HeaderStatus;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 
@@ -19,10 +20,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * The single-batch report. Drawn by hand like the list export, so the same
- * things are worth pinning down - a long batch spilling onto further pages, a
- * name the font cannot encode - plus the arithmetic the sheet does itself: the
- * totals down the cycles, the variance, and the tonnes at the foot.
+ * The single-batch report, laid out after the user's sample of 28-Oct-2026.
+ * Drawn by hand like the list export, so the same things are worth pinning
+ * down - a long batch spilling onto further pages, a name the font cannot
+ * encode - plus the arithmetic the sheet prints: the totals down the cycles,
+ * and each material's difference from its target.
  *
  * Samples are left in target/test-output so the layout can be looked at.
  */
@@ -78,25 +80,39 @@ class BatchSheetPdfExporterTest {
             String text = textOf(document);
 
             assertThat(document.getNumberOfPages()).isEqualTo(1);
-            assertThat(text).contains("Batch Report", "Company Name : SmartBatch Solutions", "Pin Code : 411014",
-                    "GST Number : 27ABCDE1234F1Z5", "Suraj", "Kharadi", "251006001", "MH12PQ3457", "Ganesh More",
-                    "M20 Concrete", "3.00 m3", "1.50 m3", "Cement", "Water", "TOTAL");
+            assertThat(text).contains("BATCH REPORT", "PRODUCTION BATCH SUMMARY", "Report Generated",
+                    "SmartBatch Solutions", "411014", "27ABCDE1234F1Z5");
+            assertThat(text).contains("1. GENERAL INFORMATION", "2. RECIPE / TARGET", "3. CYCLE DETAILS",
+                    "4. BATCH SUMMARY", "REMARKS", "Approved By");
+            assertThat(text).contains("Suraj", "Kharadi", "251006001", "MH12PQ3457", "Ganesh More", "M20 Concrete",
+                    "3.00 m³", "Cement", "Water", "TOTAL");
             // One cycle's row total, and the two cycles added down each column.
             assertThat(text).contains("301.00", "404.00", "198.00", "602.00");
         }
     }
 
+    /** A portrait page like the sample, for a recipe of ordinary size. */
+    @Test
+    void theReportIsPortraitA4() throws IOException {
+        try (PDDocument document = exporter.build(batch(2, "Suraj"), cycles(2, "202.00", "99.00"), company, null)) {
+            PDRectangle page = document.getPage(0).getMediaBox();
+            assertThat(page.getHeight()).isGreaterThan(page.getWidth());
+        }
+    }
+
     /**
-     * What was weighed against what was set, as a percentage of what was set:
-     * 404 against 400 is +1.00, 198 against 200 is -1.00, 602 against 600 is 0.33.
+     * What was weighed against the load's target: 404 of cement against 400 is
+     * +4.00, +1.00%; 198 of water against 200 is -2.00, -1.00%; the whole load,
+     * 602 against 600, is +2.00, +0.33%.
      */
     @Test
-    void theVarianceIsMeasuredAgainstTheSetTotal() throws IOException {
+    void eachMaterialIsMeasuredAgainstItsTarget() throws IOException {
         try (PDDocument document = exporter.build(batch(2, "Suraj"), cycles(2, "202.00", "99.00"), company, null)) {
             String text = textOf(document);
 
-            assertThat(text).contains("Var %", "1.00", "-1.00", "0.33");
-            assertThat(text).contains("Actual Produced Quantity : 0.60 TON");
+            assertThat(text).contains("+4.00", "+1.00%", "-2.00", "-1.00%", "+2.00", "+0.33%");
+            // The setpoint total is what the two cycles were each set to.
+            assertThat(text).contains("TARGET TOTAL (kg)", "SETPOINT TOTAL (kg)", "ACHIEVED TOTAL (kg)", "600.00");
         }
     }
 
@@ -111,16 +127,16 @@ class BatchSheetPdfExporterTest {
 
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
-            // Every cycle is there - each prints its own time, so count those.
+            // Every cycle is there - each prints its own row total, so count those.
             assertThat(text.split("300\\.00", -1).length - 1).isGreaterThanOrEqualTo(60);
             assertThat(text).contains("(continued)", "Page 1 of " + document.getNumberOfPages());
-            // The whole load: 60 cycles of 300 kg is 18 tonnes.
-            assertThat(text).contains("Actual Produced Quantity : 18.00 TON");
+            // The whole load: 60 cycles of 300 kg.
+            assertThat(text).contains("18,000.00");
 
-            // The totals stay on one page, so they can be read against each other.
+            // The summary and the totals stay together on the last page.
             stripper.setStartPage(document.getNumberOfPages());
             String lastPage = stripper.getText(document);
-            assertThat(lastPage).contains("Achieved", "Var %", "Actual Produced Quantity");
+            assertThat(lastPage).contains("4. BATCH SUMMARY", "ACHIEVED TOTAL (kg)", "REMARKS");
         }
     }
 
@@ -130,17 +146,82 @@ class BatchSheetPdfExporterTest {
             String text = textOf(document);
 
             assertThat(text).contains("No cycles have been recorded for this batch yet.");
-            assertThat(text).contains("Actual Produced Quantity : 0.00 TON");
-            // No company row is not an error either - the block is simply blank.
-            assertThat(text).contains("Company Name :");
+            // No company row is not an error either - the letterhead falls back to SmartBatch360.
+            assertThat(text).contains("SmartBatch360", "BATCH REPORT");
+        }
+    }
+
+    /** More materials than a portrait page can show readably turns the page. */
+    @Test
+    void aLargeRecipeIsPrintedLandscape() throws IOException {
+        List<BatchMaterialDto> materials = new ArrayList<>();
+        List<BatchCycleDto.Material> weighed = new ArrayList<>();
+        for (int i = 1; i <= 12; i++) {
+            materials.add(new BatchMaterialDto((long) i, "Material " + i, new BigDecimal("20.00"),
+                    new BigDecimal("10.00"), BigDecimal.ZERO, "kg"));
+            weighed.add(new BatchCycleDto.Material("Material " + i, null, null, new BigDecimal("10.00")));
+        }
+        BatchDto base = batch(1, "Suraj");
+        BatchDto wide = new BatchDto(base.id(), base.batchNumber(), base.recipeId(), base.recipeName(), base.orderId(),
+                base.clientId(), base.clientName(), base.siteId(), base.siteName(), base.vehicleId(),
+                base.vehicleNumber(), base.driverId(), base.driverName(), base.targetQuantity(),
+                base.producedQuantity(), base.remainingQuantity(), base.cycleDateTime(), base.cycleNumber(),
+                base.shift(), base.status(), materials, base.createdAt(), base.updatedAt(), base.batchSizeM3(),
+                base.perCycleM3());
+        List<BatchCycleDto> cycles = List.of(new BatchCycleDto(1L, 1, Instant.parse("2026-10-06T06:31:00Z"), weighed,
+                new BigDecimal("120.00")));
+
+        exporter.write(outputFile("batch-sheet-12-materials.pdf"), wide, cycles, company, null);
+        try (PDDocument document = exporter.build(wide, cycles, company, null)) {
+            PDRectangle page = document.getPage(0).getMediaBox();
+            assertThat(page.getWidth()).isGreaterThan(page.getHeight());
+            assertThat(textOf(document)).contains("Material 12");
+        }
+    }
+
+    /**
+     * Twenty materials - the most a recipe carries - still go across one
+     * landscape page, every figure printed: the recipe's target and setpoint,
+     * the cycle, and the batch total beneath it, for each of the twenty.
+     */
+    @Test
+    void twentyMaterialsStillFitAcrossTheLandscapePage() throws IOException {
+        List<BatchMaterialDto> materials = new ArrayList<>();
+        List<BatchCycleDto.Material> weighed = new ArrayList<>();
+        for (int i = 1; i <= 20; i++) {
+            materials.add(new BatchMaterialDto((long) i, "Crushed Sand " + i, new BigDecimal("10.00"),
+                    new BigDecimal("10.00"), BigDecimal.ZERO, "kg"));
+            weighed.add(new BatchCycleDto.Material("Crushed Sand " + i, null, null, new BigDecimal("10.00")));
+        }
+        BatchDto base = batch(1, "Suraj");
+        BatchDto wide = new BatchDto(base.id(), base.batchNumber(), base.recipeId(), base.recipeName(), base.orderId(),
+                base.clientId(), base.clientName(), base.siteId(), base.siteName(), base.vehicleId(),
+                base.vehicleNumber(), base.driverId(), base.driverName(), base.targetQuantity(),
+                base.producedQuantity(), base.remainingQuantity(), base.cycleDateTime(), base.cycleNumber(),
+                base.shift(), base.status(), materials, base.createdAt(), base.updatedAt(), base.batchSizeM3(),
+                base.perCycleM3());
+        List<BatchCycleDto> cycles = List.of(new BatchCycleDto(1L, 1, Instant.parse("2026-10-06T06:31:00Z"), weighed,
+                new BigDecimal("200.00")));
+
+        exporter.write(outputFile("batch-sheet-20-materials.pdf"), wide, cycles, company, null);
+        try (PDDocument document = exporter.build(wide, cycles, company, null)) {
+            PDRectangle page = document.getPage(0).getMediaBox();
+            assertThat(page.getWidth()).isGreaterThan(page.getHeight());
+
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setEndPage(1);
+            String firstPage = stripper.getText(document);
+            // Target, setpoint, the cycle and the batch total - four for each material.
+            assertThat(firstPage.split("10\\.00", -1).length - 1).isGreaterThanOrEqualTo(80);
+            assertThat(firstPage).contains("200.00");
         }
     }
 
     /** showText throws on a character the font cannot encode; one name must not fail the sheet. */
     @Test
     void aNameTheFontCannotEncodeDoesNotFailTheReport() throws IOException {
-        try (PDDocument document = exporter.build(batch(1, "श्री Cement ☃"), cycles(1, "200.00", "100.00"),
-                company, null)) {
+        try (PDDocument document = exporter.build(batch(1, "श्री Cement ☃"),
+                cycles(1, "200.00", "100.00"), company, null)) {
             assertThat(textOf(document)).contains("Cement");
         }
     }
@@ -152,7 +233,7 @@ class BatchSheetPdfExporterTest {
 
         try (PDDocument document = exporter.build(batch(1, "Suraj"), cycles(1, "200.00", "100.00"), company,
                 broken)) {
-            assertThat(textOf(document)).contains("Batch Report");
+            assertThat(textOf(document)).contains("BATCH REPORT");
         }
     }
 

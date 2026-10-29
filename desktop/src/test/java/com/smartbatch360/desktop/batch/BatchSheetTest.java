@@ -65,6 +65,27 @@ class BatchSheetTest {
         assertThat(sheet.producedTonnes()).isEqualTo("0.60");
     }
 
+    /**
+     * The printed summary's figures: the load's target, what the two cycles were
+     * set to (the plan's 200 each, since they did not say), what they weighed,
+     * and how far that is from the target.
+     */
+    @Test
+    void eachMaterialCarriesItsTotalsAndItsDifferenceFromTheTarget() {
+        BatchSheet sheet = BatchSheet.of(batch(), List.of(cycle(1, "202.00", "99.00"), cycle(2, "199.00", "101.00")));
+
+        BatchSheet.MaterialFigures cement = sheet.materials().get(0);
+        assertThat(cement.targetTotal()).isEqualByComparingTo("400.00");
+        assertThat(cement.setpointTotal()).isEqualByComparingTo("400.00");
+        assertThat(cement.achievedTotal()).isEqualByComparingTo("401.00");
+        assertThat(cement.difference()).isEqualByComparingTo("1.00");
+        assertThat(cement.differencePercent()).isEqualByComparingTo("0.25");
+
+        assertThat(sheet.cycles()).extracting(BatchSheet.CycleFigures::total)
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactly(new BigDecimal("301.00"), new BigDecimal("300.00"));
+    }
+
     /** A batch whose cycles have not arrived still shows what it is aiming at. */
     @Test
     void aBatchWithNoCyclesStillHasItsPlan() {
