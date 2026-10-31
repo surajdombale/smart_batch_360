@@ -48,6 +48,8 @@ These came from the user directly and still hold:
 - **Do not change the Resources tables or their behaviour** unless asked.
 - **Flyway owns the schema.** Migrations are additive; never edit an applied one.
 - **Commit messages carry no `Co-Authored-By` trailer.**
+- **Commit messages are short** - a subject and 2-3 lines saying what the
+  change is. The longer story goes in docs/06_SCOPE_AND_ROADMAP.md.
 - **Push each commit on its own** - commit, push, commit, push.
 
 ## Architecture
