@@ -87,8 +87,6 @@ public class BatchReportView {
     private final BatchReportPdfExporter pdfExporter = new BatchReportPdfExporter();
     private final BatchReportExcelExporter excelExporter = new BatchReportExcelExporter();
     private final BatchReportPrinter printer = new BatchReportPrinter(pdfExporter);
-    private final BatchSheetPdfExporter sheetExporter = new BatchSheetPdfExporter();
-    private final BatchSheetExcelExporter sheetExcelExporter = new BatchSheetExcelExporter();
     private final HeaderApiClient headerApiClient = new HeaderApiClient();
 
     /** What an export writes, independent of the format it writes it in. */
@@ -223,31 +221,24 @@ public class BatchReportView {
         TableColumn<BatchDto, String> statusCol = new TableColumn<>("Status");
         statusCol.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().status().name()));
 
+        // View alone: it previews the batch's report and downloads it, which the
+        // row's Report menu used to do without the preview (31-Oct-2026).
         TableColumn<BatchDto, Void> viewCol = new TableColumn<>("");
         viewCol.setSortable(false);
-        viewCol.setMinWidth(160);
+        viewCol.setMinWidth(90);
+        viewCol.setMaxWidth(90);
         viewCol.setCellFactory(col -> new TableCell<>() {
             private final Button viewButton = new Button("View");
-            private final MenuItem reportPdfItem = new MenuItem("Export PDF");
-            private final MenuItem reportExcelItem = new MenuItem("Export Excel");
-            private final MenuButton reportButton =
-                    new MenuButton("Report", null, reportPdfItem, reportExcelItem);
-            private final HBox buttons = new HBox(6, viewButton, reportButton);
 
             {
                 viewButton.getStyleClass().add("button-secondary");
                 viewButton.setOnAction(e -> viewBatch(getTableView().getItems().get(getIndex())));
-                reportButton.getStyleClass().add("button-secondary");
-                reportPdfItem.setOnAction(e ->
-                        exportBatchSheet(getTableView().getItems().get(getIndex()), SheetFormat.PDF));
-                reportExcelItem.setOnAction(e ->
-                        exportBatchSheet(getTableView().getItems().get(getIndex()), SheetFormat.EXCEL));
             }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : buttons);
+                setGraphic(empty ? null : viewButton);
             }
         });
 
@@ -328,40 +319,12 @@ public class BatchReportView {
     }
 
     /**
-     * One batch's details and its cycles. The cycles are fetched before the
-     * dialog opens, so it shows the whole grid rather than filling in after.
+     * The batch's report, previewed as PDF or Excel and downloaded from there.
+     * Its cycles and the company's letterhead are fetched before the dialog
+     * opens, so a batch that cannot be read says so here rather than opening
+     * on an empty preview.
      */
     private void viewBatch(BatchDto batch) {
-        banner.hide();
-        reportApiClient.cycles(batch.id()).whenComplete((cycles, throwable) -> Platform.runLater(() -> {
-            if (throwable != null) {
-                banner.showError(apiMessage(throwable));
-                return;
-            }
-            BatchDetailDialog.show(batch, cycles);
-        }));
-    }
-
-    /**
-     * The report for one batch: its cycles, under the company's letterhead.
-     * Everything is fetched before the save dialog opens, so a batch that
-     * cannot be read says so instead of leaving an empty file behind.
-     */
-    /** What one batch's report is written as. Both carry the same content. */
-    private enum SheetFormat {
-        PDF(".pdf", "PDF document"),
-        EXCEL(".xlsx", "Excel workbook");
-
-        private final String extension;
-        private final String description;
-
-        SheetFormat(String extension, String description) {
-            this.extension = extension;
-            this.description = description;
-        }
-    }
-
-    private void exportBatchSheet(BatchDto batch, SheetFormat format) {
         banner.hide();
 
         CompletableFuture<List<BatchCycleDto>> cycles = reportApiClient.cycles(batch.id());
@@ -376,34 +339,8 @@ public class BatchReportView {
                 banner.showError(apiMessage(throwable));
                 return;
             }
-            File file = chooseBatchSheetFile(batch, format);
-            if (file == null) {
-                return;   // cancelled at the save dialog
-            }
-            List<BatchCycleDto> batchCycles = cycles.join();
-            HeaderDto letterhead = company.join();
-            HeaderLogoDto letterheadLogo = logo.join();
-            CompletableFuture
-                    .runAsync(() -> {
-                        try {
-                            if (format == SheetFormat.PDF) {
-                                sheetExporter.write(file, batch, batchCycles, letterhead, letterheadLogo);
-                            } else {
-                                sheetExcelExporter.write(file, batch, batchCycles, letterhead);
-                            }
-                        } catch (IOException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    })
-                    .whenComplete((done, failure) -> Platform.runLater(() -> {
-                        if (failure != null) {
-                            banner.showError("Could not write the batch report: " + rootCauseMessage(failure));
-                        } else {
-                            banner.showSuccess("Batch " + batch.batchNumber() + " report saved to "
-                                    + file.getName() + " (" + batchCycles.size()
-                                    + (batchCycles.size() == 1 ? " cycle)." : " cycles)."));
-                        }
-                    }));
+            BatchPreviewDialog.show(root.getScene() == null ? null : root.getScene().getWindow(),
+                    batch, cycles.join(), company.join(), logo.join());
         }));
     }
 
@@ -418,22 +355,6 @@ public class BatchReportView {
             }
         }
         return companies.get(0);
-    }
-
-    private File chooseBatchSheetFile(BatchDto batch, SheetFormat format) {
-        FileChooser chooser = new FileChooser();
-        chooser.setTitle("Save Batch Report");
-        // A batch number can be typed by hand, so it may hold characters a
-        // file name cannot.
-        chooser.setInitialFileName("batch-report-"
-                + String.valueOf(batch.batchNumber()).replaceAll("[^A-Za-z0-9._-]", "_")
-                + format.extension);
-        chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter(format.description, "*" + format.extension));
-        File documents = new File(System.getProperty("user.home"), "Documents");
-        chooser.setInitialDirectory(documents.isDirectory()
-                ? documents : new File(System.getProperty("user.home")));
-        return chooser.showSaveDialog(root.getScene() == null ? null : root.getScene().getWindow());
     }
 
     /** Both buttons go quiet during an export, so two cannot race for the same data. */

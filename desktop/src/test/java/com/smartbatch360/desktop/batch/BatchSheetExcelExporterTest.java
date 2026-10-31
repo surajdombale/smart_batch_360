@@ -3,7 +3,9 @@ package com.smartbatch360.desktop.batch;
 import com.smartbatch360.desktop.header.HeaderDto;
 import com.smartbatch360.desktop.header.HeaderStatus;
 import org.dhatim.fastexcel.reader.Cell;
+import org.dhatim.fastexcel.reader.CellType;
 import org.dhatim.fastexcel.reader.ReadableWorkbook;
+import org.dhatim.fastexcel.reader.ReadingOptions;
 import org.dhatim.fastexcel.reader.Row;
 import org.dhatim.fastexcel.reader.Sheet;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,7 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -155,6 +158,95 @@ class BatchSheetExcelExporterTest {
         assertThat(rows.get(0).getCellAsString(0).orElse("")).isEqualTo("SmartBatch Solutions");
         assertThat(rows.stream().anyMatch(r -> r.getCellCount() > 0
                 && r.getCellAsString(0).orElse("").contains("411014"))).isTrue();
+    }
+
+    /**
+     * Batch Reports > View previews the layout and Download writes it, so the
+     * workbook must hold exactly what the layout says - every value, formula
+     * and date, and nothing besides.
+     */
+    @Test
+    void theWorkbookHoldsExactlyTheLayoutThePreviewDraws() throws IOException {
+        SpreadsheetLayout layout = exporter.layout(batch(), cycles(), company);
+        Path dir = Path.of("target", "test-output");
+        Files.createDirectories(dir);
+        File file = dir.resolve("batch-report-layout.xlsx").toFile();
+        exporter.write(file, layout);
+
+        List<Row> rows;
+        // Formats are read only on request; the date cells' are compared below.
+        try (ReadableWorkbook workbook = new ReadableWorkbook(file, new ReadingOptions(true, false))) {
+            rows = workbook.getFirstSheet().read();
+        }
+        int compared = 0;
+        for (Row row : rows) {
+            for (Cell cell : row) {
+                if (cell == null || cell.getType() == CellType.EMPTY) {
+                    continue;
+                }
+                SpreadsheetLayout.Cell expected = layout.cell(row.getRowNum() - 1, cell.getColumnIndex());
+                assertThat(expected).as("layout cell at %s", cell.getAddress()).isNotNull();
+                if (expected.formula() != null) {
+                    assertThat(cell.getType()).isEqualTo(CellType.FORMULA);
+                    assertThat(cell.getFormula()).isEqualTo(expected.formula());
+                } else if (expected.value() instanceof LocalDateTime time) {
+                    assertThat(cell.asDate()).as("date at %s", cell.getAddress()).isEqualTo(time);
+                    assertThat(cell.getDataFormatString()).isEqualTo(expected.format());
+                } else if (expected.value() instanceof Number number) {
+                    assertThat(cell.asNumber()).as("number at %s", cell.getAddress())
+                            .isEqualByComparingTo(new BigDecimal(number.toString()));
+                } else {
+                    assertThat(cell.getText()).as("text at %s", cell.getAddress())
+                            .isEqualTo(String.valueOf(expected.value()));
+                }
+                compared++;
+            }
+        }
+        assertThat(compared).isGreaterThan(30);
+    }
+
+    /** The preview has no Excel to work a formula out, so the layout carries the answer beside it. */
+    @Test
+    void aTotalCarriesTheSumItsFormulaWorksOutTo() {
+        SpreadsheetLayout layout = exporter.layout(batch(), cycles(), company);
+        int total = rowOf(layout, "Achieved total");
+
+        SpreadsheetLayout.Cell cement = layout.cell(total, 2);
+        assertThat(cement.formula()).startsWith("SUM(C");
+        assertThat(layout.number(total, 2)).isEqualByComparingTo("603");   // 201 + 202 + 200
+        assertThat(layout.number(total, 3)).isEqualByComparingTo("300");   // 101 + 100 + 99
+    }
+
+    @Test
+    void theVarianceIsWorkedOutAsItsFormulaWould() {
+        SpreadsheetLayout layout = exporter.layout(batch(), cycles(), company);
+        int variance = rowOf(layout, "% variance");
+
+        // Cement: 603 achieved against 600 set is 0.5% over; water is exactly on.
+        assertThat(layout.number(variance, 2)).isEqualByComparingTo("0.5");
+        assertThat(layout.number(variance, 3)).isEqualByComparingTo("0");
+        assertThat(layout.cell(variance, 2).format()).isEqualTo("0.00");
+    }
+
+    /**
+     * Excel shows a date too wide for its column as #####. The batch's date and
+     * time share column B with the cycle times, and B was once too narrow.
+     */
+    @Test
+    void theDateAndTimeColumnIsWideEnoughForADateAndTime() {
+        SpreadsheetLayout layout = exporter.layout(batch(), cycles(), company);
+
+        assertThat(layout.width(1)).isGreaterThanOrEqualTo((double) "yyyy-mm-dd hh:mm:ss".length());
+    }
+
+    private int rowOf(SpreadsheetLayout layout, String label) {
+        for (int row = 0; row <= layout.lastRow(); row++) {
+            SpreadsheetLayout.Cell cell = layout.cell(row, 0);
+            if (cell != null && label.equals(cell.value())) {
+                return row;
+            }
+        }
+        throw new AssertionError("no row labelled " + label);
     }
 
     /** A batch whose cycles have not been reported yet is still a valid report. */

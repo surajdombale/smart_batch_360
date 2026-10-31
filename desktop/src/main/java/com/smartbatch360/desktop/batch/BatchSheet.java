@@ -14,7 +14,9 @@ import java.util.Map;
 
 /**
  * The grid of one batch's report - cycles down, materials across - worked out
- * once, so the printed sheet and the View dialog cannot show different figures.
+ * once, for the printed sheet. View once drew its own copy of the grid from
+ * here; since 31-Oct-2026 it shows the PDF itself, so headings(), body(),
+ * hasCycles() and producedTonnes() are left with no caller but BatchSheetTest.
  *
  * Above the cycles, "Target" and "Set" are what ONE cycle aims at. Below them,
  * "Achieved", "Set" and "Var %" are the whole load.

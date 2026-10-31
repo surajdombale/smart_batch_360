@@ -675,21 +675,87 @@
     -fx-fill: #9aa3b2;
 }
 
-/* ---------- Batch cycle grid (Batch Reports > View) ----------
- * The same grid the printed batch report carries. Its headings and totals read
- * as one band, as the grey rows do on the sheet. */
+/* ---------- Batch report preview (Batch Reports > View) ----------
+ * The batch's report as it will be downloaded. PDF and Excel are one switch of
+ * two halves, the chosen half filled as a primary button is. */
 
-.batch-sheet-band {
-    -fx-background-color: -sb-border;
+.format-toggle .toggle-button {
+    -fx-background-color: -sb-card;
+    -fx-background-insets: 0;
+    -fx-border-color: -sb-border;
+    -fx-text-fill: -sb-text;
+    -fx-padding: 6 20 6 20;
+    -fx-cursor: hand;
+}
+
+.format-toggle .toggle-button:hover {
+    -fx-background-color: -sb-bg;
+}
+
+.format-toggle .toggle-button:selected {
+    -fx-background-color: -sb-blue;
+    -fx-border-color: -sb-blue;
+    -fx-text-fill: white;
     -fx-font-weight: bold;
 }
 
-/* A dialog whose content scrolls (Batch Reports > View): the scroll pane
- * takes the dialog's own background rather than drawing a box of its own. */
+.format-toggle .format-toggle-first {
+    -fx-background-radius: 4 0 0 4;
+    -fx-border-radius: 4 0 0 4;
+}
 
-.dialog-scroll,
-.dialog-scroll > .viewport {
-    -fx-background-color: transparent;
-    -fx-background-insets: 0;
-    -fx-padding: 0;
+.format-toggle .format-toggle-last {
+    -fx-background-radius: 0 4 4 0;
+    -fx-border-radius: 0 4 4 0;
+}
+
+.format-file {
+    -fx-text-fill: -sb-text-muted;
+}
+
+/* PDF: pages on grey, as a PDF reader shows them. */
+
+.pdf-scroll,
+.pdf-scroll > .viewport {
+    -fx-background-color: #dfe3ea;
+}
+
+.pdf-page {
+    -fx-effect: dropshadow(gaussian, rgba(20, 30, 60, 0.25), 8, 0, 0, 2);
+}
+
+/* Excel: the sheet as Excel draws it - grey headings, light gridlines, one tab. */
+
+.sheet-scroll,
+.sheet-scroll > .viewport {
+    -fx-background-color: white;
+}
+
+.sheet-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent #e1e1e1 #e1e1e1 transparent;
+    -fx-padding: 0 3 1 3;
+    -fx-text-fill: black;
+}
+
+.sheet-heading {
+    -fx-background-color: #f3f3f3;
+    -fx-border-color: transparent #c9c9c9 #c9c9c9 transparent;
+    -fx-text-fill: #444444;
+    -fx-font-size: 11px;
+}
+
+.sheet-tabs {
+    -fx-background-color: #f3f3f3;
+    -fx-border-color: #c9c9c9 transparent transparent transparent;
+    -fx-padding: 0 0 0 40;
+}
+
+.sheet-tab {
+    -fx-background-color: white;
+    -fx-border-color: transparent #c9c9c9 #1e7145 #c9c9c9;
+    -fx-border-width: 0 1 2 1;
+    -fx-padding: 3 16 3 16;
+    -fx-text-fill: #1e7145;
+    -fx-font-weight: bold;
 }

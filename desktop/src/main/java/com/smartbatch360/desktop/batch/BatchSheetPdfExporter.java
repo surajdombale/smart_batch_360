@@ -36,7 +36,8 @@ import java.util.Objects;
  * with the whole load's totals in a strip beneath. BatchReportPdfExporter
  * beside this writes the LIST of batches; this is the sheet for one load.
  *
- * Every figure comes from BatchSheet, which the View dialog draws from too.
+ * Every figure comes from BatchSheet. Batch Reports > View previews this very
+ * document, rendered page by page, and its Download saves the same bytes.
  *
  * Three things differ from the sample on purpose. The letterhead is the
  * company from Company Details - its logo and name - as this report has always
