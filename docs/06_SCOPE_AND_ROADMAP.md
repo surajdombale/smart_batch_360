@@ -178,6 +178,17 @@ The current phase is intentionally small:
   - Found while checking it on screen: the theme gives every node Segoe UI, which outranks an inline -fx-font-family, so the grid first drew in Segoe - wider than Calibri - and cut short text Excel shows whole. The cells now set the -fx-font shorthand, which does win (measured).
   - Checked against the real database by opening the dialog on batches 261028003 (stopped, one cycle), 261028005 (27 cycles) and 12 (ten materials, 20 cycles), in both formats, on the user's 1280 x 752 screen: the dialog opens at 1015 x 639, Download is enabled once the preview is ready, and the saved workbook carries the widths, frozen header and formulas. The first PDF after the app starts takes 3-4 s to prepare (a spinner shows); later ones under a second.
   - Still open, and now visible side by side: the Excel sheet's Target row is the whole load where the PDF prints the per-cycle target (see 28-Oct). Unchanged, as before - the user's call.
+- The company logo: saved, but reported as failed — 01-Nov-2026, reported by the user. Edit Company said "the logo could not be uploaded: The server returned an unexpected response", yet the logo was stored and showed as set on reopening. The upload answers 204 with no body, and the desktop client read every reply as JSON. A call that expects no reply now takes none. It was the only such call, so nothing else was affected; the bug dates from the logo's arrival on 05-Oct and is in V8.
+  - The logo itself always reached the batch report. The user's report showed the SmartBatch360 icon because no logo had been stored yet when it was drawn; with the logo uploaded at 00:10, View on 261028003 prints it in the letterhead.
+  - Checked against the running app: the fixed client re-saved company 1's own logo, reported success, and the stored image came back byte-identical. ApiClientTest's 204 case fails with the user's exact message on the old client.
+  - Noticed, not changed: Company Details never shows the logo (only "A logo is set." on reopening Edit), and nothing on screen can remove one, though the API can. The user set both aside for now.
+
+### Backlog - waiting on the user's decision
+
+- How many companies Company Details holds — raised 01-Nov-2026. It allows any number, from the 17-Aug definition ("one per plant/branch", docs/01_REQUIREMENTS.md), but only one is ever used: the batch report prints the first ACTIVE company, or the first of all when none is active (BatchReportView.letterheadFrom), and no batch, order, recipe or site records a company. A second company can be saved and never printed. The user is choosing between two designs; do not build either until they say which.
+  1. Several companies, one active. Five or six companies, each with its own name, logo and GSTIN, and exactly one ACTIVE at a time; the active one is the letterhead on every batch report. Today two can be ACTIVE at once and the lower id wins silently, so this needs "only one active" enforced - activating one deactivates the rest, or the API refuses a second. Note for the decision: reports are drawn when opened, so switching the active company changes the letterhead on old batches' reports too.
+  2. One company only. Company Details becomes a single form - no table, no Add, no second entry - and that company is the letterhead for every batch.
+  - Related rows in the tester's sheet: 20 ("Add Company id") and 21 ("one Company under Admin Control", which also needs authentication, still deferred).
 
 ### Do not build now
 - Analytics
