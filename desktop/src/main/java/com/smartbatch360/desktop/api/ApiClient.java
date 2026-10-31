@@ -38,11 +38,16 @@ public class ApiClient {
     private final String baseUrl;
 
     public ApiClient() {
+        this(AppConfig.get().apiBaseUrl());
+    }
+
+    /** Against a given server - for tests, which cannot move the app's configured one. */
+    ApiClient(String baseUrl) {
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.baseUrl = AppConfig.get().apiBaseUrl();
+        this.baseUrl = baseUrl;
     }
 
     public <T> CompletableFuture<List<T>> getList(String path, Class<T> elementType) {
@@ -170,6 +175,13 @@ public class ApiClient {
     }
 
     private <T> T read(String body, Class<T> type) {
+        // Void asks for no reply, and gets none: the logo upload answers 204
+        // with an empty body, which Jackson cannot read as anything, so a
+        // logo that HAD been saved was reported as "an unexpected response"
+        // (01-Nov-2026).
+        if (type == Void.class) {
+            return null;
+        }
         try {
             return objectMapper.readValue(body, type);
         } catch (IOException e) {
